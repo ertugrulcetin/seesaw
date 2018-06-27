@@ -18,3 +18,5 @@ autodoc/**
 .clj-kondo/.cache
 .lsp/.cache
 .portal/vs-code.edn
+.idea/
+*.iml
