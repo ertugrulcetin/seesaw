@@ -21,3 +21,4 @@ autodoc/**
 .idea/
 *.iml
 src/seesaw/wiki
+*.iml
