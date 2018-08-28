@@ -20,3 +20,4 @@ autodoc/**
 .portal/vs-code.edn
 .idea/
 *.iml
+src/seesaw/wiki
