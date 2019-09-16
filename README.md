@@ -4,13 +4,13 @@ It's a fork of [seesaw](https://github.com/daveray/seesaw). This fork has virtua
 ```clojure
 (ns seesaw.ex
   (:require [seesaw.core :as s]
-            [seesaw.options :refer [satom]]))
+            [seesaw.options :refer [satom get-k]]))
 
 (def app-state (satom {:title "my-title"
                        :size [200 :by 325]}))
 
-(def ff (s/frame :title (seesaw.options/get-k app-state :title)
-                 :size (seesaw.options/get-k app-state :size)
+(def ff (s/frame :title (get-k app-state :title)
+                 :size (get-k app-state :size)
                  :visible? true))
 
 (swap! app-state update :title (constantly "helloo"))
