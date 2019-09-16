@@ -53,18 +53,11 @@ _There are numerous Seesaw examples in [test/seesaw/test/examples](https://githu
 
 Here's how you use Seesaw with [Leiningen](https://github.com/technomancy/leiningen)
 
-Install `lein` as described and then:
-
-    $ lein new hello-seesaw
-    $ cd hello-seesaw
 
 Add Seesaw to `project.clj`
 
 ```clojure
-(defproject hello-seesaw "1.0.0-SNAPSHOT"
-  :description "FIXME: write"
-  :dependencies [[org.clojure/clojure "1.4.0"]
-                [seesaw "x.y.z"]])
+[new-seesaw "0.1.0"]
 ```
 
 _Replace the Seesaw version with whatever the latest version tag is. See below!_
