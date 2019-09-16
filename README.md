@@ -1,5 +1,5 @@
 ## Seesaw with virtual dom
-It's a fork of [seesaw](https://github.com/daveray/seesaw). This fork has virtual dom feature like **React.js**.
+It's a fork of [seesaw](https://github.com/daveray/seesaw). This fork has virtual dom feature like **React.js** does.
 
 ```clojure
 (ns seesaw.ex
