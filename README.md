@@ -57,7 +57,7 @@ Here's how you use Seesaw with [Leiningen](https://github.com/technomancy/leinin
 Add Seesaw to `project.clj`
 
 ```clojure
-[new-seesaw "0.1.0"]
+[new-seesaw "0.1.1"]
 ```
 
 _Replace the Seesaw version with whatever the latest version tag is. See below!_
