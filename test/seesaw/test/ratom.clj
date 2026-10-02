@@ -206,3 +206,33 @@
                              (deliver on-edt (javax.swing.SwingUtilities/isEventDispatchThread)))))
       @(future (reset! a "y"))
       (expect (deref on-edt 2000 false)))))
+
+(defdescribe two-way-binding-test
+  (it "lets a text field write its text to the ratom it's bound to"
+    (let [db (ratom {:q ""})
+          errors (atom [])
+          t (core/text :text (subscribe db [:q]))]
+      (core/listen t :document
+                   (fn [_] (try (swap! db assoc :q (core/text t))
+                                (catch Throwable e (swap! errors conj e)))))
+      (invoke-now (.insertString (.getDocument t) 0 "abc" nil))
+      (invoke-now nil)
+      (expect (= "abc" (:q @db)))
+      (expect (= "abc" (core/text t)))
+      (expect (empty? @errors))
+      (swap! db assoc :q "xyz")
+      (invoke-now nil)
+      (expect (= "xyz" (core/text t))))))
+
+(defdescribe nested-subscription-test
+  (it "notifies when a handler derefs another subscription"
+    (let [db (ratom {:items [1 2 3] :min 0})
+          _  (reg-sub ::big (fn [db _] (filterv #(> % (:min db)) (:items db))))
+          _  (reg-sub ::count-big (fn [_ _] (count @(subscribe db [::big]))))
+          seen (atom [])
+          s  (subscribe db [::count-big])]
+      (add-watch s :w (fn [_ _ o n] (swap! seen conj [o n])))
+      (swap! db assoc :min 1)
+      (swap! db assoc :min 2)
+      (swap! db assoc :other true)
+      (expect (= [[3 2] [2 1]] @seen)))))

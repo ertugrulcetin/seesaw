@@ -53,7 +53,8 @@
   "Create an icon painted by a function, e.g. a small vector glyph that
   follows the theme.
 
-    (paint-icon 16 16 (fn [c g] ...))   ; or (paint-icon 16 (fn [c g] ...))
+    (paint-icon 16 (fn [c g] ...))          ; square
+    (paint-icon 20 16 (fn [c g] ...) :color :red)
 
   (paint c g) is called with the component the icon is painted on and a
   java.awt.Graphics2D translated to the icon's top-left corner, anti-aliased,
@@ -67,8 +68,11 @@
     :disabled-color  Color used when the component is disabled (default:
             the component's foreground with reduced alpha)
   "
-  ([size paint] (paint-icon size size paint))
-  ([width height paint & {:keys [color disabled-color]}]
+  [width & args]
+  ; (paint-icon size paint & opts) or (paint-icon width height paint & opts)
+  (let [[height paint & {:keys [color disabled-color]}] (if (fn? (first args))
+                                                          (cons width args)
+                                                          args)]
    (let [color (some-> color ((requiring-resolve 'seesaw.color/to-color)))
          disabled-color (some-> disabled-color ((requiring-resolve 'seesaw.color/to-color)))]
      (reify javax.swing.Icon

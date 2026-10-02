@@ -119,7 +119,7 @@ seesaw.options
         (unbind)
         (put-meta! target binding-key nil))
       (if (ratom/reactive? v)
-        (put-meta! target binding-key (ratom/bind! target setter v))
+        (put-meta! target binding-key (ratom/bind! target setter v (:getter opt)))
         (setter target v)))
     (illegal-argument "No setter found for option %s" (:name opt))))
 

@@ -115,7 +115,12 @@
 
   Pass :mac? true or false to choose the convention explicitly."
   [ks & {:keys [mac?] :or {mac? mac?}}]
-  (let [^KeyStroke ks (keystroke ks)
+  (let [; "menu" means the menu key of the convention being shown, not of
+        ; the machine this runs on
+        ks (if (string? ks)
+             (clojure.string/replace ks #"\b(menu|cmd)\b" (if mac? "meta" "ctrl"))
+             ks)
+        ^KeyStroke ks (keystroke ks)
         mods (.getModifiers ks)
         held (fn [table] (for [[mask s] table :when (pos? (bit-and mods mask))] s))]
     (if mac?

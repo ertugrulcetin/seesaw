@@ -12,10 +12,14 @@
 
 (defn ^java.util.prefs.Preferences 
   preferences-node*
-  "Return the java.util.prefs.Preferences/userRoot for the specified
-namespace."
+  "Return the java.util.prefs.Preferences/userRoot node for the specified
+  namespace, or for a node name given as a string, symbol or keyword."
   ([ns]
-     (.node (java.util.prefs.Preferences/userRoot) (str (ns-name ns)))))
+     (.node (java.util.prefs.Preferences/userRoot)
+            ^String (cond
+                      (instance? clojure.lang.Namespace ns) (str (ns-name ns))
+                      (keyword? ns) (name ns)
+                      :else (str ns)))))
 
 (defmacro preferences-node
   "Return the java.util.prefs.Preferences/userRoot for the current

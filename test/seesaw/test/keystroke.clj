@@ -54,6 +54,8 @@
     (expect (= "\u2318\u21A9" (label "meta ENTER" :mac? true))))
   (it "uses names elsewhere"
     (expect (= "Ctrl+Shift+G" (label "ctrl shift G" :mac? false)))
+    (expect (= "Ctrl+N" (label "menu N" :mac? false)))
+    (expect (= "\u2318N" (label "menu N" :mac? true)))
     (expect (= "Enter" (label "ENTER" :mac? false)))
     (expect (= "Ctrl+PgDn" (label "ctrl PAGE_DOWN" :mac? false)))
     (expect (= "Alt+F4" (label "alt F4" :mac? false)))

@@ -74,6 +74,16 @@
   (let [layout (.getLayout panel)]
     (map #(vector % (border-layout-dirs-r (get-constraint* layout panel %))) (.getComponents panel))))
 
+(defn- set-border-region
+  "Put w in a BorderLayout region, replacing what was there. nil just clears
+  the region."
+  [^java.awt.Container panel constraint w]
+  (when-let [old (.getLayoutComponent ^java.awt.BorderLayout (.getLayout panel) constraint)]
+    (.remove panel ^java.awt.Component old))
+  (if (nil? w)
+    (handle-structure-change panel)
+    (add-widget panel w constraint)))
+
 (def border-layout-options
   (merge
     (option-map
@@ -91,7 +101,7 @@
         ['[(label "North") :north (button :text "South") :south]]))
     (apply option-map
            (map
-             (fn [[k v]] (default-option k #(add-widget %1 %2 v)))
+             (fn [[k v]] (default-option k #(set-border-region %1 v %2)))
              border-layout-dirs)) ))
 
 (option-provider java.awt.BorderLayout border-layout-options)

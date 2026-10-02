@@ -91,26 +91,32 @@
         (reset! cache [src v])
         v))))
 
-(defn- old-value [cache f src]
-  (let [[s v] @cache]
-    (if (identical? s src) v (f src))))
-
 (defprotocol ^{:private true} Refreshable
   (-refresh! [this] "Recompute the value, e.g. after its function changed, and
                      notify watchers if it differs."))
 
-(deftype Reaction [source f cache watches]
+(defn- notify-change!
+  "Recompute and tell watchers if the value differs from what they last saw.
+  Comparing against the last notified value (rather than recomputing f on the
+  old source value) also works when f reads other reactive state, e.g. a
+  subscription handler that derefs another subscription."
+  [this cache f source last watches]
+  (let [new (memo-value cache f @source)
+        [old] (reset-vals! last new)]
+    (when-not (= old new)
+      (doseq [[k watch] @watches]
+        (watch k this old new)))))
+
+; last holds the value watchers were last told about
+(deftype Reaction [source f cache watches last]
   Reactive
 
   Refreshable
   (-refresh! [this]
-    (let [[[_ old]] (reset-vals! cache [no-value nil])]
-      (when (seq @watches)
-        (let [new (memo-value cache f @source)]
-          (when-not (= old new)
-            (doseq [[k watch] @watches]
-              (watch k this old new)))))
-      this))
+    (reset! cache [no-value nil])
+    (when (seq @watches)
+      (notify-change! this cache f source last watches))
+    this)
 
   IDeref
   (deref [_] (memo-value cache f @source))
@@ -122,14 +128,11 @@
       ; watch the source only while this reaction has watchers of its own, so
       ; an unused reaction can be garbage collected
       (when (empty? before)
+        (reset! last (memo-value cache f @source))
         (add-watch source this
-                   (fn [_ _ o n]
-                     (let [o (old-value cache f o)
-                           n (memo-value cache f n)]
-                       ; watchers only hear about changes to the derived value
-                       (when-not (= o n)
-                         (doseq [[k watch] @watches]
-                           (watch k this o n))))))))
+                   (fn [_ _ _ _]
+                     ; watchers only hear about changes to the derived value
+                     (notify-change! this cache f source last watches)))))
     this)
   (removeWatch [this k]
     (let [[before after] (swap-vals! watches dissoc k)]
@@ -147,7 +150,7 @@
 
     (reaction app-db #(count (:todos %)))"
   [source f]
-  (Reaction. source f (atom [no-value nil]) (atom {})))
+  (Reaction. source f (atom [no-value nil]) (atom {}) (atom nil)))
 
 ;*******************************************************************************
 ; re-frame style subscriptions
@@ -249,16 +252,29 @@
   "Call (setter target @source) now, then again on the Swing thread whenever
   source changes. The binding only holds a weak reference to target so it
   doesn't keep discarded widgets alive. Returns a function that removes the
-  binding."
-  [target setter source]
-  (let [k       (gensym "seesaw-ratom-binding")
-        target  (WeakReference. target)
-        unbind  #(remove-watch source k)]
-    (add-watch source k
-               (fn [_ _ o n]
-                 (if-let [t (.get target)]
-                   (when-not (= o n)
-                     (invoke-soon* setter t n))
-                   (unbind))))
-    (setter (.get target) @source)
-    unbind))
+  binding.
+
+  If getter is given, the setter is skipped when (getter target) already
+  equals the new value. That makes two-way bindings safe: a text field that
+  writes its text to the ratom from a document listener isn't set again
+  (Swing forbids changing a document while notifying its listeners)."
+  ([target setter source] (bind! target setter source nil))
+  ([target setter source getter]
+   (let [k       (gensym "seesaw-ratom-binding")
+         target  (WeakReference. target)
+         unbind  #(remove-watch source k)
+         current (fn [t]
+                   (if getter
+                     (try (getter t) (catch Exception _ ::unknown))
+                     ::unknown))
+         set!    (fn [t v]
+                   (when-not (= v (current t))
+                     (setter t v)))]
+     (add-watch source k
+                (fn [_ _ o n]
+                  (if-let [t (.get target)]
+                    (when-not (= o n)
+                      (invoke-soon* set! t n))
+                    (unbind))))
+     (setter (.get target) @source)
+     unbind)))

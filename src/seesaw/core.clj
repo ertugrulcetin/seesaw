@@ -1032,6 +1032,11 @@
     (default-option :text set-text get-text ["A string" "Anything accepted by (clojure.core/slurp)"])
 
     (default-option :drag-enabled? set-drag-enabled get-drag-enabled boolean-examples)
+    (default-option :selection
+                    #(selection! %1 %2)
+                    #(selection %1)
+                    ["The widget's selection, as with (seesaw.core/selection!)"
+                     "Handy with a ratom subscription: (spinner :selection (subscribe [:volume]))"])
     (bean-option :transfer-handler JComponent
                  seesaw.dnd/to-transfer-handler
                  identity
@@ -1883,6 +1888,7 @@
                       #(.getCellRenderer ^javax.swing.JList %1))
       (selection-mode-option list-selection-mode-table)
       (bean-option :fixed-cell-height javax.swing.JList)
+      (bean-option :visible-row-count javax.swing.JList)
       (layout-orientation-option list-layout-orientation-table)
       (bean-option :drop-mode javax.swing.JList keyword-to-drop-mode drop-mode-to-keyword (keys keyword-to-drop-mode)))))
 

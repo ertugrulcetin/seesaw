@@ -59,3 +59,8 @@
           i (paint-icon 4 4 (fn [c g] (reset! seen (.getColor g))) :color :blue)]
       (.paintIcon i (javax.swing.JLabel.) (.createGraphics (g/buffered-image 4 4)) 0 0)
       (expect (= java.awt.Color/BLUE @seen)))))
+
+(defdescribe paint-icon-arity-test
+  (it "accepts options after a square size"
+    (let [i (paint-icon 14 (fn [_ _]) :color :red)]
+      (expect (= [14 14] [(.getIconWidth i) (.getIconHeight i)])))))

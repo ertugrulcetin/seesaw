@@ -27,3 +27,16 @@
       (expect (= :second w1))
       (expect (= 100.0 (.weightx c1)))
       (expect (= 555.0 (.weighty c1))))))
+
+(defdescribe border-region-test
+  (it "replaces the widget in a region instead of keeping both"
+    (let [a (seesaw.core/label "a")
+          b (seesaw.core/label "b")
+          p (seesaw.core/border-panel :center a)]
+      (seesaw.core/config! p :center b)
+      (expect (= [b] (vec (.getComponents p))))))
+  (it "clears a region given nil"
+    (let [p (seesaw.core/border-panel :north "n" :south nil :center "c")]
+      (expect (= 2 (count (.getComponents p))))
+      (seesaw.core/config! p :north nil)
+      (expect (= 1 (count (.getComponents p)))))))
