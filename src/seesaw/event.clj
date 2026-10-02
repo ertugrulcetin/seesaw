@@ -12,7 +12,8 @@
             Use (seesaw.core/listen) instead."
       :author "Dave Ray"}
   seesaw.event
-  (:require [seesaw.meta :refer [put-meta! get-meta]]
+  (:require [clojure.string]
+            [seesaw.meta :refer [put-meta! get-meta]]
             [seesaw.util :refer [camelize illegal-argument to-seq check-args]])
   (:import (javax.swing.event ChangeListener
             CaretListener DocumentListener
@@ -78,6 +79,11 @@
   javax.swing.SpinnerModel
   javax.swing.JSpinner
   javax.swing.ButtonModel)
+
+(extend-protocol AddChangeListener
+  javax.swing.JColorChooser
+    (add-change-listener [this l]
+      (.addChangeListener (.getSelectionModel this) l)))
 
 (extend-listener-protocol AddActionListener add-action-listener addActionListener
   javax.swing.JFileChooser
@@ -342,6 +348,27 @@
 
 (defmulti reify-listener (fn [& args] (first args)))
 
+(declare fire)
+
+(defn- method-event-name [^java.lang.reflect.Method m]
+  ; tableChanged -> :table-changed
+  (keyword (clojure.string/lower-case
+             (clojure.string/replace (.getName m) #"([a-z0-9])([A-Z])" "$1-$2"))))
+
+; Any other listener interface, through a dynamic proxy
+(defmethod reify-listener :default [^Class c hs]
+  (java.lang.reflect.Proxy/newProxyInstance
+    (.getClassLoader c)
+    (into-array Class [c])
+    (reify java.lang.reflect.InvocationHandler
+      (invoke [this proxy m args]
+        (let [^java.lang.reflect.Method m m]
+          (case (.getName m)
+            "equals"   (identical? proxy (first args))
+            "hashCode" (int (System/identityHashCode proxy))
+            "toString" (str "seesaw listener " (.getName c))
+            (do (fire hs (method-event-name m) (first args)) nil)))))))
+
 (defn- fire [hs ev-name e]
   (doseq [h (@hs ev-name)] (h e)))
 
@@ -409,10 +436,31 @@
   (when-let [hs (get-handlers* target event-group-name)]
     @hs))
 
+(defn- generic-event-group
+  "An event group for event-name built from target's addXxxListener methods,
+  for listener types that aren't in event-groups"
+  [target event-name]
+  (first
+    (for [^java.lang.reflect.Method add (.getMethods (class target))
+          :let [params (.getParameterTypes add)]
+          :when (and (= 1 (count params))
+                     (.startsWith (.getName add) "add")
+                     (.endsWith (.getName add) "Listener")
+                     (.isInterface ^Class (first params))
+                     (.isAssignableFrom java.util.EventListener (first params)))
+          :let [^Class iface (first params)
+                events (set (map method-event-name (.getMethods iface)))]
+          :when (contains? events event-name)]
+      {:name    (keyword "seesaw.event.generic" (.getName iface))
+       :class   iface
+       :events  events
+       :install (fn [t l] (.invoke add t (object-array [l])))})))
+
 (defn- get-or-install-handlers
   [target event-name]
   (check-args (keyword? event-name) (str "Event name is not a keyword: " event-name))
-  (let [event-group (event-group-table event-name)]
+  (let [event-group (or (event-group-table event-name)
+                        (generic-event-group target event-name))]
     (if-not event-group (illegal-argument "Unknown event type %s" event-name))
     (if-let [handlers (get-handlers* target (:name event-group))]
       handlers
@@ -442,6 +490,8 @@
     (instance? javax.swing.JSpinner target)       :state-changed
     (instance? javax.swing.JSlider target)        :state-changed
     (instance? javax.swing.JTabbedPane target)    :state-changed
+    (instance? javax.swing.JColorChooser target)  :state-changed
+    (instance? javax.swing.JScrollBar target)     :adjustment-value-changed
     :else event-name))
 
 (defn- expand-multi-events

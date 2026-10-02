@@ -293,6 +293,12 @@
       (add-widget target widget))
     (get-constraint* [layout container widget] nil)
 
+  ; containers without a layout manager, e.g. xyz-panel or a JDesktopPane
+  nil
+    (add!* [layout target widget constraint]
+      (add-widget target widget))
+    (get-constraint* [layout container widget] nil)
+
   java.awt.BorderLayout
     (add!* [layout target widget constraint]
       (add-widget target widget (border-layout-dirs constraint)))

@@ -97,3 +97,20 @@
     (.stop ^javax.swing.Timer t)
     (when a (apply f (second a)))
     d))
+
+(defn start!
+  "Start a timer. Returns it."
+  [^javax.swing.Timer t]
+  (.start t)
+  t)
+
+(defn stop!
+  "Stop a timer. Returns it."
+  [^javax.swing.Timer t]
+  (.stop t)
+  t)
+
+(defn running?
+  "True if the timer is running."
+  [^javax.swing.Timer t]
+  (.isRunning t))

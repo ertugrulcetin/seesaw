@@ -353,10 +353,13 @@
 ;*******************************************************************************
 ; Styles
 
-(defn ^java.awt.Paint to-paint
+(defn to-paint
+  "A java.awt.Paint from a color value. :current means the Graphics' current
+  color at drawing time, e.g. a component's foreground in a (paint-icon)."
   [v]
   (cond
     (instance? java.awt.Paint v) v
+    (= :current v) :current
     :else (to-color v)))
 
 (defrecord Style [^java.awt.Paint  foreground
@@ -368,8 +371,10 @@
   "Create a new style object for use with (seesaw.graphics/draw). Takes a list
   of key/value pairs:
 
-    :foreground A color value (see seesaw.color) for the foreground (stroke)
-    :background A color value (see seesaw.color) for the background (fill)
+    :foreground A color value (see seesaw.color) for the foreground (stroke),
+                or :current for the Graphics' current color
+    :background A color value (see seesaw.color) for the background (fill),
+                or :current
     :stroke     A stroke value used to draw outlines (see seesaw.graphics/stroke)
     :font       Font value used for drawing text shapes
 
@@ -434,8 +439,9 @@
 
 (extend-type java.awt.Shape Draw
   (draw* [shape ^java.awt.Graphics2D g2d style]
-    (let [fg (:foreground style)
-          bg (:background style)
+    (let [current (.getColor g2d)
+          fg (let [fg (:foreground style)] (if (= :current fg) current fg))
+          bg (let [bg (:background style)] (if (= :current bg) current bg))
           s  (or (:stroke style) default-stroke)]
       (when bg
         (do
@@ -452,7 +458,8 @@
     (let [fg (:foreground style)
           f  (:font style)]
       (when f (.setFont g2d f))
-      (.setPaint g2d (or fg java.awt.Color/BLACK))
+      (when-not (= :current fg)
+        (.setPaint g2d (or fg java.awt.Color/BLACK)))
       (.drawString g2d ^String (:value shape) (float (:x shape)) (float (:y shape))))))
 
 (extend-type ImageShape Draw

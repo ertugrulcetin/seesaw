@@ -76,6 +76,13 @@
     (isHighlighted [this renderer adapter]
       (boolean (f renderer adapter)))))
 
+(defn p-value
+  "A predicate that highlights rows whose value in column (a model index) passes
+  (pred value)."
+  [column pred]
+  (p-fn (fn [_ ^org.jdesktop.swingx.decorator.ComponentAdapter adapter]
+          (pred (.getValue adapter (.convertColumnIndexToView adapter (int column)))))))
+
 (defn p-and [& args]
   (HighlightPredicate$AndHighlightPredicate.
                       ^java.util.Collection (doall (map to-p args))))

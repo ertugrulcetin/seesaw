@@ -123,10 +123,61 @@ seesaw.options
         (setter target v)))
     (illegal-argument "No setter found for option %s" (:name opt))))
 
+;; Any JavaBean property of the target works as an option, even without an
+;; explicit option definition: :continuous-layout? -> continuousLayout. Values
+;; are converted by the property's type, e.g. colors, fonts, borders, icons.
+
+(defn- property-descriptors [^Class c]
+  (into {}
+        (for [^java.beans.PropertyDescriptor pd
+              (.getPropertyDescriptors (java.beans.Introspector/getBeanInfo c))]
+          [(.getName pd) pd])))
+
+(def ^{:private true} class-properties (memoize property-descriptors))
+
+(defn- property-name [name]
+  (let [n (clojure.core/name name)
+        n (if (.endsWith n "?") (subs n 0 (dec (count n))) n)]
+    (camelize n)))
+
+(defn- converter [^Class t]
+  (let [conv (fn [sym] (let [f (requiring-resolve sym)] #(f %)))]
+    (cond
+      (= t Boolean/TYPE)                     boolean
+      (= t Integer/TYPE)                     int
+      (= t Long/TYPE)                        long
+      (= t Float/TYPE)                       float
+      (= t Double/TYPE)                      double
+      (= t Character/TYPE)                   char
+      (.isAssignableFrom java.awt.Color t)   (conv 'seesaw.color/to-color)
+      (.isAssignableFrom java.awt.Font t)    (conv 'seesaw.font/to-font)
+      (.isAssignableFrom javax.swing.border.Border t) (conv 'seesaw.border/to-border)
+      (.isAssignableFrom javax.swing.Icon t) (conv 'seesaw.icon/icon)
+      (.isAssignableFrom java.awt.Dimension t) (conv 'seesaw.util/to-dimension)
+      (.isAssignableFrom java.awt.Insets t)  (conv 'seesaw.util/to-insets)
+      (.isAssignableFrom java.awt.Cursor t)  (conv 'seesaw.cursor/cursor)
+      (= String t)                           #(some-> % str)
+      :else                                  identity)))
+
+(defn- bean-property-option [target name]
+  (when-let [^java.beans.PropertyDescriptor pd (get (class-properties (class target)) (property-name name))]
+    (let [setter (.getWriteMethod pd)
+          getter (.getReadMethod pd)]
+      (when (or setter getter)
+        (let [convert (if setter (converter (first (.getParameterTypes setter))) identity)]
+          (default-option
+            name
+            (if setter
+              (fn [t v] (.invoke setter t (object-array [(convert v)])))
+              (fn [_ _] (illegal-argument "Property %s of %s is read-only" name (class target))))
+            (if getter
+              (fn [t] (.invoke getter t (object-array 0)))
+              (fn [_] (illegal-argument "Property %s of %s is write-only" name (class target))))
+            [(str "The " (.getName pd) " bean property")]))))))
+
 (defn- ^Option lookup-option [target handler-maps name]
-  ;(println "---------------------------")
-  ;(println handler-maps)
-  (if-let [opt (some #(if % (% name)) handler-maps)]
+  (if-let [opt (or (some #(if % (% name)) handler-maps)
+                   (bean-property-option target name))]
     opt
     (illegal-argument "%s does not support the %s option" (class target) name)))
 

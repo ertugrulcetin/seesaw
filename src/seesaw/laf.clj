@@ -137,3 +137,8 @@
                     (SwingUtilities/invokeLater #(f v)))))))]
     (UIManager/addPropertyChangeListener l)
     #(UIManager/removePropertyChangeListener l)))
+
+(defn laf-name
+  "The current look and feel's name, e.g. \"FlatLaf macOS Dark\"."
+  []
+  (.getName ^LookAndFeel (laf)))

@@ -8,7 +8,8 @@
   handlers' callers or in watches.
 
   Run: lein run -m test-app     REPL: (-main), then evaluate forms below."
-  (:require [clojure.string :as str]
+  (:require [clojure.math :as math]
+            [clojure.string :as str]
             [seesaw.behave :as behave]
             [seesaw.bind :as b]
             [seesaw.border :as border]
@@ -39,8 +40,7 @@
             [seesaw.tree :as tree]
             [seesaw.undo :as undo]
             [seesaw.widgets.log-window :as log-window]
-            [seesaw.widgets.rounded-label :refer [rounded-label]])
-  (:import (java.awt Color)))
+            [seesaw.widgets.rounded-label :refer [rounded-label]]))
 
 ;*******************************************************************************
 ; State: one ratom for the whole app
@@ -55,12 +55,12 @@
   {:ui {:section :dashboard
         :theme :flat-light
         :sidebar? true
+        :drawer? false
         :status "Ready"
         :zoom 13
         :density :comfortable
         :toasts []}
-   :session {:started (System/currentTimeMillis)
-             :uptime 0
+   :session {:uptime 0
              :clicks 0
              :events []}
    :user {:profile {:name "Ada Lovelace" :email "ada@example.com" :role :admin
@@ -133,7 +133,7 @@
 (reg-event :set (fn [db [_ path v]] (assoc-in db path v)))
 (reg-event :update (fn [db [_ path f & args]] (apply update-in db path f args)))
 (reg-event :status (fn [db [_ msg]] (assoc-in db [:ui :status] msg)))
-(reg-event :reset (fn [_ _] (assoc initial-db :session (assoc (:session initial-db) :started (System/currentTimeMillis)))))
+(reg-event :reset (fn [_ _] initial-db))
 (reg-event :tick (fn [db _] (update-in db [:session :uptime] inc)))
 (reg-event :click (fn [db _] (update-in db [:session :clicks] inc)))
 
@@ -241,11 +241,11 @@
                  {:keys [query case?]} find]
              (if (str/blank? query)
                []
-               (let [m (re-matcher (re-pattern (str (when-not case? "(?i)")
-                                                    (java.util.regex.Pattern/quote query)))
-                                   text)]
-                 (loop [acc []]
-                   (if (.find m) (recur (conj acc [(.start m) (.end m)])) acc)))))))
+               (let [[hay needle] (if case? [text query] [(str/lower-case text) (str/lower-case query)])]
+                 (loop [from 0 acc []]
+                   (if-let [i (str/index-of hay needle from)]
+                     (recur (long (+ i (count needle))) (conj acc [i (+ i (count needle))]))
+                     acc)))))))
 
 (reg-sub :session/uptime-label
          (fn [db _]
@@ -273,6 +273,11 @@
 ;*******************************************************************************
 ; Helpers
 
+(defn index-of
+  "Index of x in coll, or nil"
+  [coll x]
+  (first (keep-indexed (fn [i v] (when (= v x) i)) coll)))
+
 (defn sync!
   "Write a widget's value to path whenever it changes (the other direction of
   a subscription bound to one of its options)."
@@ -285,26 +290,27 @@
   [kind]
   (icon/paint-icon
     16
-    (fn [_ ^java.awt.Graphics2D g]
-      (.setStroke g (java.awt.BasicStroke. 1.6))
-      (case kind
-        :dashboard (do (.drawRoundRect g 2 2 5 5 2 2) (.drawRoundRect g 9 2 5 5 2 2)
-                       (.drawRoundRect g 2 9 5 5 2 2) (.drawRoundRect g 9 9 5 5 2 2))
-        :todos (do (.drawRoundRect g 2 2 12 12 3 3) (.drawPolyline g (int-array [5 7 11]) (int-array [8 11 5]) 3))
-        :editor (do (.drawLine g 3 4 13 4) (.drawLine g 3 8 13 8) (.drawLine g 3 12 9 12))
-        :canvas (do (.drawOval g 2 2 12 12) (.fillOval g 6 6 4 4))
-        :layouts (do (.drawRect g 2 2 12 12) (.drawLine g 7 2 7 14) (.drawLine g 7 8 14 8))
-        :tree (do (.drawLine g 4 3 4 13) (.drawLine g 4 7 10 7) (.drawLine g 4 12 10 12)
-                  (.fillOval g 10 5 4 4) (.fillOval g 10 10 4 4))
-        :swingx (do (.drawLine g 3 3 13 13) (.drawLine g 13 3 3 13))
-        :settings (do (.drawOval g 4 4 8 8) (.drawLine g 8 1 8 4) (.drawLine g 8 12 8 15)
-                      (.drawLine g 1 8 4 8) (.drawLine g 12 8 15 8))
-        :lab (do (.drawLine g 6 2 10 2) (.drawLine g 7 2 7 7) (.drawLine g 9 2 9 7)
-                 (.drawPolygon g (int-array [7 3 13 9]) (int-array [7 14 14 7]) 4))
-        :plus (do (.drawLine g 8 3 8 13) (.drawLine g 3 8 13 8))
-        :trash (do (.drawRect g 4 5 8 9) (.drawLine g 2 4 14 4) (.drawLine g 6 2 10 2))
-        :search (do (.drawOval g 2 2 9 9) (.drawLine g 10 10 14 14))
-        (.fillRect g 4 4 8 8)))))
+    (fn [_ g]
+      (let [line   (g/style :foreground :current :stroke 1.6)
+            fill   (g/style :background :current)
+            l      (fn [x1 y1 x2 y2] (g/draw g (g/line x1 y1 x2 y2) line))
+            box    (fn [x y w h r] (g/draw g (g/rounded-rect x y w h r r) line))]
+        (case kind
+          :dashboard (do (box 2 2 5 5 2) (box 9 2 5 5 2) (box 2 9 5 5 2) (box 9 9 5 5 2))
+          :todos     (do (box 2 2 12 12 3) (l 5 8 7 11) (l 7 11 11 5))
+          :editor    (do (l 3 4 13 4) (l 3 8 13 8) (l 3 12 9 12))
+          :canvas    (do (g/draw g (g/circle 8 8 6) line) (g/draw g (g/circle 8 8 2) fill))
+          :layouts   (do (g/draw g (g/rect 2 2 12 12) line) (l 7 2 7 14) (l 7 8 14 8))
+          :tree      (do (l 4 3 4 13) (l 4 7 10 7) (l 4 12 10 12)
+                         (g/draw g (g/circle 12 7 2) fill) (g/draw g (g/circle 12 12 2) fill))
+          :swingx    (do (l 3 3 13 13) (l 13 3 3 13))
+          :settings  (do (g/draw g (g/circle 8 8 4) line) (l 8 1 8 4) (l 8 12 8 15) (l 1 8 4 8) (l 12 8 15 8))
+          :lab       (do (l 6 2 10 2) (l 7 2 7 7) (l 9 2 9 7) (g/draw g (g/polygon [7 7] [3 14] [13 14] [9 7]) line))
+          :plus      (do (l 8 3 8 13) (l 3 8 13 8))
+          :trash     (do (g/draw g (g/rect 4 5 8 9) line) (l 2 4 14 4) (l 6 2 10 2))
+          :search    (do (g/draw g (g/ellipse 2 2 9 9) line) (l 10 10 14 14))
+          :menu      (do (l 2 4 14 4) (l 2 8 14 8) (l 2 12 14 12))
+          (g/draw g (g/rect 4 4 8 8) fill))))))
 
 (defn- card
   "A dashboard card: rounded border, FlatLaf style, title + big value"
@@ -333,7 +339,7 @@
 
 (defn log! [fmt & args]
   (when-let [w @log]
-    (log-window/log w (str (java.time.LocalTime/now) "  " (apply format fmt args) "\n"))))
+    (log-window/log w (str @(sub [:session/uptime-label]) "  " (apply format fmt args) "\n"))))
 
 ;*******************************************************************************
 ; Actions (shared by menus, toolbar and key bindings)
@@ -355,11 +361,14 @@
    :next-section (s/action :name "Next Section" :key "menu CLOSE_BRACKET"
                            :handler (fn [_]
                                       (let [ids (mapv :id sections)
-                                            i (.indexOf ^java.util.List ids (get-in @app-db [:ui :section]))]
+                                            i (index-of ids (get-in @app-db [:ui :section]))]
                                         (dispatch! [:set [:ui :section] (ids (mod (inc i) (count ids)))]))))
    :reset (s/action :name "Reset State" :handler (fn [_] (when (s/confirm @frame-ref "Reset all state?" :option-type :ok-cancel)
                                                            (dispatch! [:reset]))))
-   :about (s/action :name "About Seesaw Studio" :handler (fn [_] (about!)))})
+   :about (s/action :name "About Seesaw Studio" :handler (fn [_] (about!)))
+   :drawer (s/action :name "Menu Drawer" :key "menu D" :icon (glyph :menu)
+                     :tip (str "Open the drawer (" (keystroke/label "menu D") ")")
+                     :handler (fn [_] (dispatch! [:update [:ui :drawer?] not])))})
 
 ;*******************************************************************************
 ; Dashboard: cards, buttons, toggles, sliders, spinners, progress
@@ -371,7 +380,7 @@
       (mig/mig-panel
         :constraints ["wrap 4, insets 16, gap 12" "[grow,fill][grow,fill][grow,fill][grow,fill]" ""]
         :items
-        [[(card "OPEN TODOS" (reaction (sub [:todos/stats]) :open) :icon-kind :todos :footer "not done yet")]
+        [[(card "OPEN TODOS22" (reaction (sub [:todos/stats]) :open) :icon-kind :todos :footer "not done yet")]
          [(card "COMPLETED" completion-text :icon-kind :dashboard)]
          [(card "HOURS LEFT" hours-text :icon-kind :editor)]
          [(card "UPTIME" (sub [:session/uptime-label]) :icon-kind :settings)]
@@ -468,7 +477,7 @@
                                                       :estimate (s/selection estimate)
                                                       :tags (set (s/selection tags {:multi? true}))}))))
     (s/listen cancel :action (fn [e] (s/return-from-dialog e nil)))
-    (s/listen title :action (fn [_] (.doClick ^javax.swing.AbstractButton ok)))
+    (s/listen title :action (fn [_] (s/click! ok)))
     (-> dlg s/pack! (s/center! @frame-ref))
     (when-let [todo (s/show! dlg)]
       (dispatch! [:todo/add todo]))))
@@ -481,12 +490,11 @@
                        ; built from the current theme's colors, see laf/on-change below
                        (let [dark (laf/dark?)
                              band (if dark
-                                    (.brighter (color/default-color "Table.background"))
+                                    (color/brighter (color/default-color "Table.background"))
                                     (color/color "#eef2ff"))]
                          [(sx/hl-simple-striping :background band)
                           ((sx/hl-color :foreground (if dark "#6b7280" "#9ca3af"))
-                           (sx/p-fn (fn [_ ^org.jdesktop.swingx.decorator.ComponentAdapter adapter]
-                                     (true? (.getValue adapter 0)))))]))
+                           (sx/p-value 0 true?))]))
         t (sx/table-x :model (sub [:todos/table])
                       :highlighters (highlighters)
                       :column-control-visible? true
@@ -499,7 +507,7 @@
                           (dispatch! [:todo/remove ids])))]
     (s/listen search :document (fn [_] (set-query (s/text search))))
     (laf/on-change (fn [_] (s/config! t :highlighters (highlighters))))
-    (s/listen t :mouse-clicked (fn [^java.awt.event.MouseEvent e] (when (= 2 (.getClickCount e))
+    (s/listen t :mouse-clicked (fn [e] (when (= 2 (:click-count (s/event-info e)))
                                          (doseq [id (selected-ids)] (dispatch! [:todo/toggle id])))))
     (keymap/map-key t "DELETE" remove! :scope :self)
     (keymap/map-key t "BACK_SPACE" remove! :scope :self)
@@ -557,10 +565,12 @@
                      :text (sub [:editor :find :query]))
         case? (s/checkbox :text "Aa" :tip "Match case" :selected? (sub [:editor :find :case?]))
         style-btn (fn [label style & {:keys [paragraph?]}]
-                    (s/button :text label :button-type :toolbar :focusable? false
+                    (s/button :text label
+                              :button-type :toolbar
+                              :focusable? false
                               :listen [:action (fn [_]
                                                  (let [[a b] (s/selection pane)
-                                                       a (or a (.getCaretPosition ^javax.swing.JTextPane pane))
+                                                       a (or a (s/config pane :caret-position))
                                                        len (max 1 (- (or b a) a))]
                                                    (undo/as-one-edit um
                                                                      (if paragraph?
@@ -581,11 +591,11 @@
                  (s/invoke-later
                    (text/highlight! pane :find ranges :color "#fde047" :arc 3)
                    (when-let [[a] (first ranges)] (text/scroll-to-position! pane a :padding 40)))))
-    (keymap/map-key pane "menu B" (fn [_] (.doClick ^javax.swing.AbstractButton (style-btn "B" :bold))) :scope :self)
+    (keymap/map-key pane "menu B" (fn [_] (s/click! (style-btn "B" :bold))) :scope :self)
     (keymap/map-key find "ESCAPE" (fn [_] (dispatch! [:set [:editor :find :query] ""]) (s/request-focus! pane)) :scope :self)
     (keymap/map-key find "ENTER"
                     (fn [_]
-                      (let [caret (.getCaretPosition ^javax.swing.JTextPane pane)
+                      (let [caret (s/config pane :caret-position)
                             matches @(sub [:editor/find-matches])]
                         (when-let [[a b] (or (first (filter #(> (first %) caret) matches)) (first matches))]
                           (s/selection! pane [a b])
@@ -620,13 +630,13 @@
 (defn- star-path [x y w h]
   (let [cx (+ x (/ w 2)) cy (+ y (/ h 2)) r (/ w 2) r2 (/ w 5)
         pts (for [i (range 10)]
-              (let [a (- (* i (/ Math/PI 5)) (/ Math/PI 2))
+              (let [a (- (* i (/ math/PI 5)) (/ math/PI 2))
                     rr (if (even? i) r r2)]
-                [(+ cx (* rr (Math/cos a))) (+ cy (* rr (Math/sin a)))]))]
+                [(+ cx (* rr (math/cos a))) (+ cy (* rr (math/sin a)))]))]
     (apply g/polygon pts)))
 
-(defn- paint-shapes [^java.awt.Component c g2]
-  (let [w (.getWidth c) h (.getHeight c)]
+(defn- paint-shapes [c g2]
+  (let [w (s/width c) h (s/height c)]
     (g/draw g2 (g/rect 0 0 w h)
             (g/style :background (g/linear-gradient :start [0 0] :end [0 h]
                                                     :colors ["#ffffff" "#eef2ff"])))
@@ -653,7 +663,7 @@
     (when-let [f (chooser/choose-native-file @frame-ref :type :save :file "canvas.png"
                                              :title "Export canvas")]
       (g/write-png! (g/snapshot c :scale 2) f)
-      (dispatch! [:status (str "Exported " (.getName ^java.io.File f))])
+      (dispatch! [:status (str "Exported " f)])
       (when (s/confirm @frame-ref (str "Saved " f ". Show it?") :option-type :yes-no)
         (desktop/reveal! f)))))
 
@@ -684,11 +694,11 @@
                              (sync! [:canvas :stroke] :read #(int (s/selection %))))
                          (s/button :text "Color..."
                                    :icon (reaction (sub [:canvas :color])
-                                                   (fn [hex] (icon/paint-icon 14 (fn [_ ^java.awt.Graphics2D g] (.fillOval g 1 1 12 12)) :color hex)))
+                                                   (fn [hex] (icon/paint-icon 14 (fn [_ g] (g/draw g (g/circle 7 7 6) (g/style :background :current))) :color hex)))
                                    :listen [:action (fn [_]
-                                                      (when-let [^Color col (chooser/choose-color @frame-ref :color (get-in @app-db [:canvas :color]))]
+                                                      (when-let [col (chooser/choose-color @frame-ref :color (get-in @app-db [:canvas :color]))]
                                                         (dispatch! [:set [:canvas :color]
-                                                                    (format "#%02x%02x%02x" (.getRed col) (.getGreen col) (.getBlue col))])))])
+                                                                    (color/hex col)])))])
                          :separator
                          (s/button :text "Undo" :listen [:action (fn [_] (dispatch! [:canvas/undo]))])
                          (s/button :text "Clear" :listen [:action (fn [_] (dispatch! [:canvas/clear]))])
@@ -809,11 +819,11 @@
                                               (when (:children (last path))
                                                 (when-let [name (s/input @frame-ref "Name of the new node:" :value "new.clj")]
                                                   ; child indexes along the selected path
-                                                  (let [idx (map (fn [parent child] (.indexOf ^java.util.List (:children parent) child))
+                                                  (let [idx (map (fn [parent child] (index-of (:children parent) child))
                                                                  path (rest path))]
                                                     (dispatch! [:tree/add-child (vec idx) name]))))))])
                        (s/button :text "Expand all"
-                                 :listen [:action (fn [_] (doseq [i (range 50)] (.expandRow ^javax.swing.JTree t i)))])])
+                                 :listen [:action (fn [_] (s/expand-all! t))])])
       :center (s/scrollable t)
       :south details)))
 
@@ -841,7 +851,7 @@
                                  (sx/label-x :text "label-x wraps long text and can rotate it. It's handy for descriptions that should wrap to the available width."
                                              :wrap-lines? true)
                                  [:fill-v 10]
-                                 (sx/color-selection-button :selection (Color. 0x3b82f6))
+                                 (sx/color-selection-button :selection (color/color "#3b82f6"))
                                  [:fill-v 10]
                                  (s/scrollable
                                    (sx/listbox-x :model (reaction (sub [:todos :items]) #(map :title (vals %)))
@@ -945,7 +955,7 @@
                  (assoc-in [:ui :status] (str "Dropped " (count files) " file(s)")))))
 
 (defn- strength [^chars pw]
-  (let [s (String. pw)]
+  (let [s (apply str pw)]
     (cond
       (empty? s) ""
       (< (count s) 6) "weak"
@@ -960,9 +970,9 @@
                                       :background "#111827" :foreground "#f9fafb"))]
     (s/pack! w)
     (when f
-      (let [p (.getLocationOnScreen ^java.awt.Component f)]
-        (s/move! w :to [(+ (.x p) (- (.getWidth ^java.awt.Component f) (.getWidth ^java.awt.Component w) 24))
-                        (+ (.y p) (- (.getHeight ^java.awt.Component f) (.getHeight ^java.awt.Component w) 48))])))
+      (let [[x y fw fh] (s/screen-bounds f)]
+        (s/move! w :to [(+ x (- fw (s/width w) 24))
+                        (+ y (- fh (s/height w) 48))])))
     (s/show! w)
     (timer/timer (fn [_] (s/dispose! w)) :initial-delay 1800 :repeats? false)
     w))
@@ -1017,9 +1027,10 @@
                (fn [_ _ _ [x y]] (s/invoke-later (s/config! box :bounds [x y :* :*]))))
     (s/value! form (get-in @app-db [:lab :form]))
     (s/listen pw :document (fn [_] (s/with-password* pw #(dispatch! [:set [:lab :strength] (strength %)]))))
-    (s/listen html :hyperlink (fn [^javax.swing.event.HyperlinkEvent e]
-                                (when (= javax.swing.event.HyperlinkEvent$EventType/ACTIVATED (.getEventType e))
-                                  (desktop/browse! (.getURL e)))))
+    (s/listen html :hyperlink (fn [e]
+                                (let [{:keys [event-type url]} (s/event-info e)]
+                                  (when (= "ACTIVATED" (str event-type))
+                                    (desktop/browse! url)))))
     (s/tabbed-panel
       :tabs [{:title "Bind & DnD"
               :content (mig/mig-panel
@@ -1043,10 +1054,10 @@
                          :south (s/vertical-panel
                                   :items [(s/flow-panel
                                             :align :left
-                                            :items [(s/button :text "add!" :listen [:action (fn [_] (s/add! chips (s/label :text (str "chip " (inc (count (.getComponents ^java.awt.Container chips))))
+                                            :items [(s/button :text "add!" :listen [:action (fn [_] (s/add! chips (s/label :text (str "chip " (inc (count (s/children chips))))
                                                                                                                                   :class :chip :border (border/rounded-border :radius 8 :padding [2 8]))))])
-                                                    (s/button :text "remove! last" :listen [:action (fn [_] (when-let [l (last (.getComponents ^java.awt.Container chips))] (s/remove! chips l)))])
-                                                    (s/button :text "replace! first" :listen [:action (fn [_] (when-let [f (first (.getComponents ^java.awt.Container chips))]
+                                                    (s/button :text "remove! last" :listen [:action (fn [_] (when-let [l (last (s/children chips))] (s/remove! chips l)))])
+                                                    (s/button :text "replace! first" :listen [:action (fn [_] (when-let [f (first (s/children chips))]
                                                                                                                  (s/replace! chips f (s/label :text "replaced" :class :chip :foreground "#dc2626"))))])
                                                     (s/button :text "select .chip" :listen [:action (fn [_] (dispatch! [:status (str (count (s/select chips [:.chip])) " widgets with class chip")]))])])
                                           chips]))}
@@ -1064,6 +1075,53 @@
                                           (s/label :text (reaction (sub [:lab :strength]) #(if (str/blank? %) "" (str "strength: " %))))]))}
              {:title "HTML"
               :content (s/scrollable html)}
+             {:title "MDI"
+              :content (let [counter (atom 0)
+                             desk (s/desktop-pane :background "#e5e7eb")
+                             new-frame! (fn []
+                                          (let [n (swap! counter inc)
+                                                f (s/internal-frame
+                                                    :title (str "Document " n)
+                                                    :content (s/scrollable (s/text :multi-line? true :text (str "Internal frame " n)))
+                                                    :size [240 :by 160]
+                                                    :location [(* 30 n) (* 25 n)])]
+                                            ; InternalFrameListener has no event group: generic listener
+                                            (s/listen f :internal-frame-closing
+                                                      (fn [_] (dispatch! [:status (str "Closing document " n)])))
+                                            (s/add! desk f)
+                                            (s/move! f :to-front)))]
+                         (dotimes [_ 2] (new-frame!))
+                         (s/border-panel
+                           :north (s/toolbar :floatable? false
+                                             :items [(s/button :text "New window" :listen [:action (fn [_] (new-frame!))])])
+                           :center desk))}
+             {:title "More widgets"
+              :content (let [amount (s/formatted-text :format "#,##0.00" :value 1234.5 :columns 12 :commit-on-valid? true)
+                             pct    (s/formatted-text :format :percent :value 0.25 :columns 8)
+                             date   (s/formatted-text :format :date :value #inst "1815-12-10" :columns 12)
+                             bar    (s/scroll-bar :orientation :horizontal :min 0 :max 110 :visible-amount 10
+                                                  :value (sub [:user :prefs :volume]))
+                             chooser (s/color-chooser :color (get-in @app-db [:canvas :color])
+                                                      :preview-panel (s/label ""))
+                             watermark (s/jlayer (s/label :text "jlayer paints over this label" :border 24 :halign :center)
+                                                 :paint (fn [c g] (g/draw g (g/string-shape 12 (- (s/height c) 8) "DRAFT")
+                                                                          (g/style :foreground "#ef4444" :font "SansSerif-BOLD-14")))
+                                                 :events #{:mouse}
+                                                 :on-event (fn [e] (when (= :mouse-clicked (s/event-kind e))
+                                                                     (dispatch! [:status "jlayer saw a click"]))))]
+                         (sync! bar [:user :prefs :volume])
+                         (s/listen chooser :selection (fn [_] (dispatch! [:set [:canvas :color] (color/hex (s/selection chooser))])))
+                         (s/listen amount :property-change
+                                   (fn [e] (when (= "value" (:property-name (s/event-info e)))
+                                             (dispatch! [:status (str "Amount: " (s/config amount :value))]))))
+                         (mig/mig-panel
+                           :constraints ["wrap 2, insets 16, gap 10" "[right][grow,fill]" ""]
+                           :items [["Amount"] [amount]
+                                   ["Percent"] [pct]
+                                   ["Date"] [date]
+                                   ["Volume (scroll-bar)"] [bar]
+                                   [watermark "span, growx, h 60!"]
+                                   ["Canvas color" "top"] [chooser]]))}
              {:title "Windows"
               :content (s/flow-panel
                          :align :left :border 16
@@ -1081,7 +1139,7 @@
                                                                              :content (s/jfxpanel :background :white))
                                                                     s/show!)
                                                                 (catch Throwable t
-                                                                  (s/alert (str "JavaFX isn't available: " (.getMessage t))))))])])}])))
+                                                                  (s/alert (str "JavaFX isn't available: " (ex-message t))))))])])}])))
 
 ;*******************************************************************************
 ; Shell: frame, menus, sidebar, cards, status bar
@@ -1089,9 +1147,48 @@
 (defonce frame-ref (atom nil))
 
 (defn about! []
-  (s/alert @frame-ref (str "Seesaw Studio\n\nLook and feel: " (.getName ^javax.swing.LookAndFeel (laf/laf))
+  (s/alert @frame-ref (str "Seesaw Studio\n\nLook and feel: " (laf/laf-name)
                            "\nDark: " (laf/dark?)
                            "\nEvents dispatched: " (count (get-in @app-db [:session :events])))))
+
+;; A drawer that slides in over the window (layer!), dimming the rest.
+;; Open/closed lives in app-db at [:ui :drawer?].
+(defn install-drawer! [f]
+  (let [width  260
+        x      (atom (- width))
+        scrim  (s/canvas :opaque? false :visible? false
+                         :paint (fn [c g] (g/draw g (g/rect 0 0 (s/width c) (s/height c))
+                                                  (g/style :background (color/color 0 0 0 60)))))
+        panel  (s/border-panel
+                 :visible? false
+                 :border (border/compound-border (border/empty-border :thickness 16)
+                                                 (border/line-border :right 1 :color "#d1d5db"))
+                 :style {:background "@background"}
+                 :north (s/label :text "Seesaw Studio" :style-class "h2" :border [0 0 12 0])
+                 :center (s/vertical-panel
+                           :items (for [{:keys [id label]} sections]
+                                    (s/button :text label :icon (glyph id) :button-type :toolbar :halign :left
+                                              :listen [:action (fn [_] (dispatch! [:set [:ui :section] id])
+                                                                 (dispatch! [:set [:ui :drawer?] false]))])))
+                 :south (s/label :text "Esc or click outside to close" :foreground :gray))
+        place! (fn [] (s/config! panel :bounds [@x 0 width (s/height scrim)]))
+        slide  (timer/timer (fn [_]
+                              (swap! x #(min 0 (+ % 40)))
+                              (place!))
+                            :delay 12 :start? false)]
+    (s/layer! f scrim :bounds :fill)
+    (s/layer! f panel :bounds [(- width) 0 width 400])
+    (s/listen scrim :mouse-pressed (fn [_] (dispatch! [:set [:ui :drawer?] false])))
+    (s/listen scrim :component-resized (fn [_] (place!)))
+    (keymap/map-key f "ESCAPE" (fn [_] (dispatch! [:set [:ui :drawer?] false])) :scope :global)
+    (add-watch (sub [:ui :drawer?]) ::drawer
+               (fn [_ _ _ open?]
+                 (s/invoke-later
+                   (if open?
+                     (do (reset! x (- width)) (place!) (s/show! [scrim panel]) (timer/start! slide))
+                     (do (timer/stop! slide) (s/hide! [scrim panel]))))))
+    (add-watch x ::stop (fn [_ _ _ v] (when (zero? v) (timer/stop! slide))))
+    panel))
 
 (defn- menubar []
   (let [themes [[:flat-light "Light"] [:flat-dark "Dark"] [:flat-mac-light "macOS Light"] [:flat-mac-dark "macOS Dark"]]
@@ -1112,6 +1209,7 @@
                                                       :selected? (sub [:ui :sidebar?])
                                                       :listen [:action #(dispatch! [:set [:ui :sidebar?] (s/selection %)])])
                                 (:next-section actions)
+                                (:drawer actions)
                                 :separator]
                                (for [[k label] themes]
                                  (s/radio-menu-item :text label :group group
@@ -1154,9 +1252,9 @@
                    (s/config! split :divider-location (if show? (get-in @app-db [:layout :sidebar-width]) 0)))))
     ; remember the width the user drags the sidebar to
     (s/listen split :property-change
-              (fn [^java.beans.PropertyChangeEvent e]
-                (when (and (= "dividerLocation" (.getPropertyName e)) (.isVisible ^java.awt.Component side))
-                  (let [w (.getDividerLocation ^javax.swing.JSplitPane split)]
+              (fn [e]
+                (when (and (= "dividerLocation" (:property-name (s/event-info e))) (s/config side :visible?))
+                  (let [w (s/config split :divider-location)]
                     (when (> w 40) (dispatch! [:set [:layout :sidebar-width] w]))))))
     (s/config! side :visible? (get-in @app-db [:ui :sidebar?]))
     (s/border-panel
@@ -1164,7 +1262,10 @@
       :south (s/border-panel
                :border (border/compound-border (border/empty-border :top 4 :bottom 4 :left 10 :right 10)
                                                (border/line-border :top 1 :color "#e5e7eb"))
-               :west (s/label :text (sub [:ui :status]))
+               :west (s/horizontal-panel
+                       :items [(s/button :action (:drawer actions) :text "" :button-type :toolbar)
+                               [:fill-h 6]
+                               (s/label :text (sub [:ui :status]))])
                :east (s/label :text (sub [:session/uptime-label]) :foreground :gray)))))
 
 (defonce ^:private uptime-timer (atom nil))
@@ -1178,9 +1279,9 @@
                  (log! "theme %s, dark? %s" theme (laf/dark?)))))
   ; persist a few prefs with java.util.prefs
   (let [node (pref/preferences-node "seesaw-studio")]
-    (when-let [saved (.get node "volume" nil)]
-      (dispatch! [:set [:user :prefs :volume] (Long/parseLong saved)]))
-    (add-watch (sub [:user :prefs :volume]) ::persist (fn [_ _ _ v] (.put node "volume" (str v)))))
+    (when-let [saved (pref/get-pref node :volume)]
+      (dispatch! [:set [:user :prefs :volume] saved]))
+    (add-watch (sub [:user :prefs :volume]) ::persist (fn [_ _ _ v] (pref/put-pref! node :volume v))))
   (add-watch app-db ::log (fn [_ _ o n] (when-not (= (:todos o) (:todos n)) (log! "todos changed: %s" (count (get-in n [:todos :items])))))))
 
 (defn -main [& _args]
@@ -1197,9 +1298,10 @@
                      :on-close :dispose)]
       (reset! frame-ref f)
       (install-watches!)
-      (some-> ^javax.swing.Timer @uptime-timer .stop)
+      (install-drawer! f)
+      (some-> @uptime-timer timer/stop!)
       (reset! uptime-timer (timer/timer (fn [_] (dispatch! [:tick])) :delay 1000 :initial-delay 1000))
-      (s/listen f :window-closed (fn [_] (some-> ^javax.swing.Timer @uptime-timer .stop)))
+      (s/listen f :window-closed (fn [_] (some-> @uptime-timer timer/stop!)))
       (desktop/app-handlers! :about (fn [_] (about!))
                              :quit (fn [_] (s/confirm f "Quit Seesaw Studio?" :option-type :ok-cancel)))
       (keymap/map-key f "F1" (fn [_] (about!)) :scope :global)

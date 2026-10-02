@@ -72,3 +72,18 @@
      `(let [atom# (atom ~initial-value)]
         (bind-preference-to-atom ~key atom#))))
 
+
+(defn get-pref
+  "Read a preference stored with (put-pref!) from a preferences node (see
+  (preferences-node*)), or default if it isn't set. Values are EDN."
+  ([node key] (get-pref node key nil))
+  ([^java.util.prefs.Preferences node key default]
+   (if-let [v (.get node (serialize-value key) nil)]
+     (read-string v)
+     default)))
+
+(defn put-pref!
+  "Store a preference (any EDN value) in a preferences node."
+  [^java.util.prefs.Preferences node key value]
+  (.put node (serialize-value key) (serialize-value value))
+  value)

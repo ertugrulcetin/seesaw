@@ -236,3 +236,19 @@
     (instance? Color c) c
     :else               (color c))) 
     
+
+(defn brighter
+  "A brighter version of a color (anything accepted by (to-color))."
+  [c]
+  (.brighter ^java.awt.Color (to-color c)))
+
+(defn darker
+  "A darker version of a color (anything accepted by (to-color))."
+  [c]
+  (.darker ^java.awt.Color (to-color c)))
+
+(defn hex
+  "A color as a CSS style hex string, e.g. \"#3b82f6\"."
+  [c]
+  (let [^java.awt.Color c (to-color c)]
+    (format "#%02x%02x%02x" (.getRed c) (.getGreen c) (.getBlue c))))

@@ -160,5 +160,11 @@
       (if (or (nil? values) (:multi? opts)) values [values]) )
     target))
 
+(extend-protocol Selection
+  javax.swing.JColorChooser
+    (get-selection [target] [(.getColor target)])
+    (set-selection [target [v]] (.setColor target ^java.awt.Color ((requiring-resolve 'seesaw.color/to-color) v)))
 
-
+  javax.swing.JScrollBar
+    (get-selection [target] [(.getValue target)])
+    (set-selection [target [v]] (.setValue target (int v))))

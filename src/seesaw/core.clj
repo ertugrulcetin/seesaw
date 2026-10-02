@@ -3853,6 +3853,381 @@
 
 
 ;*******************************************************************************
+; Layered panes and layer!
+
+(def ^{:private true} layer-table
+  {:default javax.swing.JLayeredPane/DEFAULT_LAYER
+   :palette javax.swing.JLayeredPane/PALETTE_LAYER
+   :modal   javax.swing.JLayeredPane/MODAL_LAYER
+   :popup   javax.swing.JLayeredPane/POPUP_LAYER
+   :drag    javax.swing.JLayeredPane/DRAG_LAYER})
+
+(defn- to-layer ^Integer [v]
+  (cond
+    (number? v) (Integer/valueOf (int v))
+    :else (or (layer-table v)
+              (illegal-argument "Unknown layer %s. Must be a number or one of %s" v (keys layer-table)))))
+
+(defn- ^javax.swing.JLayeredPane to-layered-pane [target]
+  (let [t (to-widget target)]
+    (cond
+      (instance? javax.swing.JLayeredPane t) t
+      :else (.getLayeredPane ^javax.swing.RootPaneContainer (to-root t)))))
+
+(def layered-pane-options
+  (merge
+    default-options
+    (option-map
+      (default-option :items
+        (fn [^javax.swing.JLayeredPane p items]
+          (doseq [[w l] items]
+            (.add p ^java.awt.Component (make-widget w) (to-layer (or l :default)))))
+        (fn [^javax.swing.JLayeredPane p]
+          (for [c (.getComponents p)] [c (.getLayer p ^java.awt.Component c)]))
+        ["[[widget :palette] [widget 150]]"]))))
+
+(widget-option-provider javax.swing.JLayeredPane layered-pane-options)
+
+(defn layered-pane
+  "Create a JLayeredPane, a container whose children overlap in layers and
+  are positioned with :bounds. Options:
+
+    :items  A list of [widget layer] pairs. layer is a number or one of
+            :default :palette :modal :popup :drag
+
+  See (seesaw.core/layer!) to put a widget over a window's content."
+  [& opts]
+  (apply-options (construct javax.swing.JLayeredPane) opts))
+
+(defn layer!
+  "Put a widget on a layer above a window's content, e.g. an overlay, a
+  drawer or a scrim. target is the window (or anything in it, or a
+  JLayeredPane). Options:
+
+    :layer   :palette (default), :default, :modal, :popup, :drag or a number
+    :bounds  [x y w h], or :fill to always cover the whole window (it follows
+             resizes). Defaults to the widget's current bounds.
+    :front?  Put it in front of the other widgets on its layer (default true)
+
+  Returns the widget. Remove it with (unlayer! widget).
+
+  Example:
+
+    (layer! frame (canvas :paint ...) :bounds :fill)
+  "
+  [target widget & {:keys [layer bounds front?] :or {layer :palette front? true}}]
+  (let [lp (to-layered-pane target)
+        w  (make-widget widget)
+        fit! #(.setBounds ^java.awt.Component w 0 0 (.getWidth lp) (.getHeight lp))]
+    (.add lp ^java.awt.Component w (to-layer layer))
+    (cond
+      (= :fill bounds) (do
+                         ; listen before sizing so a resize in between isn't missed,
+                         ; and size again once pending events have run
+                         (put-meta! w ::unfill
+                                    (listen lp :component-resized (fn [_] (fit!))))
+                         (fit!)
+                         (invoke-later (fit!)))
+      bounds (config! w :bounds bounds))
+    (when front? (.moveToFront lp ^java.awt.Component w))
+    (.revalidate lp)
+    (.repaint lp)
+    w))
+
+(defn unlayer!
+  "Remove a widget added with (layer!). Returns the widget."
+  [widget]
+  (let [^java.awt.Component w (to-widget widget)]
+    (when-let [unfill (get-meta w ::unfill)] (unfill) (put-meta! w ::unfill nil))
+    (when-let [p (.getParent w)]
+      (.remove p w)
+      (.repaint p))
+    w))
+
+;*******************************************************************************
+; Internal frames
+
+(def desktop-pane-options
+  (merge
+    default-options
+    (option-map
+      (default-option :items
+        (fn [^javax.swing.JDesktopPane p items]
+          (doseq [f items] (.add p ^java.awt.Component (make-widget f))))
+        (fn [^javax.swing.JDesktopPane p] (seq (.getAllFrames p)))
+        ["A list of (internal-frame)s"]))))
+
+(widget-option-provider javax.swing.JDesktopPane desktop-pane-options)
+
+(defn desktop-pane
+  "Create a JDesktopPane, an MDI container for (internal-frame)s. Options:
+
+    :items  The internal frames
+
+  Its JavaBean properties are options too, e.g. :drag-mode."
+  [& opts]
+  (apply-options (construct javax.swing.JDesktopPane) opts))
+
+(def internal-frame-options
+  (merge
+    default-options
+    (option-map
+      (default-option :content
+        #(doto ^javax.swing.JInternalFrame %1 (.setContentPane (make-widget %2)) .revalidate)
+        #(.getContentPane ^javax.swing.JInternalFrame %1)
+        ["The frame's content widget"])
+      (bean-option [:menubar :j-menu-bar] javax.swing.JInternalFrame nil nil
+                   "The frame's menu bar. See (seesaw.core/menubar).")
+      (bean-option :title javax.swing.JInternalFrame resource)
+      (bean-option :resizable? javax.swing.JInternalFrame boolean)
+      (bean-option :closable? javax.swing.JInternalFrame boolean)
+      (bean-option :maximizable? javax.swing.JInternalFrame boolean)
+      (bean-option :iconifiable? javax.swing.JInternalFrame boolean)
+      (default-option :size #(.setSize ^java.awt.Component %1 (to-dimension %2))
+                      #(.getSize ^java.awt.Component %1) dimension-examples))))
+
+(widget-option-provider javax.swing.JInternalFrame internal-frame-options)
+
+(defn internal-frame
+  "Create a JInternalFrame, a window inside a (desktop-pane). Options:
+
+    :title :content :menubar :size :location
+    :resizable? :closable? :maximizable? :iconifiable?   (default true)
+    :visible?   (default true)
+
+  Listen to its life cycle with :internal-frame-opened,
+  :internal-frame-closing, :internal-frame-activated, and so on."
+  [& {:as opts}]
+  (apply-options (construct javax.swing.JInternalFrame)
+                 (merge {:resizable? true :closable? true :maximizable? true
+                         :iconifiable? true :visible? true :size [320 :by 240]}
+                        opts)))
+
+;*******************************************************************************
+; Formatted text, scroll bars, color chooser, JLayer
+
+(def ^{:private true} formats
+  {:integer  #(java.text.NumberFormat/getIntegerInstance)
+   :number   #(java.text.NumberFormat/getNumberInstance)
+   :percent  #(java.text.NumberFormat/getPercentInstance)
+   :currency #(java.text.NumberFormat/getCurrencyInstance)
+   :date     #(java.text.DateFormat/getDateInstance)
+   :time     #(java.text.DateFormat/getTimeInstance)})
+
+(defn- ^java.text.Format to-format [v]
+  (cond
+    (instance? java.text.Format v) v
+    (keyword? v) (if-let [f (formats v)] (f) (illegal-argument "Unknown format %s. Must be one of %s" v (keys formats)))
+    (string? v) (java.text.DecimalFormat. ^String v)
+    :else (illegal-argument "Don't know how to make a format from %s" v)))
+
+(def formatted-text-options
+  (merge
+    text-field-options
+    (option-map
+      (default-option :value
+        #(.setValue ^javax.swing.JFormattedTextField %1 %2)
+        #(.getValue ^javax.swing.JFormattedTextField %1)
+        ["The (parsed) value"])
+      (default-option :commit-on-valid?
+        #(when %2 (-> ^javax.swing.JFormattedTextField %1
+                      .getFormatter
+                      ^javax.swing.text.DefaultFormatter (identity)
+                      (.setCommitsOnValidEdit true)))
+        nil
+        ["Update :value on every valid keystroke, not only on Enter or focus loss"]))))
+
+(widget-option-provider javax.swing.JFormattedTextField formatted-text-options)
+
+(defn formatted-text
+  "Create a JFormattedTextField, a text field for a typed value. Options:
+
+    :format  :integer :number :percent :currency :date :time, a
+             java.text.Format, or a DecimalFormat pattern string like \"#,##0.00\"
+    :value   The value, e.g. a number or a java.util.Date
+    :commit-on-valid?  Update :value as the user types valid input
+
+  Listen to :value changes with (listen w :property-change ...) or read it
+  with (config w :value).
+
+  Plus all of the text field options."
+  [& {:keys [format] :as opts}]
+  (let [f (construct javax.swing.JFormattedTextField (to-format (or format :number)))]
+    (apply-options f (dissoc opts :format))))
+
+(def scroll-bar-options
+  (merge
+    default-options
+    (option-map
+      model-option
+      (bean-option :orientation javax.swing.JScrollBar orientation-table)
+      (bean-option :value javax.swing.JScrollBar)
+      (bean-option [:min :minimum] javax.swing.JScrollBar)
+      (bean-option [:max :maximum] javax.swing.JScrollBar)
+      (bean-option :visible-amount javax.swing.JScrollBar)
+      (bean-option :unit-increment javax.swing.JScrollBar)
+      (bean-option :block-increment javax.swing.JScrollBar))))
+
+(widget-option-provider javax.swing.JScrollBar scroll-bar-options)
+
+(defn scroll-bar
+  "Create a JScrollBar. Options:
+
+    :orientation :horizontal or :vertical (default)
+    :value :min :max :visible-amount :unit-increment :block-increment
+
+  Listen to :adjustment-value-changed, or :selection."
+  [& opts]
+  (apply-options (construct javax.swing.JScrollBar) opts))
+
+(def color-chooser-options
+  (merge
+    default-options
+    (option-map
+      (default-option :color
+        #(.setColor ^javax.swing.JColorChooser %1 (seesaw.color/to-color %2))
+        #(.getColor ^javax.swing.JColorChooser %1)
+        color-examples))))
+
+(widget-option-provider javax.swing.JColorChooser color-chooser-options)
+
+(defn color-chooser
+  "Create a JColorChooser to embed in a UI (see (seesaw.chooser/choose-color)
+  for the dialog). Options:
+
+    :color  The selected color
+
+  (selection w) is the selected color; listen to :selection for changes."
+  [& opts]
+  (apply-options (construct javax.swing.JColorChooser) opts))
+
+(def ^{:private true} layer-event-masks
+  {:mouse        java.awt.AWTEvent/MOUSE_EVENT_MASK
+   :mouse-motion java.awt.AWTEvent/MOUSE_MOTION_EVENT_MASK
+   :mouse-wheel  java.awt.AWTEvent/MOUSE_WHEEL_EVENT_MASK
+   :key          java.awt.AWTEvent/KEY_EVENT_MASK
+   :focus        java.awt.AWTEvent/FOCUS_EVENT_MASK})
+
+(defn jlayer
+  "Wrap a widget in a javax.swing.JLayer to paint over it or see the events
+  going to it and its children, without changing it. Options:
+
+    :paint   (fn [c g]) called after the view is painted. g is a Graphics2D,
+             e.g. for a watermark, a busy overlay or validation marks.
+    :events  Set of event kinds to receive: :mouse :mouse-motion
+             :mouse-wheel :key :focus
+    :on-event (fn [e]) called with each of those events (before the view
+             gets them)
+
+  Returns the JLayer."
+  [view & {:keys [paint events on-event]}]
+  (let [ui (proxy [javax.swing.plaf.LayerUI] []
+             (paint [^java.awt.Graphics g ^javax.swing.JComponent c]
+               (let [^javax.swing.plaf.LayerUI this this]
+                 (proxy-super paint g c))
+               (when paint
+                 (let [^java.awt.Graphics2D g2 (.create g)]
+                   (try (paint c g2) (finally (.dispose g2))))))
+             (eventDispatched [e _]
+               (when on-event (on-event e))))
+        l  (javax.swing.JLayer. ^java.awt.Component (make-widget view) ^javax.swing.plaf.LayerUI ui)]
+    (when (seq events)
+      (.setLayerEventMask l (long (reduce bit-or 0 (map #(or (layer-event-masks %)
+                                                             (illegal-argument "Unknown event kind %s" %))
+                                                        events)))))
+    l))
+
+;*******************************************************************************
+; Actions on widgets
+
+(defn click!
+  "Programmatically click buttons, check boxes, menu items etc., as if the
+  user did, firing their :action listeners. Returns its input."
+  [targets]
+  (doseq [^javax.swing.AbstractButton b (map to-widget (to-seq targets))]
+    (.doClick b))
+  targets)
+
+(defn children
+  "The direct children of a container (or the items of a menu)."
+  [target]
+  (let [t (to-widget target)]
+    (seq (cond
+           (instance? javax.swing.JMenu t) (.getMenuComponents ^javax.swing.JMenu t)
+           (instance? java.awt.Container t) (.getComponents ^java.awt.Container t)))))
+
+(defn parent
+  "The widget's parent container, or nil."
+  [target]
+  (.getParent ^java.awt.Component (to-widget target)))
+
+(defn- to-tree-path [^javax.swing.JTree tree p]
+  (cond
+    (instance? javax.swing.tree.TreePath p) p
+    (number? p) (.getPathForRow tree (int p))
+    :else (javax.swing.tree.TreePath. (to-array p))))
+
+(defn expand!
+  "Expand a tree node, given a row number or a path (a seq of nodes from the
+  root, as returned by (selection tree)). Returns the tree."
+  [tree path]
+  (let [^javax.swing.JTree t (to-widget tree)]
+    (when-let [p (to-tree-path t path)] (.expandPath t p))
+    tree))
+
+(defn collapse!
+  "Collapse a tree node, given a row number or a path. Returns the tree."
+  [tree path]
+  (let [^javax.swing.JTree t (to-widget tree)]
+    (when-let [p (to-tree-path t path)] (.collapsePath t p))
+    tree))
+
+(defn expand-all!
+  "Expand every node of a tree. Returns the tree."
+  [tree]
+  (let [^javax.swing.JTree t (to-widget tree)]
+    (loop [row 0]
+      (when (< row (.getRowCount t))
+        (.expandRow t row)
+        (recur (inc row))))
+    tree))
+
+(defn screen-bounds
+  "The widget's [x y width height] in screen coordinates."
+  [target]
+  (let [^java.awt.Component c (to-widget target)
+        p (.getLocationOnScreen c)]
+    [(.x p) (.y p) (.getWidth c) (.getHeight c)]))
+
+(defn screen-size
+  "The [width height] of the screen."
+  []
+  (let [d (.getScreenSize (java.awt.Toolkit/getDefaultToolkit))]
+    [(.width d) (.height d)]))
+
+(defn event-kind
+  "The kind of an AWT event as a keyword, e.g. :mouse-clicked, :key-pressed,
+  :focus-gained, :window-closing. nil for other events."
+  [e]
+  (when (instance? java.awt.AWTEvent e)
+    (let [p (.paramString ^java.awt.AWTEvent e)]
+      (keyword (clojure.string/lower-case
+                 (clojure.string/replace (first (clojure.string/split p #",")) "_" "-"))))))
+
+(defn event-info
+  "An event (or any Java bean) as a Clojure map of its properties, e.g.
+  {:click-count 2 :x 10 :y 5 ...} for a mouse event,
+  {:event-type ACTIVATED :url ...} for a hyperlink event. Handy in handlers
+  instead of calling the event's getters."
+  [e]
+  (into {}
+        (for [[k v] (bean e) :when (not= :class k)]
+          ; clickCount -> :click-count
+          [(keyword (clojure.string/lower-case
+                      (clojure.string/replace (name k) #"([a-z0-9])([A-Z])" "$1-$2")))
+           v])))
+
+;*******************************************************************************
 ; Selectors
 
 ; Implement getting and setting ids and classes for selectors
