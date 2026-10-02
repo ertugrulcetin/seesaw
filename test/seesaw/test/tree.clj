@@ -9,10 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.tree
-  (:use seesaw.tree)
-  (:use [seesaw.core :only [listen]])
-  (:use [lazytest.describe :only (describe it testing given)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect expect-it given it]]
+   [seesaw.core :refer [listen]]
+   [seesaw.tree :refer :all]))
 
 (defn- tree-listener
   "Dummy TreeModelListener that calls handler with the received event."
@@ -23,13 +23,13 @@
     (treeNodesRemoved [this e] (handler e))
     (treeStructureChanged [this e] (handler e))))
 
-(describe simple-tree-model
+(defdescribe simple-tree-model-test
   (given [branch? (fn [node] (= node "dir"))
         children (fn [node] (when (= node "dir") [1 2 3]))
         m (simple-tree-model branch? children "dir")]
-    (it "should create a read-only tree model from branch? and children functions"
+    (expect-it "should create a read-only tree model from branch? and children functions"
       (instance? javax.swing.tree.TreeModel m))
-    (it "should return the root"
+    (expect-it "should return the root"
       (= "dir" (.getRoot m)))
     (it "should return isLeaf"
       (expect (.isLeaf m "file"))
@@ -37,9 +37,9 @@
     (it "should return the child count"
       (expect (= 0 (.getChildCount m "file")))
       (expect (= 3 (.getChildCount m "dir"))))
-    (it "should return a child by index"
+    (expect-it "should return a child by index"
       (= [1 2 3] (map #(.getChild m "dir" %) (range 3))))
-    (it "should retrieve the index of a child"
+    (expect-it "should retrieve the index of a child"
       (= [0 1 2] (map #(.getIndexOfChild m "dir" %) [1 2 3])))
     (it "should allow a listener to be added"
       (let [called (atom nil)]
@@ -61,7 +61,7 @@
 (defn- make-test-model []
   (simple-tree-model #(.isDirectory %) #(.listFiles %) (java.io.File. ".")))
 
-(describe fire-event
+(defdescribe fire-event-test
   (it "fires nodes-changed events"
     (let [m (make-test-model)
           e (atom nil)

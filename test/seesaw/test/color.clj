@@ -9,16 +9,17 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.color
-  (:use seesaw.color)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)])
-  (:import [java.awt Color]))
+  (:require
+   [lazytest.core :refer [defdescribe expect expect-it it]]
+   [seesaw.color :refer :all]) 
+  (:import
+   [java.awt Color]))
 
-(describe get-rgba
-  (it "returns vector [r g b a] as integers"
+(defdescribe get-rgba-test
+  (expect-it "returns vector [r g b a] as integers"
     (= [1 2 3 4] (get-rgba (color 1 2 3 4)))))
 
-(describe color
+(defdescribe color-test
   (it "can create a color from rgb integers"
     (let [c (color 1 2 3)]
       (expect (= (Color. 1 2 3) c))))
@@ -40,20 +41,20 @@
   (it "can create a color from a #-prefixed rgb hex keyword and alpha"
     (let [c (color :#010203 23)]
       (expect (= (Color. 1 2 3 23) c))))
-  (it "can create a color from a CSS-style name"
-    (expect (= (Color. 240 248 255) (color "aliceblue"))))
-  (it "can create a color from a CSS-style keyword name"
-    (expect (= (Color. 0 255 127) (color :springgreen))))
-  (it "can create a color from a mixed-case CSS-style name"
-    (expect (= (Color. 240 248 255) (color "AlIceBlUe")))))
+  (expect-it "can create a color from a CSS-style name"
+    (= (Color. 240 248 255) (color "aliceblue")))
+  (expect-it "can create a color from a CSS-style keyword name"
+    (= (Color. 0 255 127) (color :springgreen)))
+  (expect-it "can create a color from a mixed-case CSS-style name"
+    (= (Color. 240 248 255) (color "AlIceBlUe"))))
 
-(describe to-color
-  (it "returns nil for nil input"
+(defdescribe to-color-test
+  (expect-it "returns nil for nil input"
     (nil? (to-color nil)))
-  (it "returns its input if its a color"
-      (expect (= Color/BLACK (to-color Color/BLACK)))))
+  (expect-it "returns its input if its a color"
+    (= Color/BLACK (to-color Color/BLACK))))
 
-(describe default-color
+(defdescribe default-color-test
   (it "retrieve a default color from the UIManager"
     (let [name "Label.foreground"
           c (default-color name)

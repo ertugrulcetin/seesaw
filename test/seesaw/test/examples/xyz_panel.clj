@@ -9,9 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.xyz-panel
-  (:use [seesaw core border behave graphics]
-        seesaw.test.examples.example)
-  (:import [javax.swing SwingUtilities]))
+  (:require [seesaw.core :refer :all]
+            [seesaw.behave :refer [when-mouse-dragged]]
+            [seesaw.graphics :refer [draw rounded-rect style]]
+            [seesaw.border :refer [line-border]]
+            [seesaw.test.examples.example :refer [defexample]]))
 
 
 ; Put in some basic support for moving w around using behave/when-mouse-dragged.
@@ -73,7 +75,7 @@
                    (config! :bounds :preferred)
                    movable))))
 
-(defexample []
+(defexample run []
   (frame
     :title   "Seesaw xyz-panel example"
     :content (border-panel

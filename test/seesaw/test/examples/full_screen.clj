@@ -9,8 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.full-screen
-  (:use [seesaw core]
-        seesaw.test.examples.example))
+  (:require
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 ; Example usage of toggle-full-screen!. In this example, the frame is undecorated
 ; so we have to provide an explicit close button.
@@ -30,7 +31,7 @@
   (listen (select root [:#close]) :action (fn [e] (dispose! root)))
   root)
 
-(defexample []
+(defexample run []
   (-> (make-frame)
     add-behaviors
     show!))

@@ -9,14 +9,14 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.keymap
-  (:use [seesaw.keymap]
-        [seesaw.core :only [button action]]
-        [seesaw.keystroke :only [keystroke]])
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe describe expect it]]
+   [seesaw.core :refer [action button]]
+   [seesaw.keymap :refer [map-key]]
+   [seesaw.keystroke :refer [keystroke]]))
 
-(describe map-key
-  (testing "a keystroke and action"
+(defdescribe map-key-test
+  (describe "a keystroke and action"
     (it "maps the key to the action in :descendants scope by default"
       (let [b (button)
             k (keystroke "A")
@@ -32,7 +32,7 @@
             id (.. b (getInputMap javax.swing.JComponent/WHEN_FOCUSED) (get k))]
         (expect (= a (.. b (getActionMap) (get id)))))))
 
-  (testing "a keystroke and a function"
+  (describe "a keystroke and a function"
     (it "maps the key to an action that calls the function"
       (let [b (button)
             k (keystroke "A")
@@ -54,7 +54,7 @@
           (remove-fn)
           (expect (nil? (.. b (getActionMap) (get id))))))
 
-  (testing "a keystroke and a button"
+  (describe "a keystroke and a button"
     (it "maps the key to .doClick on the button"
       (let [k (keystroke "A")
             called (atom nil)
@@ -69,4 +69,3 @@
           _ (map-key b k b :id :foo :scope :global)
           id (.. b (getInputMap javax.swing.JComponent/WHEN_IN_FOCUSED_WINDOW) (get k))]
       (expect (= id :foo)))))
-

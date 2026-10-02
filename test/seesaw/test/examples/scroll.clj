@@ -8,10 +8,10 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 (ns seesaw.test.examples.scroll
-  (:use seesaw.core
-        seesaw.test.examples.example)
-  (:require [seesaw.bind :as bind]
-            seesaw.scroll))
+  (:require
+   [seesaw.bind :as bind]
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 (defn top [target]
   (action :name "(scroll! v :to :top)" 
@@ -96,7 +96,7 @@
            {:title "table"   :content (jtable)}
            {:title "text"    :content (jtext)}]))
 
-(defexample []
+(defexample run []
 
   (frame :title "Seesaw Scroll Demo" :size [800 :by 400] :content (app-panel)))
 

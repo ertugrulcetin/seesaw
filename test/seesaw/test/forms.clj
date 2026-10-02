@@ -9,12 +9,12 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.forms
-  (:use [seesaw [core :exclude (separator)]])
-  (:use seesaw.forms)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect it]]
+   [seesaw.core :refer [action text]]
+   [seesaw.forms :refer [forms-panel next-column next-line separator span title]]))
 
-(describe forms-panel
+(defdescribe forms-panel-test
   (it "Creates a JPanel using a JGoodies form builder"
     (let [p (forms-panel
               "pref,4dlu,80dlu,8dlu,pref,4dlu,80dlu"

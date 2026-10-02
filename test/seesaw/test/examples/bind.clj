@@ -9,9 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.bind
-  (:use [seesaw core border]
-        seesaw.test.examples.example)
-  (:require [seesaw.bind :as b]))
+  (:require
+   [seesaw.bind :as b]
+   [seesaw.border :refer [line-border]]
+   [seesaw.core :refer [border-panel checkbox frame label select text]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 (defn regex-box [& opts]
   (let [pattern (text :id :search :columns 20 :border [5 (line-border)])
@@ -37,8 +39,7 @@
       :center pattern
       :south status :vgap 5 :border 5)))
 
-(defexample []
-
+(defexample run []
   (let [f (frame 
             :title "Seesaw (bind) example"
             :content (border-panel :north (checkbox :id :enable 

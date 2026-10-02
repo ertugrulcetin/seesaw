@@ -9,22 +9,24 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.font
-  (:use seesaw.font)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)])
-  (:import [java.awt Font]))
+  (:require
+   [lazytest.core :refer [defdescribe expect expect-it it]]
+   [seesaw.core :refer :all]
+   [seesaw.font :refer [default-font font to-font]])
+  (:import
+   [java.awt Font]))
 
-(describe font
+(defdescribe font-test
   (it "can create a font from a font-spec"
     (let [f (font "ARIAL-BOLD-18")]
       (expect (= "ARIAL" (.getName f)))
-      (expect (= 18 (.getSize f))))
-      (expect (= Font/BOLD (.getStyle f))))
+      (expect (= 18 (.getSize f)))
+      (expect (= Font/BOLD (.getStyle f)))))
   (it "can create a bold font"
-    (let [f (font :style :bold )]
+    (let [f (font :style :bold)]
       (expect (= Font/BOLD (.getStyle f)))))
   (it "can create a bold & italic font"
-    (let [f (font :style #{:bold :italic} )]
+    (let [f (font :style #{:bold :italic})]
       (expect (= (bit-or Font/BOLD Font/ITALIC) (.getStyle f)))))
   (it "can create a plain font"
     (let [f (font)]
@@ -56,8 +58,8 @@
       (expect (= Font/BOLD (.getStyle f)))
       (expect (= "Arial" (.getName f))))))
 
-(describe to-font
-  (it "returns nil if its input is nil"
+(defdescribe to-font-test
+  (expect-it "returns nil if its input is nil"
     (nil? (to-font nil)))
   (it "returns its input if its a font"
     (let [f (font)]
@@ -69,7 +71,7 @@
     (let [f (to-font {:style :italic})]
       (expect (= Font/ITALIC (.getStyle f))))))
 
-(describe default-font
+(defdescribe default-font-test
   (it "retrieves a named from from the UIManager"
     (let [f (default-font "Label.font")
           expected (.getFont (javax.swing.UIManager/getDefaults) "Label.font")]

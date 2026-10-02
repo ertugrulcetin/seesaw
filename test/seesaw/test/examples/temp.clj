@@ -9,9 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.temp
-  (:use seesaw.core 
-        seesaw.font
-        seesaw.test.examples.example))
+  (:require
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 ; See http://stuartsierra.com/2010/01/06/heating-up-clojure-swing 
 
@@ -38,7 +38,7 @@
   (listen source :document (fn [e] (update-temp source target f)))
   source)
 
-(defexample []
+(defexample run []
   (let [c (text :tip "Enter Celsius temperature") 
         f (text :tip "Enter Fahrenheit temperature")]
     (frame 

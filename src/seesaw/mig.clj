@@ -59,7 +59,7 @@
     (seesaw.core/default-options)
   "
   { :seesaw {:class 'javax.swing.JPanel }}
-  [& opts]
+  ^javax.swing.JPanel [& opts]
   (abstract-panel (net.miginfocom.swing.MigLayout.) opts))
 
 (extend-protocol LayoutManipulation

@@ -9,9 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.tree
-  (:use [seesaw core tree]
-        seesaw.test.examples.example)
-  (:require clojure.xml))
+  (:require
+   [clojure.xml :as xml]
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]
+   [seesaw.tree :refer [simple-tree-model]]))
 
 (def source "http://www.4clojure.com/problems/rss")
 
@@ -21,7 +23,7 @@
   (simple-tree-model 
     (complement string?) 
     (comp seq :content)
-    (clojure.xml/parse source)))
+    (xml/parse source)))
 
 ; A custom renderer so that XML elements are displayed nicely
 (defn render-fn [renderer info]
@@ -41,7 +43,7 @@
                                 :renderer render-fn))
       :south  (label :id :sel :text "Selection: "))))
 
-(defexample []
+(defexample run []
   (let [f (make-frame)]
     ; Listen for selection changes and show them in the label
     (listen (select f [:#tree]) 

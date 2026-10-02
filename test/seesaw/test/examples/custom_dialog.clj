@@ -9,8 +9,12 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.custom-dialog
-  (:use [seesaw core font border mig]
-        seesaw.test.examples.example))
+  (:require 
+        [seesaw.test.examples.example :refer [defexample]]
+        [seesaw.core :refer [action return-from-dialog custom-dialog flow-panel pack! show! value to-frame alert label combobox slider frame]]
+        [seesaw.mig :refer [mig-panel]]
+        [seesaw.border :refer [line-border]]
+        [seesaw.font :refer [font default-font]]))
 
 (defn open-more-options-dlg
   []
@@ -63,7 +67,7 @@
       pack! 
       show!)))
 
-(defexample []
+(defexample run []
   (frame :title "Custom Dialog Example"
          :content (action :name "Show Dialog" 
                           :handler (fn [e] 

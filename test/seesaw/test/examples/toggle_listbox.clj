@@ -9,12 +9,13 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.toggle-listbox
-  (:import [java.awt Dimension]
-           [java.awt.image BufferedImage]
-           [javax.swing ImageIcon])
-  (:use seesaw.core
-        seesaw.test.examples.example)
-  (:require [seesaw.dnd :as dnd]))
+  (:require
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]])
+  (:import
+   [java.awt Dimension]
+   [java.awt.image BufferedImage]
+   [javax.swing ImageIcon]))
 
 
 ;; I learned about the trick of first calling setSize on a Swing
@@ -74,7 +75,7 @@ there purely for display purposes."
              :renderer render-item)))
 
 
-(defexample []
+(defexample run []
   (frame
    :title "List with strings shown as toggle buttons"
    :content

@@ -1,6 +1,0 @@
-language: clojure
-lein: lein
-before_script:
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
-script: "lein deps; lein javac; export DISPLAY=:99.0; ./lazytest.sh"

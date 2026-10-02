@@ -9,9 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.reorderable-listbox
-  (:use seesaw.core
-        seesaw.test.examples.example)
-  (:require [seesaw.dnd :as dnd]))
+  (:require
+   [seesaw.core :refer :all]
+   [seesaw.dnd :as dnd]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 
 (defn list-with-elem-at-index
@@ -83,7 +84,7 @@ new items are allowed to be added, nor may existing items be removed."
                                    [dnd/string-flavor (selection c)])}))))
 
 
-(defexample []
+(defexample run []
   (let [atom-with-cur-item-order (atom ["Pie" "Cake" "Cookies"
                                         "Ice Cream" "Donut"])]
     (frame

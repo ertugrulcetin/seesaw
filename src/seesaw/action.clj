@@ -84,7 +84,7 @@
   See:
     http://download.oracle.com/javase/6/docs/api/javax/swing/Action.html
   "
-  [& opts]
+  ^Action [& opts]
   (let [a (proxy [AbstractAction] [] 
             (actionPerformed [e] 
               (if-let [f (get-meta this action-handler-property)] (f e))))]

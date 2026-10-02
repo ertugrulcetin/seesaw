@@ -18,7 +18,7 @@
 ;*******************************************************************************
 ; Icons
 
-(defn ^javax.swing.Icon icon 
+(defn icon 
   "Loads an icon. The parameter p can be any of the following:
   
     nil              - returns nil
@@ -33,7 +33,7 @@
   This is the function used to process the :icon property on most widgets
   and windows. Thus, any of these values may be used for the :icon property.
   "
-  [p]
+  ^javax.swing.ImageIcon [p]
   (cond
     (nil? p) nil 
     (instance? javax.swing.Icon p) p

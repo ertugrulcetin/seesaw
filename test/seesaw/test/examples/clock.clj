@@ -9,10 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.clock
-  (:use seesaw.core
-        seesaw.graphics
-        seesaw.color
-        seesaw.test.examples.example))
+  (:require [seesaw.core :refer [canvas timer repaint! frame]]
+        [seesaw.graphics :refer [path move-to line-to style stroke translate scale push rotate draw circle line]]
+        [seesaw.color :refer [color]]
+        [seesaw.test.examples.example :refer [defexample]]))
 
 ; A very rudimentary example of (canvas) that draws an analog clock
 
@@ -76,9 +76,9 @@
     ; Draw a little circle in the middle
     (draw g (circle 0 0 3) tick-style)))
 
-(defexample []
-  (let [cvs (canvas :id :canvas :background "#BBBBBB" :paint paint-clock)
-        t (timer (fn [e] (repaint! cvs)) :delay 1000)]
+(defexample run []
+  (let [cvs (canvas :id :canvas :background "#BBBBBB" :paint paint-clock)]
+    (timer (fn [e] (repaint! cvs)) :delay 1000)
     (frame
       :title "Seesaw Canvas Clock"
       :width 400 :height 400

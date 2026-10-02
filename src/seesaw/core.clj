@@ -1179,7 +1179,7 @@
   See:
     http://download.oracle.com/javase/6/docs/api/javax/swing/JLabel.html
   "
-  [& args]
+  ^JLabel [& args]
   (case (count args)
     0 (label :text "")
     1 (label :text (first args))
@@ -1534,7 +1534,7 @@
     http://download.oracle.com/javase/6/docs/api/javax/swing/JTextPane.html
   "
   {:arglists '([& args])}
-  [& {:as opts}]
+  ^JTextPane [& {:as opts}]
   (let [pane (proxy [JTextPane] []
                (getScrollableTracksViewportWidth []
                  (boolean (get-meta this :wrap-lines?))))]
@@ -1549,7 +1549,7 @@
     (seesaw.core/text)
     http://download.oracle.com/javase/tutorial/uiswing/components/editorpane.html
   "
-  [^JTextPane target id ^Integer start ^Integer length]
+  ^JTextPane [^JTextPane target id ^Integer start ^Integer length]
   (check-args (instance? JTextPane target) "style-text! only applied to styled-text widgets")
   (.setCharacterAttributes (.getStyledDocument target)
                            start length (.getStyle target (name id)) true)
@@ -2891,7 +2891,6 @@
   (cond
     (nil? w) w
     (instance? java.awt.Window w) w
-    (instance? java.applet.Applet w) w
     (instance? javax.swing.JPopupMenu w)
     (let [^javax.swing.JPopupMenu w w]
       (if-let [p (.getParent w)]
@@ -2952,14 +2951,16 @@
 
 (defn- show-modal-dialog [dlg]
   {:pre [(is-modal-dialog? dlg)]}
+  ; Install the result atom up front rather than on :window-opened, which AWT
+  ; only fires the first time a window is shown, so re-showing a dialog would
+  ; break return-from-dialog. Showing a modal dialog blocks until it's closed.
   (let [dlg-result (atom nil)]
-    (listen dlg
-            :window-opened
-            (fn [_] (put-meta! dlg dialog-result-property dlg-result))
-            #{:window-closing :window-closed}
-            (fn [_] (put-meta! dlg dialog-result-property nil)))
-    (config! dlg :visible? true)
-    @dlg-result))
+    (put-meta! dlg dialog-result-property dlg-result)
+    (try
+      (config! dlg :visible? true)
+      @dlg-result
+      (finally
+        (put-meta! dlg dialog-result-property nil)))))
 
 (defn return-from-dialog
   "Return from the given dialog with the specified value. dlg may be anything
@@ -3330,6 +3331,7 @@
     (condp = result
       JOptionPane/NO_OPTION false
       JOptionPane/CANCEL_OPTION nil
+      JOptionPane/CLOSED_OPTION nil
       true)))
 
 (defn confirm
@@ -3349,7 +3351,7 @@
     :icon        Icon to display (Icon, URL, etc)
 
   Returns true if the user has hit Yes or OK, false if they hit No,
-  and nil if they hit Cancel.
+  and nil if they hit Cancel or closed the dialog.
 
   See:
     http://docs.oracle.com/javase/6/docs/api/javax/swing/JOptionPane.html#showConfirmDialog%28java.awt.Component,%20java.lang.Object,%20java.lang.String,%20int,%20int%29
@@ -3486,12 +3488,15 @@
 
 ;*******************************************************************************
 ; JFXPanel
-(widget-option-provider javafx.embed.swing.JFXPanel default-options)
 
 (defn jfxpanel
-  [& {:keys [] :as opts}]
-  (let [sl (construct javafx.embed.swing.JFXPanel)]
-    (apply-options sl opts)))
+  "Create a javafx.embed.swing.JFXPanel. Supports the default widget options.
+
+  JavaFX is not bundled with the JDK, so this requires the OpenJFX javafx-swing
+  artifact (or a JDK distribution that ships JavaFX) on the classpath.
+  Delegates to (seesaw.javafx/jfxpanel)."
+  [& opts]
+  (apply (requiring-resolve 'seesaw.javafx/jfxpanel) opts))
 
 
 ;*******************************************************************************

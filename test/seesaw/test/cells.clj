@@ -9,13 +9,13 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.cells
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]
-        [seesaw.core]
-        [seesaw.cells]
-        [seesaw.font]))
+  (:require
+   [lazytest.core :refer (defdescribe it expect expect-it)]
+   [seesaw.cells :refer :all]
+   [seesaw.core :refer [config!]]
+   [seesaw.font :refer [font]]))
 
-(describe default-list-cell-renderer
+(defdescribe default-list-cell-renderer-test
   (it "proxies a DefaultListCellRenderer which dispatches to a function"
     (let [expected-font (font :name "ARIAL-BOLD-18")
           jlist (javax.swing.JList.)
@@ -31,7 +31,7 @@
       (expect (= nil (.getIcon c)))
       (expect (= expected-font (.getFont c))))))
 
-(describe default-tree-cell-renderer
+(defdescribe default-tree-cell-renderer-test
   (it "proxies a DefaultTreeCellRenderer which dispatches to a function"
     (let [expected-font (font :name "ARIAL-BOLD-18")
           jtree (javax.swing.JTree.)
@@ -47,16 +47,14 @@
       (expect (= nil (.getIcon c)))
       (expect (= expected-font (.getFont c))))))
 
-(describe to-cell-renderer
-  (it "throws an exception if it can't make a renderer for a component"
+(defdescribe to-cell-renderer-test
+  (expect-it "throws an exception if it can't make a renderer for a component"
     (try
-      (to-cell-renderer (javax.swing.JLabel.) nil) false
-      (catch IllegalArgumentException e true)))
+        (to-cell-renderer (javax.swing.JLabel.) nil) false
+        (catch IllegalArgumentException e true)))
   (it "creates a tree cell renderer for a JTree"
     (instance? javax.swing.tree.TreeCellRenderer (to-cell-renderer (javax.swing.JTree.) (fn [r i]))))
   (it "creates a list cell renderer for a JList"
     (instance? javax.swing.ListCellRenderer (to-cell-renderer (javax.swing.JList.) (fn [r i]))))
   (it "creates a list cell renderer for a JComboBox"
     (instance? javax.swing.ListCellRenderer (to-cell-renderer (javax.swing.JComboBox.) (fn [r i])))))
-
-

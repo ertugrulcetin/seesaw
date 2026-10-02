@@ -1,13 +1,14 @@
 (ns seesaw.test.examples.game-of-life
-  (:use [seesaw.dev]
-        [seesaw.core]
-        [seesaw.graphics]
-        [seesaw.behave]
-        [seesaw.border]
-        seesaw.test.examples.example)
-  (:require [clojure.java.io :as jio]
-            [seesaw.dnd :as dnd]
-            [seesaw.bind :as b]))
+  (:require
+   [clojure.java.io :as jio]
+   [seesaw.behave :refer [when-mouse-dragged]]
+   [seesaw.bind :as b]
+   [seesaw.border :refer [line-border]]
+   [seesaw.core :refer :all]
+   [seesaw.dev :refer [debug!]]
+   [seesaw.dnd :as dnd]
+   [seesaw.graphics :refer [draw rect style]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 (debug!)
 ; Adapted from http://tech.puredanger.com/2011/11/17/clojure-and-processing/
@@ -65,7 +66,7 @@
       (->> grid
         (map-indexed (fn [y s] 
                        (map-indexed (fn [x c] 
-                                      (if (= \O c) [x y])) 
+                                      (when (= \O c) [x y])) 
                                     s)))
         (apply concat)
         (filter identity)
@@ -163,7 +164,7 @@
 
   root)
 
-(defexample []
+(defexample run []
   (-> (make-ui) add-behaviors))
 
 ;(run :dispose)

@@ -9,9 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.config
-  (:use [seesaw.config :only [config config!]])
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [seesaw.config :refer [config config!]]
+   [lazytest.core :refer [defdescribe expect it]]))
 
 ; Pretty much tested in core
 

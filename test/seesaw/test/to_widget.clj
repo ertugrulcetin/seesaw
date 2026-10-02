@@ -9,7 +9,6 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.to-widget
-  (:use seesaw.to-widget)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
-
+  (:require
+   [lazytest.core]
+   [seesaw.to-widget]))

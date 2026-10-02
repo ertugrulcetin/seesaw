@@ -40,7 +40,7 @@
 
   See http://download.oracle.com/javase/6/docs/api/javax/swing/Timer.html
   "
-  [f & {:keys [start? initial-value] :or {start? true} :as opts}]
+  ^javax.swing.Timer [f & {:keys [start? initial-value] :or {start? true} :as opts}]
   (let [a (action :handler (timer-handler f initial-value))
         t (javax.swing.Timer. 0 a)]
     (.setDelay t 1000)

@@ -9,9 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.hotpotatoes
-  (:use seesaw.core seesaw.util seesaw.font
-        seesaw.test.examples.example)
-  (:require [clojure.java.io :only reader]))
+  (:require
+   [clojure.java.io :only reader]
+   [seesaw.core :refer :all]
+   [seesaw.util :refer [to-url]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 ; A simple HTTP request app. Enter a URL and click "Go". It does the request in
 ; the background and displays the response.
@@ -23,7 +25,7 @@
                   "Invalid URL")]
       (invoke-later (f result)))))
 
-(defexample []
+(defexample run []
   (let [exit-action (action :handler dispose! :name "Exit")
         url-text    (text "http://google.com")
         status      (label "Ready")

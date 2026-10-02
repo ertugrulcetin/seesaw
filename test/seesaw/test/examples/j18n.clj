@@ -9,10 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.j18n
-  (use [seesaw.core]
-       seesaw.test.examples.example))
+  (:require
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]))
 
-(defexample []
+(defexample run []
   (let [a (action 
             ; Use a set of properties for the action, all with prefix "action"
             :resource ::my-action

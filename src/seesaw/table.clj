@@ -39,8 +39,8 @@
   (let [[head [_ & tail]] (split-at pos row-vec)]
     (vec (concat head tail))))
 
-(defn- ^javax.swing.table.DefaultTableModel proxy-table-model
-  [column-names column-key-map column-classes]
+(defn- proxy-table-model
+  ^javax.swing.table.DefaultTableModel [column-names column-key-map column-classes]
   (let [full-values (atom [])]
     (proxy [javax.swing.table.DefaultTableModel] [(object-array column-names) 0]
       (isCellEditable [row col] false)
@@ -53,10 +53,10 @@
         (let [^javax.swing.table.DefaultTableModel this this]
           (proxy-super setRowCount rows)))
       (addRow [^objects values]
-        (swap! full-values conj (last values))
-        ; TODO reflection - I can't get rid of the reflection here without crashes
-        ; It has something to do with Object[] vs. Vector overrides.
-        (proxy-super addRow values))
+        ; DefaultTableModel.addRow delegates to insertRow, which is overridden
+        ; below, so going through proxy-super would record the row twice (#228)
+        (let [^javax.swing.table.DefaultTableModel this this]
+          (.insertRow this (.getRowCount this) values)))
       (insertRow [row ^objects values]
         (swap! full-values insert-at row (last values))
         ; TODO reflection - I can't get rid of the reflection here without crashes
@@ -131,7 +131,7 @@
     (seesaw.core/table)
     http://download.oracle.com/javase/6/docs/api/javax/swing/table/TableModel.html
   "
-  [& {:keys [columns rows] :as opts}]
+  ^javax.swing.table.DefaultTableModel [& {:keys [columns rows] :as opts}]
   (let [norm-cols   (map normalize-column columns)
         col-names   (map :text norm-cols)
         col-classes (map :class norm-cols)

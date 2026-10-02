@@ -9,18 +9,18 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.swingx
-  (:require [seesaw.core :as core])
-  (:require [seesaw.icon :as icon])
-  (:require [seesaw.graphics :as graphics])
-  (:use seesaw.swingx)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect expect-it it]]
+   [seesaw.core :as core]
+   [seesaw.graphics :as graphics]
+   [seesaw.icon :as icon]
+   [seesaw.swingx :refer :all]))
 
-(describe p-built-in
-  (it "returns built-in predicates by key"
+(defdescribe p-built-in-test
+  (expect-it "returns built-in predicates by key"
     (= org.jdesktop.swingx.decorator.HighlightPredicate/ROLLOVER_ROW (p-built-in :rollover-row))))
 
-(describe p-and
+(defdescribe p-and-test
   (it "creates an AndHighlightPredicate with the given parts"
     (let [expected-parts [:always :never :even :odd]
           a (apply p-and expected-parts)
@@ -31,42 +31,42 @@
           p (p-and pat)]
       (expect (= pat (.getPattern (first (.getHighlightPredicates p))))))))
 
-(describe p-or
+(defdescribe p-or-test
   (it "creates an OrHighlightPredicate with the given parts"
     (let [expected-parts [:rollover-row :always :even :odd]
           a (apply p-or expected-parts)
           actual-parts (seq (.getHighlightPredicates a))]
       (expect (= actual-parts (map p-built-in expected-parts))))))
 
-(describe p-not
-  (it "creates a NotHighlightPredicate with the given target"
+(defdescribe p-not-test
+  (expect-it "creates a NotHighlightPredicate with the given target"
     (= (p-built-in :even) (.getHighlightPredicate (p-not :even)))))
 
-(describe p-type
-  (it "creates a TypeHighlightPredicate with the given class"
+(defdescribe p-type-test
+  (expect-it "creates a TypeHighlightPredicate with the given class"
     (= String (.getType (p-type String)))))
 
-(describe p-eq
-  (it "creates a EqualsHighlightPredicate with the given value"
+(defdescribe p-eq-test
+  (expect-it "creates a EqualsHighlightPredicate with the given value"
     (= "HOWDY" (.getCompareValue (p-eq "HOWDY")))))
 
-(describe p-column-names
-  (it "creates a IdentifierHighlighPredicate with the given column ids"
+(defdescribe p-column-names-test
+  (expect-it "creates a IdentifierHighlighPredicate with the given column ids"
     (= ["a" :b 3] (->> (p-column-names "a" :b 3) .getIdentifiers seq))))
 
-(describe p-column-indexes
-  (it "creates a ColumnHighlighPredicate with the given column indexes"
+(defdescribe p-column-indexes-test
+  (expect-it "creates a ColumnHighlighPredicate with the given column indexes"
     (= [1 2 4] (->> (p-column-indexes 1 2 4) .getColumns seq))))
 
-(describe p-row-group
-  (it "creates a RowGroupHighlightPredicate with the given count"
+(defdescribe p-row-group-test
+  (expect-it "creates a RowGroupHighlightPredicate with the given count"
     (= 6 (.getLinesPerGroup (p-row-group 6)))))
 
-(describe p-depths
-  (it "creates a DepthHighlighPredicate with the given depths"
+(defdescribe p-depths-test
+  (expect-it "creates a DepthHighlighPredicate with the given depths"
     (= [1 2 4] (->> (p-depths 1 2 4) .getDepths seq))))
 
-(describe p-pattern
+(defdescribe p-pattern-test
   (it "creates a PatternHighlighPredicate with the given pattern"
     (let [pat #"hi"]
       (expect (= pat (.getPattern (p-pattern pat))))))
@@ -76,7 +76,7 @@
       (expect (= 123 (.getTestColumn pat)))
       (expect (= 456 (.getHighlightColumn pat))))))
 
-(describe p-fn
+(defdescribe p-fn-test
   (it "creates a Highlighter that calls a two-arg function"
     (let [called (atom false)
           p (p-fn (fn [_ _] (reset! called true)))]
@@ -84,7 +84,7 @@
       (.isHighlighted p nil nil)
       (expect @called))))
 
-(describe hl-color
+(defdescribe hl-color-test
   (it "returns a function that creates a highlighter with always predicate"
     (let [f (hl-color)
           h1 (f) ]
@@ -107,7 +107,7 @@
       (expect (= java.awt.Color/GREEN (.getSelectedBackground h)))
       (expect (= java.awt.Color/BLUE (.getSelectedForeground h))))))
 
-(describe hl-icon
+(defdescribe hl-icon-test
   (it "returns a function that creates a highlighter with always predicate"
     (let [f (hl-icon nil)
           h1 (f) ]
@@ -125,7 +125,7 @@
           h (f)]
       (expect (= i (.getIcon h))))))
 
-(describe hl-shade
+(defdescribe hl-shade-test
   (it "returns a function that creates a highlighter with always predicate"
     (let [f (hl-shade)
           h1 (f) ]
@@ -138,7 +138,7 @@
       (expect (instance? org.jdesktop.swingx.decorator.ShadingColorHighlighter h1))
       (expect (= (p-built-in :never) (.getHighlightPredicate h1))))))
 
-(describe hl-simple-striping
+(defdescribe hl-simple-striping-test
   (it "returns an simple striping"
     (let [h (hl-simple-striping)]
       (expect (instance? org.jdesktop.swingx.decorator.Highlighter h))))
@@ -164,10 +164,10 @@
      (expect (= [hl#] (core/config w# :highlighters)))
      true))
 
-(describe button-x
-  (it "creates a JXButton"
+(defdescribe button-x-test
+  (expect-it "creates a JXButton"
     (instance? org.jdesktop.swingx.JXButton (button-x)))
-  (it "can set text"
+  (expect-it "can set text"
     (= "HI" (core/text (button-x :text "HI"))))
   (it "can set painters"
     (let [p (org.jdesktop.swingx.painter.BusyPainter.)]
@@ -177,16 +177,16 @@
       (expect (= p (core/config
                      (button-x :foreground-painter p)
                      :foreground-painter))))))
-(describe label-x
-  (it "creates a JXLabel"
+(defdescribe label-x-test
+  (expect-it "creates a JXLabel"
     (instance? org.jdesktop.swingx.JXLabel (label-x)))
-  (it "can set text"
+  (expect-it "can set text"
     (= "HI" (core/text (label-x :text "HI"))))
-  (it "does not wrap lines by default"
+  (expect-it "does not wrap lines by default"
     (not (core/config (label-x :text "HI") :wrap-lines?)))
-  (it "can set wrap-lines? option"
+  (expect-it "can set wrap-lines? option"
     (core/config (label-x :wrap-lines? true) :wrap-lines?))
-  (it "can set rotation option"
+  (expect-it "can set rotation option"
     (= (Math/toRadians 60.0) (core/config (label-x :text-rotation (Math/toRadians 60.0)) :text-rotation)))
   (it "can set painters"
     (let [p (org.jdesktop.swingx.painter.BusyPainter.)]
@@ -197,19 +197,19 @@
                      (label-x :foreground-painter p)
                      :foreground-painter))))))
 
-(describe busy-label
-  (it "creates a JXBusyLabel"
+(defdescribe busy-label-test
+  (expect-it "creates a JXBusyLabel"
     (instance? org.jdesktop.swingx.JXBusyLabel (busy-label)))
-  (it ":busy? defaults to false"
+  (expect-it ":busy? defaults to false"
     (not (core/config (busy-label) :busy?)))
-  (it "can set :busy?"
+  (expect-it "can set :busy?"
     (core/config (busy-label :busy? true) :busy?))
-  (it "can set the text of the label"
+  (expect-it "can set the text of the label"
     (= "Processing" (core/text (busy-label :text "Processing")))))
 
 ; hyperlink gets grouchy when run on travis with no desktop.
 (when (java.awt.Desktop/isDesktopSupported)
-  (describe hyperlink
+  (defdescribe hyperlink-test
     (it "creates a JXHyperlink with a URI"
       (let [hl (hyperlink :uri (java.net.URI. "http://google.com"))]
         (expect (instance? org.jdesktop.swingx.JXHyperlink hl))))
@@ -217,7 +217,7 @@
       (let [hl (hyperlink :uri "http://google.com")]
         (expect (instance? org.jdesktop.swingx.JXHyperlink hl))))))
 
-(describe task-pane
+(defdescribe task-pane-test
   (it "creates a JXTaskPane with a title and icon"
     (let [i (icon/icon (graphics/buffered-image 16 16))
           tp (task-pane :title "HI" :icon i)]
@@ -230,23 +230,23 @@
           tp (task-pane :actions [a b] )]
       (expect (= 2 (.getComponentCount (.getContentPane tp)))))))
 
-(describe task-pane-container
+(defdescribe task-pane-container-test
   (it "creates a JXTaskPaneContainer with some items"
     (let [tpc (task-pane-container)]
       (expect (instance? org.jdesktop.swingx.JXTaskPaneContainer tpc)))))
 
-(describe color-selection-button
-  (it "creates a JXColorSelectionButton"
+(defdescribe color-selection-button-test
+  (expect-it "creates a JXColorSelectionButton"
     (instance? org.jdesktop.swingx.JXColorSelectionButton (color-selection-button)))
-  (it "can set the initial color"
-    (expect (= java.awt.Color/RED
+  (expect-it "can set the initial color"
+    (= java.awt.Color/RED
                (core/config
                  (color-selection-button :selection java.awt.Color/RED)
-                 :selection))))
-  (it "can retrieve the current selection with (seesaw.core/selection)"
-    (expect (= java.awt.Color/RED
-               (core/selection
-                 (color-selection-button :selection java.awt.Color/RED)))))
+                 :selection)))
+  (expect-it "can retrieve the current selection with (seesaw.core/selection)"
+    (= java.awt.Color/RED
+       (core/selection
+        (color-selection-button :selection java.awt.Color/RED))))
   (it "can set the current selection with (seesaw.core/selection!)"
     (let [csb (color-selection-button)]
       (core/selection! csb java.awt.Color/BLACK)
@@ -265,22 +265,22 @@
       (core/selection! csb java.awt.Color/YELLOW)
       (expect (nil? @called)))))
 
-(describe header
-  (it "creates a JXHeader"
+(defdescribe header-test
+  (expect-it "creates a JXHeader"
     (instance? org.jdesktop.swingx.JXHeader (header)))
-  (it "can set a title"
+  (expect-it "can set a title"
     (= "The title" (core/config (header :title "The title") :title)))
-  (it "can set a description"
+  (expect-it "can set a description"
     (= "The description" (core/config (header :description "The description") :description)))
   (it "can set an icon"
     (let [i (icon/icon (graphics/buffered-image 16 16))
           h (header :icon i)]
       (expect (= i (core/config h :icon))))))
 
-(describe listbox-x
-  (it "creates a JXList"
+(defdescribe listbox-x-test
+  (expect-it "creates a JXList"
     (instance? org.jdesktop.swingx.JXList (listbox-x)))
-  (it "creates a JXList with rollover enabled"
+  (expect-it "creates a JXList with rollover enabled"
     (.isRolloverEnabled (listbox-x)))
   (it "creates a JXList with a default model"
     (let [lb (listbox-x :model [1 2 3])]
@@ -300,15 +300,15 @@
     (let [lb (listbox-x :sort-with < :model [2 1 3 0])]
       (core/selection! lb 2)
       (expect (= 2 (core/selection lb)))))
-  (it "is a highlighter host"
+  (expect-it "is a highlighter host"
     (verify-highlighter-host (listbox-x))))
 
-(describe titled-panel
-  (it "creates a JXTitledPanel"
+(defdescribe titled-panel-test
+  (expect-it "creates a JXTitledPanel"
     (instance? org.jdesktop.swingx.JXTitledPanel (titled-panel)))
-  (it "sets the :title of the panel"
+  (expect-it "sets the :title of the panel"
     (= "HI" (.getTitle (titled-panel :title "HI"))))
-  (it "sets the :title-color of the panel"
+  (expect-it "sets the :title-color of the panel"
     (= java.awt.Color/RED (.getTitleForeground (titled-panel :title-color :red))))
   (it "sets the :content of the panel"
     (let [c (core/label "HI")
@@ -324,62 +324,62 @@
       (expect (= left (.getLeftDecoration tp)))
       (expect (= right (.getRightDecoration tp))))))
 
-(describe tree-x
-  (it "creates a JXTree"
+(defdescribe tree-x-test
+  (expect-it "creates a JXTree"
     (instance? org.jdesktop.swingx.JXTree (tree-x)))
-  (it "creates a JXTree with rollover enabled"
+  (expect-it "creates a JXTree with rollover enabled"
     (.isRolloverEnabled (tree-x)))
-  (it "is a highlighter host"
+  (expect-it "is a highlighter host"
     (verify-highlighter-host (tree-x))))
 
-(describe table-x
-  (it "creates a JTable"
+(defdescribe table-x-test
+  (expect-it "creates a JTable"
     (instance? org.jdesktop.swingx.JXTable (table-x)))
-  (it "creates a JXTable with rollover enabled"
+  (expect-it "creates a JXTable with rollover enabled"
     (.isRolloverEnabled (table-x)))
-  (it "creates a JXTable with column control visible"
+  (expect-it "creates a JXTable with column control visible"
     (.isColumnControlVisible (table-x)))
-  (it "creates a sortable JXTable"
+  (expect-it "creates a sortable JXTable"
     (.isSortable (table-x)))
-  (it "can enable horizontal scrollbar"
+  (expect-it "can enable horizontal scrollbar"
     (core/config (table-x :horizontal-scroll-enabled? true) :horizontal-scroll-enabled?))
-  (it "can show the column control"
+  (expect-it "can show the column control"
     (not (core/config (table-x :column-control-visible? false) :column-control-visible?)))
-  (it "can set the column margin"
+  (expect-it "can set the column margin"
     (= 99 (core/config (table-x :column-margin 99) :column-margin)))
-  (it "is a highlighter host"
+  (expect-it "is a highlighter host"
     (verify-highlighter-host (table-x))))
 
-(describe border-panel-x
-  (it "creates a JXPanel with border-panel"
-    (expect (instance? java.awt.BorderLayout
-                       (.getLayout (border-panel-x :alpha 0.5))))))
+(defdescribe border-panel-x-test
+  (expect-it "creates a JXPanel with border-panel"
+    (instance? java.awt.BorderLayout
+                       (.getLayout (border-panel-x :alpha 0.5)))))
 
-(describe flow-panel-x
-  (it "creates a JXPanel with flow-panel"
-    (expect (instance? java.awt.FlowLayout
-                       (.getLayout (flow-panel-x :alpha 0.5))))))
+(defdescribe flow-panel-x-test
+  (expect-it "creates a JXPanel with flow-panel"
+    (instance? java.awt.FlowLayout
+                       (.getLayout (flow-panel-x :alpha 0.5)))))
 
-(describe horizontal-panel-x
-  (it "creates a JXPanel with horizontal-panel"
-    (expect (instance? javax.swing.BoxLayout
-                       (.getLayout (horizontal-panel-x :alpha 0.5))))))
+(defdescribe horizontal-panel-x-test
+  (expect-it "creates a JXPanel with horizontal-panel"
+    (instance? javax.swing.BoxLayout
+                       (.getLayout (horizontal-panel-x :alpha 0.5)))))
 
-(describe vertical-panel-x
-  (it "creates a JXPanel with vertical-panel"
-    (expect (instance? javax.swing.BoxLayout
-                       (.getLayout (vertical-panel-x :alpha 0.5))))))
+(defdescribe vertical-panel-x-test
+  (expect-it "creates a JXPanel with vertical-panel"
+    (instance? javax.swing.BoxLayout
+                       (.getLayout (vertical-panel-x :alpha 0.5)))))
 
-(describe grid-panel-x
-  (it "creates a JXPanel with grid-panel"
-    (expect (instance? java.awt.GridLayout
-                       (.getLayout (grid-panel-x :alpha 0.5))))))
+(defdescribe grid-panel-x-test
+  (expect-it "creates a JXPanel with grid-panel"
+    (instance? java.awt.GridLayout
+                       (.getLayout (grid-panel-x :alpha 0.5)))))
 
-(describe xyz-panel-x
-  (it "creates a JXPanel with xyz-panel"
-    (expect (nil? (.getLayout (xyz-panel-x :alpha 0.5))))))
+(defdescribe xyz-panel-x-test
+  (expect-it "creates a JXPanel with xyz-panel"
+    (nil? (.getLayout (xyz-panel-x :alpha 0.5)))))
 
-(describe card-panel-x
-  (it "creates a JXPanel with card-panel"
-    (expect (instance? java.awt.CardLayout
-                       (.getLayout (card-panel-x :alpha 0.5))))))
+(defdescribe card-panel-x-test
+  (expect-it "creates a JXPanel with card-panel"
+    (instance? java.awt.CardLayout
+                       (.getLayout (card-panel-x :alpha 0.5)))))

@@ -9,8 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.forms
-  (:use [seesaw [core :exclude (separator)] forms]
-        seesaw.test.examples.example))
+  (:require
+   [seesaw.core :refer :all]
+   [seesaw.forms :refer [forms-panel span]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 ; Example similar to miglayout
 
@@ -27,7 +29,7 @@
             "R/mm"    (text :columns 10) "D/mm"     (text :columns 10)]
     :default-dialog-border? true))
 
-(defexample []
+(defexample run []
   (frame :title "jGoodies FormLayout Example"
          :resizable? false
          :content (frame-content)))

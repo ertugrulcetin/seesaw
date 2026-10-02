@@ -9,8 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.scribble
-  (:use [seesaw core color graphics behave]
-        seesaw.test.examples.example))
+  (:require
+   [seesaw.behave :refer [when-mouse-dragged]]
+   [seesaw.core :refer :all]
+   [seesaw.graphics :refer [draw ellipse line move-to path rect style update-style]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 (def colors [:black :white :blue :green :red :yellow :orange :purple nil])
 
@@ -135,7 +138,7 @@
                                     :preferred-size [500 :by 500]
                                     :background :white)))))
 
-(defexample []
+(defexample run []
   (-> (make-ui) add-behaviors))
 
 ;(run :dispose)

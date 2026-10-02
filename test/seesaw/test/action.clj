@@ -9,14 +9,15 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.action
-  (:use [seesaw.action]
-        [seesaw.core :only [config]]
-        [seesaw.keystroke :only [keystroke]])
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)])
-  (:import [javax.swing Action]))
+  (:require
+   [lazytest.core :refer [defdescribe describe expect expect-it it]]
+   [seesaw.action :refer [action]]
+   [seesaw.core :refer [config]]
+   [seesaw.keystroke :refer [keystroke]])
+  (:import
+   [javax.swing Action]))
 
-(describe action
+(defdescribe action-test
   (it "sets the name, tooltip, and command"
     (let [a (action :name "Test" :tip "This is a tip" :command "Go!")]
       (expect (instance? Action a))
@@ -42,7 +43,7 @@
       (expect (= (int \T) m))))
   (it "calls the handler when actionPerformed is called"
     (let [called (atom false)
-          f (fn [e] (reset! called true))
+          f (fn [_] (reset! called true))
           a (action :handler f)]
       (.actionPerformed a nil)
       (expect @called)))
@@ -70,16 +71,16 @@
       (expect (= "A tip" (config a :tip)))
       (expect (= (keystroke "ctrl C") (config a :key)))))
 
-  (it "loads :icon from a resource"
-    (expect (instance? javax.swing.Icon (config (action :icon ::my-action.icon) :icon))))
-  (it "loads :mnemonic from a resource"
-    (expect (= (int \X) (config (action :mnemonic ::my-action.mnemonic) :mnemonic))))
-  (it "loads :command from a resource"
-    (expect (= "A command" (config (action :command ::my-action.command) :command))))
-  (it "loads :name from a resource"
-    (expect (= "A name" (config (action :name ::my-action.name) :name))))
-  (it "loads :key from a resource"
-    (expect (= (keystroke "ctrl C") (config (action :key ::my-action.key) :key))))
-  (it "loads :tip from a resource"
-    (expect (= "A tip" (config (action :tip ::my-action.tip) :tip)))))
+  (expect-it "loads :icon from a resource"
+    (instance? javax.swing.Icon (config (action :icon ::my-action.icon) :icon)))
+  (expect-it "loads :mnemonic from a resource"
+    (= (int \X) (config (action :mnemonic ::my-action.mnemonic) :mnemonic)))
+  (expect-it "loads :command from a resource"
+    (= "A command" (config (action :command ::my-action.command) :command)))
+  (expect-it "loads :name from a resource"
+    (= "A name" (config (action :name ::my-action.name) :name)))
+  (expect-it "loads :key from a resource"
+    (= (keystroke "ctrl C") (config (action :key ::my-action.key) :key)))
+  (expect-it "loads :tip from a resource"
+    (= "A tip" (config (action :tip ::my-action.tip) :tip))))
 

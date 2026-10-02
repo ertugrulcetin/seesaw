@@ -9,11 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.chooser
-  (:use seesaw.chooser)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect-it]]
+   [seesaw.chooser :refer :all]))
 
-(describe file-filter
-  (it "should create a FileFilter"
+(defdescribe file-filter-test
+  (expect-it "should create a FileFilter"
     (instance? javax.swing.filechooser.FileFilter
                (file-filter "All files" (constantly true)))))

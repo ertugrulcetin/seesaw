@@ -9,19 +9,20 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.cursor
-  (:use seesaw.cursor)
-  (:use seesaw.graphics)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)])
-  (:import [java.awt Cursor]))
+  (:require
+   [lazytest.core :refer [defdescribe describe expect it]]
+   [seesaw.cursor :refer :all]
+   [seesaw.graphics :refer :all])
+  (:import
+   [java.awt Cursor]))
 
 (defmacro test-built-ins []
-  `(testing "creating a built-in cursor"
+  `(describe "creating a built-in cursor"
     ~@(for [[key value] (dissoc @#'seesaw.cursor/built-in-cursor-map :custom)]
         `(it ~(str "should create a " key " cursor")
           (expect (= ~value (-> (cursor ~key) (.getType))))))))
 
-(describe cursor
+(defdescribe cursor-test
   (test-built-ins)
   (it "should return its input if given a cursor"
     (let [c (cursor :hand)]
@@ -30,15 +31,14 @@
     (let [img (buffered-image 16 16)
           cur (cursor img)]
       ; Can't actually test that the image was set
-      (= (Cursor/CUSTOM_CURSOR) (.getType cur))))
+      (expect (= (Cursor/CUSTOM_CURSOR) (.getType cur)))))
   (it "should create a custom cursor from an image with an [x y] hotspot"
     (let [img (buffered-image 16 16)
           cur (cursor img [5 5])]
       ; Can't actually test that the hotspot was set
-      (= (Cursor/CUSTOM_CURSOR) (.getType cur))))
+      (expect (= (Cursor/CUSTOM_CURSOR) (.getType cur)))))
   (it "should create a custom cursor from an icon with an [x y] hotspot"
     (let [icon (javax.swing.ImageIcon. (buffered-image 16 16))
           cur (cursor icon [5 5])]
       ; Can't actually test that the hotspot was set
-      (= (Cursor/CUSTOM_CURSOR) (.getType cur)))))
-
+      (expect (= (Cursor/CUSTOM_CURSOR) (.getType cur))))))

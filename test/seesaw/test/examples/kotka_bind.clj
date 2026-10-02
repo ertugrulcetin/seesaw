@@ -9,9 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.kotka-bind
-  (:require [seesaw.bind :as bind])
-  (:use [seesaw.core]
-        seesaw.test.examples.example))
+  (:require [seesaw.bind :as bind]
+            [seesaw.core :refer :all]
+            [seesaw.test.examples.example :refer [defexample]]))
 
 ; seesaw.bind applied to http://kotka.de/blog/2010/05/Decoupling_Logic_and_GUI.html
 ;
@@ -26,7 +26,7 @@
     (swap! progress inc))
   (reset! done? true))
 
-(defexample []
+(defexample run []
   (let [items     (take 500 (iterate inc 0))
         progress  (atom 0)
         done?     (atom false)

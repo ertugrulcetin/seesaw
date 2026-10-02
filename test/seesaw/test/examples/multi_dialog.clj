@@ -9,7 +9,8 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.multi-dialog
-  (:use [seesaw core]))
+  (:require
+   [seesaw.core :refer :all]))
 
 ; Tiny test for showing multiple "document modal" dialogs at the same time.
 

@@ -9,12 +9,12 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.behave
-  (:use seesaw.behave)
-  (:use seesaw.core)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect it]]
+   [seesaw.behave :refer [when-focused-select-all]]
+   [seesaw.core :refer [text]]))
 
-(describe when-focused-select-all
+(defdescribe when-focused-select-all-test
   (it "causes all text in a text field to be selected when it gains focus"
     (let [t (text "Hi there")
           remove-fn (when-focused-select-all t)]

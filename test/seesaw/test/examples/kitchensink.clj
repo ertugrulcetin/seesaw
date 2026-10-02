@@ -9,18 +9,20 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.kitchensink
-  (:require clojure.java.io)
-  (:use seesaw.core
-        seesaw.border
-        seesaw.test.examples.example)
-  (:import (javax.swing JFrame JLabel)
-           (java.awt Color)))
+  (:require
+   [clojure.java.io :as io]
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]
+   [seesaw.border :refer [empty-border line-border]])
+  (:import
+   (java.awt Color)
+   (javax.swing JLabel)))
 
 ; NOTE: This was the first Seesaw example written. It shows fairly randomly
 ; how to do a bunch of stuff, but it's unfocused, messy and generally a
 ; bad example of how to structure a Seesaw (or any) app.
 
-(def rss-url (clojure.java.io/resource "seesaw/test/examples/rss.gif"))
+(def rss-url (io/resource "seesaw/test/examples/rss.gif"))
 (def redditor "http://static.reddit.com/reddit.com.header.png")
 
 (defn make-frame []
@@ -119,7 +121,7 @@
           :south (label :id :table-sel :text "Table selection: ")) }
            ])))))
 
-(defexample []
+(defexample run []
   (let [f (make-frame)]
     (listen (select f [:#tabs]) :selection
           #(let [tp (to-widget %)

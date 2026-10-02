@@ -9,12 +9,12 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.table
-  (:use seesaw.table)
-  (:use [lazytest.describe :only (describe it testing given)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect expect-it it]]
+   [seesaw.table :refer :all]))
 
-(describe table-model
-  (it "should create a table model"
+(defdescribe table-model-test
+  (expect-it "should create a table model"
     (instance? javax.swing.table.TableModel (table-model)))
 
   (it "should create columns from a list of keys"
@@ -53,7 +53,7 @@
       (expect (= "a1" (.getValueAt t 1 0)))
       (expect (= "b1" (.getValueAt t 1 1)))))
 
-  (it "should throw IllegalArgumentException if an entry in :rows is not a map or vector"
+  (expect-it "should throw IllegalArgumentException if an entry in :rows is not a map or vector"
     (try
       (table-model :columns [:a] :rows [1 2 3 4]) false
       (catch IllegalArgumentException e true)))
@@ -66,7 +66,7 @@
     (let [t (table-model :columns [:a :b] :rows [[0 0]])]
       (expect (not (.isCellEditable t 0 0))))))
 
-(describe value-at
+(defdescribe value-at-test
   (it "gets the value of a single row index as a map"
     (let [t (table-model :columns [:a :b] :rows [["a0" "b0"] ["a1" "b1"]])]
       (expect (= {:a "a0" :b "b0" } (value-at t 0)))))
@@ -74,7 +74,7 @@
     (let [t (table-model :columns [:a :b] :rows [{:a 0 :b 1 :c 2} {:a 3 :b 4 :d 5}])]
       (expect (= {:a 0 :b 1 :c 2} (value-at t 0)))
       (expect (= {:a 3 :b 4 :d 5} (value-at t 1)))))
-  (it "gets the value of a row as a map (indexed by column names) if model was not
+  (expect-it "gets the value of a row as a map (indexed by column names) if model was not
       created with (table-model)"
     (let [t (javax.swing.table.DefaultTableModel. 2 3)]
       (expect (= {"A" nil "B" nil "C" nil } (value-at t 0)))))
@@ -96,7 +96,7 @@
       (try (value-at t 9) (catch Exception e))
       (expect (= {:a "bee" :b "cee"} (value-at t 0))))))
 
-(describe update-at!
+(defdescribe update-at!-test
   (it "updates a row with the same format as :rows option of (table-model)"
     (let [t (table-model :columns [:a :b] :rows [["a0" "b0"] ["a1" "b1"]])
           r (update-at! t 0 ["A0" "B0"])]
@@ -132,7 +132,7 @@
       (expect (= {:a true} (value-at t 0)))
       (expect (= {:a false} (value-at t 1))))))
 
-(describe insert-at!
+(defdescribe insert-at!-test
   (it "inserts a row with the same format as :rows option of (table-model)"
     (let [t (table-model :columns [:a :b] :rows [["a0" "b0"] ["a1" "b1"]])
           r (insert-at! t 0 ["A0" "B0"])]
@@ -154,7 +154,15 @@
       (expect (= [{:name "A"} {:name "B"}]
                  (value-at t (range (.getRowCount t))))))))
 
-(describe setRowCount
+(defdescribe addRow-test
+  (it "keeps the full row values in sync with the rows. Issue #228"
+    (let [t (table-model :columns [:a] :rows [{:a 0}])]
+      (.addRow t (object-array [1 {:a 1 :extra "x"}]))
+      (expect (= 2 (.getRowCount t)))
+      (expect (= [{:a 0} {:a 1 :extra "x"}] (value-at t (range (.getRowCount t)))))
+      (expect (nil? (.getValueAt t 2 -1))))))
+
+(defdescribe setRowCount-test
   (it "can extend the number of rows in the table with nils"
     (let [t (table-model :columns [:a])]
       (.setRowCount t 5)
@@ -166,7 +174,7 @@
       (.setRowCount t 2)
       (expect (= 2 (row-count t))))))
 
-(describe remove-at!
+(defdescribe remove-at!-test
   (it "removes a row"
     (let [t (table-model :columns [:a] :rows (map vector (range 5)))
           r (remove-at! t 2)]
@@ -185,19 +193,19 @@
       (expect (= 2 (.getRowCount t)))
       (expect (= [{:a 0} {:a 4}] (value-at t [0 1]))))))
 
-(describe clear!
+(defdescribe clear!-test
   (it "removes all rows from a table"
     (let [t (table-model :columns [:a] :rows (map vector (range 5)))
           r (clear! t)]
       (expect (= r t))
       (expect (= 0 (.getRowCount t))))))
 
-(describe row-count
+(defdescribe row-count-test
   (it "retrievies number of rows in a table"
     (let [t (table-model :columns [:a] :rows (map vector (range 5)))]
       (expect (= 5 (row-count t))))))
 
-(describe column-count
+(defdescribe column-count-test
   (it "retrievies number of columns in a table"
     (let [t (table-model :columns [:a :b :c :d])]
       (expect (= 4 (column-count t))))))

@@ -9,12 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.log-window
-  (:use [seesaw.core]
-        [seesaw.widgets.log-window]
-        [seesaw.invoke :only [signaller]]
-        [seesaw.options :only [apply-options]]
-        seesaw.test.examples.example)
-  (:require [seesaw.dev :as dev]))
+  (:require [seesaw.dev :as dev]
+            [seesaw.core :refer :all]
+            [seesaw.widgets.log-window :refer [log-window log]]
+            [seesaw.test.examples.example :refer [defexample]]))
 
 ; Example usage of seesaw.widgets.log-window/log-window
 
@@ -39,7 +37,7 @@
   (loop [i 0] 
     (log lw (str prefix " - " i " asdf asdf asdf asdf asdf asdf\n"))
     (Thread/sleep 100)
-    (if @go
+    (when @go
       (recur (inc i)))))
 
 (defn add-behaviors [f]
@@ -47,8 +45,8 @@
         go (atom false)]
     (listen
       limit?
-      :selection (fn [_] (config! log-window :limit (if (value limit?) 
-                                              (value limit)))))
+     :selection (fn [_] (config! log-window :limit (when (value limit?) 
+                                                     (value limit)))))
     (listen
       stop
       :action (fn [_] (reset! go false)))
@@ -59,7 +57,7 @@
                 (future (spammer log-window (System/currentTimeMillis) go)))))
   f)
 
-(defexample []
+(defexample run []
   (-> (make-frame)
     add-behaviors))
 ;(run :dispose)

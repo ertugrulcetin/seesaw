@@ -19,7 +19,7 @@
 
 (defn- rounded-label-proxy [paint]
   (proxy [javax.swing.JLabel] []
-    (isOqaque [] false)
+    (isOpaque [] false)
     (setOpaque [v])
     (paintComponent [g]
       (anti-alias g)
@@ -36,14 +36,14 @@
   See:
     (seesaw.core/label)
   "
-  [& opts]
+  ^javax.swing.JLabel [& opts]
   (let [radius 15
         paint (fn [^javax.swing.JLabel c ^java.awt.Graphics g]
                 (doto g
                   (.setColor (.getBackground c))
                   (.fillRoundRect
                     0 0 (dec (.getWidth c)) (dec (.getHeight c))
-                    @radius @radius)))
+                    radius radius)))
         widget (rounded-label-proxy paint)]
     (apply-options widget opts)))
 

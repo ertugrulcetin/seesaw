@@ -26,8 +26,8 @@
     (.setRenderingHint RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)))
 
 (defn buffered-image
-  ([width height]   (buffered-image width height BufferedImage/TYPE_INT_ARGB))
-  ([width height t] (BufferedImage. width height t)))
+  (^BufferedImage [width height]   (buffered-image width height BufferedImage/TYPE_INT_ARGB))
+  (^BufferedImage [width height t] (BufferedImage. width height t)))
 
 (defn- to-image [v]
   (cond
@@ -137,11 +137,13 @@
       (.addPoint p x y))
     p))
 
+(declare line-to move-to curve-to quad-to)
+
 (def ^{:private true} path-ops {
   'line-to '.lineTo
   'move-to '.moveTo
   'curve-to '.curveTo
-  'quad-to 'quad-to
+  'quad-to '.quadTo
 })
 
 (defmacro path [opts & forms]

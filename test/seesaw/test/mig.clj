@@ -9,20 +9,21 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.mig
-  (:use seesaw.mig seesaw.core)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe describe expect expect-it it]]
+   [seesaw.core :refer :all]
+   [seesaw.mig :refer [mig-panel]]))
 
-(describe mig-panel
-  (it "should create a panel with a MigLayout"
-    (expect (= net.miginfocom.swing.MigLayout (class (.getLayout (mig-panel))))))
+(defdescribe mig-panel-test
+  (expect-it "should create a panel with a MigLayout"
+    (= net.miginfocom.swing.MigLayout (class (.getLayout (mig-panel)))))
   (it "should set MigLayout layout constraints"
     (let [p (mig-panel :constraints ["wrap 4", "[fill]", "[nogrid]"])
           l (.getLayout p)]
       (expect (= "wrap 4" (.getLayoutConstraints l)))
       (expect (= "[fill]" (.getColumnConstraints l)))
       (expect (= "[nogrid]" (.getRowConstraints l)))))
-  (it "should support the usual default options"
+  (expect-it "should support the usual default options"
     (mig-panel :id :mig 
                :class :classy 
                :opaque? false
@@ -33,8 +34,8 @@
     (let [p (mig-panel :items [[(styled-text) ""]])]
       (-> (frame :content (vertical-panel :items [p])) pack!))))
 
-(describe replace!
-  (testing "when called on a panel with a mig layout"
+(defdescribe replace!-test
+  (describe "when called on a panel with a mig layout"
     (it "replaces the given widget with a new widget and maintains constraints"
       (let [l0 (label "l0")
             l1 (label "l1")

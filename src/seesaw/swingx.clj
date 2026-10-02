@@ -64,7 +64,7 @@
 (declare p-pattern)
 (declare p-fn)
 
-(defn- ^HighlightPredicate to-p [v]
+(defn- to-p ^HighlightPredicate [v]
   (cond
     (instance? HighlightPredicate v) v
     (instance? java.util.regex.Pattern v) (p-pattern v)
@@ -159,7 +159,7 @@
     :else
       (HighlighterFactory/createSimpleStriping)))
 
-(defn ^Highlighter to-highlighter [v]
+(defn to-highlighter ^Highlighter [v]
   (cond
     (instance? Highlighter v) v
     (= :shade v) (hl-shade)
@@ -529,7 +529,7 @@
 ;*******************************************************************************
 ; JXList
 
-(def ^ {:private true} sort-order-table
+(def ^:private sort-order-table
   { :ascending javax.swing.SortOrder/ASCENDING
     :descending javax.swing.SortOrder/DESCENDING})
 
@@ -585,7 +585,7 @@
   See:
     (seesaw.core/listbox)
   "
-  [& args]
+  ^org.jdesktop.swingx.JXList [& args]
   (apply-options
     (doto (construct org.jdesktop.swingx.JXList)
       (.setAutoCreateRowSorter true)
@@ -633,7 +633,7 @@
   See:
     (seesaw.core/listbox)
   "
-  [& args]
+  ^org.jdesktop.swingx.JXTitledPanel [& args]
   (apply-options
     (construct org.jdesktop.swingx.JXTitledPanel)
     args))
@@ -666,7 +666,7 @@
     (seesaw.core/tree-options)
     (seesaw.core/tree)
   "
-  [& args]
+  ^org.jdesktop.swingx.JXTree [& args]
   (apply-options
     (doto (construct org.jdesktop.swingx.JXTree)
       (.setRolloverEnabled true))
@@ -707,7 +707,7 @@
     (seesaw.core/table-options)
     (seesaw.core/table)
   "
-  [& args]
+  ^org.jdesktop.swingx.JXTable [& args]
   (apply-options
     (doto (construct org.jdesktop.swingx.JXTable)
       (.setRolloverEnabled true)
@@ -731,25 +731,25 @@
 (defn- abstract-panel-x [layout opts]
   (abstract-panel (construct org.jdesktop.swingx.JXPanel) layout opts))
 
-(defn xyz-panel-x [& opts]
+(defn xyz-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
   (abstract-panel-x nil opts))
 
-(defn border-panel-x [& opts]
+(defn border-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
   (abstract-panel-x (java.awt.BorderLayout.) opts))
 
-(defn flow-panel-x [& opts]
+(defn flow-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
   (abstract-panel-x (java.awt.FlowLayout.) opts))
 
-(defn horizontal-panel-x [& opts]
+(defn horizontal-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
   (abstract-panel-x (box-layout :horizontal) opts))
 
-(defn vertical-panel-x [& opts]
+(defn vertical-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
   (abstract-panel-x (box-layout :vertical) opts))
 
 (defn grid-panel-x
-  [& {:keys [rows columns] :as opts}]
+  ^org.jdesktop.swingx.JXPanel [& {:keys [rows columns] :as opts}]
   (abstract-panel-x (grid-layout rows columns) opts))
 
-(defn card-panel-x [& opts]
+(defn card-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
   (abstract-panel-x (java.awt.CardLayout.) opts))
 

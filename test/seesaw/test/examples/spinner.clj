@@ -8,10 +8,11 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 (ns seesaw.test.examples.spinner
-  (:use [seesaw.core]
-        seesaw.test.examples.example))
+  (:require
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]))
 
-(defexample []
+(defexample run []
   (frame 
     :title "Spinner Example"
     :content

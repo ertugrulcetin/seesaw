@@ -9,20 +9,19 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.keystroke
-  (:use seesaw.keystroke)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)])
-  (:import [javax.swing KeyStroke]
-           [java.awt Toolkit]))
+  (:require
+   [lazytest.core :refer [defdescribe expect expect-it it]]
+   [seesaw.keystroke :refer [keystroke]])
+  (:import
+   [java.awt Toolkit]
+   [javax.swing KeyStroke]))
 
-(describe keystroke
+(defdescribe keystroke-test
   (it "creates a keystroke from a descriptor string"
     (let [ks (keystroke "ctrl S")]
       (expect (= KeyStroke (class ks)))
-      (expect (= java.awt.event.KeyEvent/VK_S (.getKeyCode ks))))))
-
-(describe keystroke
-  (it "returns nil for nil input"
+      (expect (= java.awt.event.KeyEvent/VK_S (.getKeyCode ks)))))
+  (expect-it "returns nil for nil input"
     (nil? (keystroke nil)))
   (it "returns input if it's a KeyStroke"
     (let [ks (KeyStroke/getKeyStroke "alt X")]

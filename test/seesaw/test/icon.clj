@@ -9,14 +9,14 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.icon
-  (:use seesaw.icon)
-  (:require [seesaw.graphics :as g]
-            [clojure.java.io :as jio])
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [clojure.java.io :as jio]
+   [lazytest.core :refer [defdescribe expect expect-it it]]
+   [seesaw.graphics :as g]
+   [seesaw.icon :refer [icon]]))
 
-(describe icon
-  (it "returns nil given nil"
+(defdescribe icon-test
+  (expect-it "returns nil given nil"
     (nil? (icon nil)))
   (it "returns its input given an Icon"
     (let [i (javax.swing.ImageIcon.)]

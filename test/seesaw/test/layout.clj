@@ -9,15 +9,15 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.layout
-  (:use [seesaw.layout])
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect expect-it it]]
+   [seesaw.layout :refer [handle-structure-change realize-grid-bag-constraints]]))
 
-(describe handle-structure-change
-  (it "should successfully handle all kinds of components"
+(defdescribe handle-structure-change-test
+  (expect-it "should successfully handle all kinds of components"
     (handle-structure-change (proxy [java.awt.Component] []))))
 
-(describe realize-grid-bag-constraints
+(defdescribe realize-grid-bag-constraints-test
   (it "should return a vector of widget/constraint pairs"
     (let [[[w0 c0] [w1 c1] & more] (realize-grid-bag-constraints [[:first :weightx 99 :weighty 555 :gridx :relative] [:second :weightx 100 :anchor :baseline]])]
       (expect (nil? more))

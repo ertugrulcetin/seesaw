@@ -1,6 +1,7 @@
 (ns seesaw.test.examples.dynamic-layout
-  (:use seesaw.core
-        seesaw.test.examples.example))
+  (:require
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 ; Extremely basic example of a panel that changes what it shows based on
 ; whether it has enough room.
@@ -46,7 +47,7 @@
   (grid-panel :columns 1
               :items (for [i (range 10)] (make-dynamic-panel i))))
 
-(defexample []
+(defexample run []
   (-> (frame  :content (make-vertical-panel))
     pack!
     show!))

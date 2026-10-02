@@ -9,13 +9,12 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.style
-  (:use seesaw.style
-        [seesaw.core :only [border-panel label button config text]]
-        [seesaw.color :only [to-color]])
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require [seesaw.style :refer :all]
+        [seesaw.core :refer [border-panel label button config text]]
+        [lazytest.core :refer [defdescribe expect it]]
+        [seesaw.color :refer [to-color]]))
 
-(describe apply-stylesheet
+(defdescribe apply-stylesheet-test
 
   (it "returns its input"
     (let [lbl (label)]

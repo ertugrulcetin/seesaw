@@ -9,10 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.editor-pane-hyperlink
-  (:use seesaw.core
-        seesaw.test.examples.example)
-  (:import javax.swing.event.HyperlinkEvent
-           javax.swing.event.HyperlinkEvent$EventType))
+  (:require
+   [seesaw.core :refer [alert editor-pane frame listen select]]
+   [seesaw.test.examples.example :refer [defexample]]) 
+  (:import
+   javax.swing.event.HyperlinkEvent$EventType))
 
 (defn make-editor-pane
   []
@@ -40,7 +41,7 @@
           (alert e (str "Clicked: " (.getDescription e)))))))
   root)
 
-(defexample []
+(defexample run []
   (->
     (frame
       :title "Editor Pane Hyperlinks"

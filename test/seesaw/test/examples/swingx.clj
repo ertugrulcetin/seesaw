@@ -9,10 +9,13 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.swingx
-  (:use [seesaw.core]
-        [seesaw.swingx]
-        seesaw.test.examples.example)
-  (:require [seesaw.bind :as b]))
+  (:require
+   [seesaw.bind :as b]
+   [seesaw.core :refer :all]
+   [seesaw.swingx :refer [busy-label color-selection-button header hl-color
+                          hl-simple-striping hyperlink label-x listbox-x
+                          table-x task-pane task-pane-container titled-panel]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 ; A demo program that shows some of the components in Seesaw's SwingX support.
 (defn demo [title desc content]
@@ -119,7 +122,7 @@
                   (@demos (selection chooser)) ))))
   root)
 
-(defexample []
+(defexample run []
   (-> (make-ui) add-behaviors))
 
 ;(run :dispose)

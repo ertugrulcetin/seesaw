@@ -9,11 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.custom-border
-  (:use [seesaw.core :only [frame label show!]]
-        [seesaw.border :only [custom-border]]
-        seesaw.test.examples.example))
+  (:require [seesaw.core :refer [frame label]]
+        [seesaw.border :refer [custom-border]]
+        [seesaw.test.examples.example :refer [defexample]]))
 
-(defexample []
+(defexample run []
   (frame 
     :size [400 :by 400]
     :content (label :text "I have a custom border"

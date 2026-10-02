@@ -9,10 +9,15 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.dialog
-  (:use [seesaw core font border util color pref mig]
-        [clojure.pprint :only (cl-format)]
-        seesaw.test.examples.example)
-  (:require [seesaw.bind :as bind]))
+  (:require
+        [clojure.pprint :refer (cl-format)]
+        [seesaw.bind :as bind]
+        [seesaw.test.examples.example :refer [defexample]]
+        [seesaw.core :refer :all]
+        [seesaw.pref :refer [bind-preference-to-atom]]
+        [seesaw.mig :refer [mig-panel]]
+        [seesaw.font :refer [font default-font]]
+        [seesaw.color :refer [color]]))
 
 (defmethod print-dup java.awt.Color [x writer]
            (binding [*print-dup* false]
@@ -93,7 +98,7 @@
                                     lbl) "growx, wrap"]
                                  ])) pack! show!)))
 
-(defexample []
+(defexample run []
   (frame :title "Custom Dialog Example"
          :resizable? false
          :content (vertical-panel :items [(action :name "Show Dialog with custom :success-fn" 

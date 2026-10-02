@@ -9,11 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.event
-  (:use seesaw.event
-        [seesaw.util :only [root-cause]])
-  (:require [seesaw.core :as sc])
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)])
+  (:require [seesaw.event :refer :all]
+        [seesaw.util :refer [root-cause]]
+            [seesaw.core :as sc]
+            [lazytest.core :refer [defdescribe describe expect expect-it it]])
   (:import [javax.swing JPanel JTextField JButton JRadioButton JToggleButton]
            [javax.swing.event ChangeListener]
            [java.awt.event ComponentListener ItemListener MouseListener MouseMotionListener]))
@@ -39,7 +38,7 @@
   [listener-type & args]
   (every? true? (map (fn [[hk df]] (verify-listener listener-type hk df)) (partition 2 args))))
 
-(describe append-listener
+(defdescribe append-listener-test
   (it "inserts necessary keys and creates an initial list"
     (let [listener  #(println %)]
       (expect (= {:test-key [listener]} (append-listener {} :test-key listener)))))
@@ -48,47 +47,47 @@
       (expect (= {:test-key [:dummy listener]}
          (append-listener {:test-key [:dummy]} :test-key listener))))))
 
-(describe unappend-listener
+(defdescribe unappend-listener-test
   (it "can remove a listener"
     (let [initial {:list-key [:a :b :c]}
           result  (unappend-listener initial :list-key :b)]
       (expect (= {:list-key [:a :c]} result)))))
 
 
-(describe reify-listener
-  (testing "for ComponentListener"
-    (it "instantiates a ComponentListener instance"
+(defdescribe reify-listener-test
+  (describe "for ComponentListener"
+    (expect-it "instantiates a ComponentListener instance"
       (instance? ComponentListener (reify-listener ComponentListener (ref {}))))
-    (it "makes an instance that does nothing when there's no handler"
+    (expect-it "makes an instance that does nothing when there's no handler"
       (verify-empty-listener ComponentListener :component-resized #(.componentResized % nil)))
-    (it "makes an instance that calls expected methods"
+    (expect-it "makes an instance that calls expected methods"
       (verify-listeners ComponentListener
                         :component-hidden #(.componentHidden % nil)
                         :component-moved #(.componentMoved % nil)
                         :component-resized #(.componentResized % nil)
                         :component-shown #(.componentShown % nil))))
-  (testing "for ChangeListener"
-    (it "instantiates a ChangeListener instance"
+  (describe "for ChangeListener"
+    (expect-it "instantiates a ChangeListener instance"
       (instance? ChangeListener (reify-listener ChangeListener (ref {}))))
-    (it "makes an instance that does nothing when there's no handler"
+    (expect-it "makes an instance that does nothing when there's no handler"
       (verify-empty-listener ChangeListener :state-changed #(.stateChanged % nil)))
-    (it "makes an instance that calls :state-changed"
+    (expect-it "makes an instance that calls :state-changed"
       (verify-listener ChangeListener :state-changed #(.stateChanged % nil))))
 
-  (testing "for ItemListener"
-    (it "instantiates an ItemListener instance"
+  (describe "for ItemListener"
+    (expect-it "instantiates an ItemListener instance"
       (instance? ItemListener (reify-listener ItemListener (ref {}))))
-    (it "makes an instance that does nothing when there's no handler"
+    (expect-it "makes an instance that does nothing when there's no handler"
       (verify-empty-listener ItemListener :item-state-changed #(.itemStateChanged % nil)))
-    (it "makes an instance that calls :item-state-changed"
+    (expect-it "makes an instance that calls :item-state-changed"
       (verify-listener ItemListener :item-state-changed #(.itemStateChanged % nil))))
 
-  (testing "for MouseListener"
-    (it "instantiates an MouseListener instance"
+  (describe "for MouseListener"
+    (expect-it "instantiates an MouseListener instance"
       (instance? MouseListener (reify-listener MouseListener (ref {}))))
-    (it "makes an instance that does nothing when there's no handlers"
+    (expect-it "makes an instance that does nothing when there's no handlers"
       (verify-empty-listener MouseListener :mouse-clicked #(.mouseClicked % nil)))
-    (it "makes an instance that calls expected methods"
+    (expect-it "makes an instance that calls expected methods"
       (verify-listeners MouseListener
         :mouse-clicked #(.mouseClicked % nil)
         :mouse-entered #(.mouseEntered % nil)
@@ -96,19 +95,19 @@
         :mouse-pressed #(.mousePressed % nil)
         :mouse-released #(.mouseReleased % nil))))
 
-  (testing "for MouseMotionListener"
-    (it "instantiates an MouseMotionListener instance"
+  (describe "for MouseMotionListener"
+    (expect-it "instantiates an MouseMotionListener instance"
       (instance? MouseMotionListener (reify-listener MouseMotionListener (ref {}))))
-    (it "makes an instance that does nothing when there's no handlers"
+    (expect-it "makes an instance that does nothing when there's no handlers"
       (verify-empty-listener MouseMotionListener :mouse-moved #(.mouseMoved % nil)))
-    (it "makes an instance that calls expected methods"
+    (expect-it "makes an instance that calls expected methods"
       (verify-listeners MouseMotionListener
         :mouse-moved #(.mouseMoved % nil)
         :mouse-dragged #(.mouseDragged % nil)))))
 
 
-(describe listen
-  (it "throws IllegalArgumentException if its event/handler pair list isn't even length"
+(defdescribe listen-test
+  (expect-it "throws IllegalArgumentException if its event/handler pair list isn't even length"
     (try
       (listen :something-something (fn [_]))
       false
@@ -116,7 +115,7 @@
         true)
       (catch RuntimeException e
         (instance? IllegalArgumentException (root-cause e)))))
-  (it "throws IllegalArgumentException if its first arguments isn't an event source"
+  (expect-it "throws IllegalArgumentException if its first arguments isn't an event source"
     (try
       (listen :something-something (fn [_]) :another)
       false
@@ -125,7 +124,7 @@
       ; TODO 1.2 event wrapping
       (catch RuntimeException e
         (instance? IllegalArgumentException (root-cause e)))))
-  (it "throws IllegalArgumentException if a handler isn't a function or var"
+  (expect-it "throws IllegalArgumentException if a handler isn't a function or var"
     (try
       (listen (javax.swing.JPanel.) :mouse "foo")
       false
@@ -134,7 +133,7 @@
       ; TODO 1.2 event wrapping
       (catch RuntimeException e
         (instance? IllegalArgumentException (root-cause e)))))
-  (it "throws IllegalArgumentException for unknown event types"
+  (expect-it "throws IllegalArgumentException for unknown event types"
     (try
       (listen (JPanel.) :something-something (fn [_]))
       false
@@ -360,7 +359,7 @@
         (.. (first (.getActionListeners mi)) (actionPerformed nil))
         (expect @called)))))
 
-(describe listen-to-property
+(defdescribe listen-to-property-test
   (it "registers a property change listener"
     (let [b (javax.swing.JButton.)
           called (atom nil)
@@ -372,4 +371,3 @@
       (remove-fn)
       (.setText b "BYE")
       (expect (nil? @called)))))
-

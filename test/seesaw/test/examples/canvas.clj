@@ -9,10 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.canvas
-  (:use seesaw.core
-        seesaw.graphics
-        seesaw.color
-        seesaw.test.examples.example))
+  (:require [seesaw.core :refer [action to-frame config! frame border-panel canvas horizontal-panel select]]
+        [seesaw.graphics :refer [draw polygon style stroke path move-to line-to ellipse push rotate string-shape translate]]
+        [seesaw.color :refer [color]]
+        [seesaw.test.examples.example :refer [defexample]]))
 
 ; A very rudimentary example of (canvas).
 
@@ -79,8 +79,8 @@
                       (select [:#canvas])
                       (config! :paint paint))))
 
-(defexample []
-  (frame 
+(defexample run []
+  (frame
     :title "Canvas Example" 
     :width 500 :height 300
     :content 

@@ -8,9 +8,10 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 
-(ns seesaw.test.examples.button-group
-  (:use seesaw.core
-        seesaw.test.examples.example))
+(ns seesaw.test.examples.button-group 
+  (:require
+    [seesaw.core :refer [button-group label border-panel horizontal-panel radio listen text! text to-widget selection frame]]
+    [seesaw.test.examples.example :refer [defexample]]))
 
 ; An example of putting radio buttons (or toggle buttons, or menu items, etc)
 ; in a button group to ensure mutual exclusion. Note that the group is a
@@ -48,7 +49,6 @@
     panel))
 
 (defexample run []
-
   (frame :title "Seesaw Button Group Example"
          :height 150
          :width 300

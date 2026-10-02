@@ -1,10 +1,10 @@
 (ns seesaw.test.examples.form
-  (:use seesaw.core
-        seesaw.test.examples.example))
+  (:require [seesaw.core :refer [frame form-panel label text grid-panel button checkbox]]
+        [seesaw.test.examples.example :refer [defexample]]))
 
 ;http://www.leepoint.net/notes-java/GUI/layouts/gridbag-example.html 
 
-(defexample []
+(defexample run []
   (frame :title "Find/Replace" :content 
     (form-panel
       :items [

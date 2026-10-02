@@ -89,7 +89,7 @@
       (scrollable icon-label)
       :divider-location 1/2)))
 
-(defexample []
+(defexample run []
   (frame
     :title "Seesaw Drag-n-Drop Example"
     :content

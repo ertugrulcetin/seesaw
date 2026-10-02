@@ -41,7 +41,7 @@
   arg can also be an i18n resource keyword.
 
   See http://download.oracle.com/javase/6/docs/api/javax/swing/KeyStroke.html#getKeyStroke(java.lang.String)"
-  [arg]
+  ^KeyStroke [arg]
   (cond 
     (nil? arg)                nil
     (instance? KeyStroke arg) arg

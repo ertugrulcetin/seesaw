@@ -9,37 +9,36 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.options
-  (:require [j18n.core :as j18n])
-  (:use seesaw.options
-        [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect expect-it it]]
+   [seesaw.options :refer :all]))
 
-(describe apply-options
-  (it "throws IllegalArgumentException if properties aren't even"
+(defdescribe apply-options-test
+  (expect-it "throws IllegalArgumentException if properties aren't even"
     (try
-      (do (apply-options (javax.swing.JPanel.) [1 2 3]) false)
+      (apply-options (javax.swing.JPanel.) [1 2 3]) false
       (catch IllegalArgumentException e true)))
-  (it "throws IllegalArgumentException for an unknown property"
+  (expect-it "throws IllegalArgumentException for an unknown property"
     (try
-      (do (apply-options (javax.swing.JPanel.) [:unknown "unknown"]) false)
+      (apply-options (javax.swing.JPanel.) [:unknown "unknown"]) false
       (catch IllegalArgumentException e true)))
-  (it "throws IllegalArgumentException for a property with no setter"
+  (expect-it "throws IllegalArgumentException for a property with no setter"
     (try
-      (do 
-        (apply-options (javax.swing.JPanel.) 
-                       [:no-setter "no-setter"]) false)
+      (apply-options (javax.swing.JPanel.) 
+                     [:no-setter "no-setter"])
+      false
       (catch IllegalArgumentException e true))))
 
-(describe get-option-value
-  (it "throws IllegalArgumentException if target has no handler map"
+(defdescribe get-option-value-test
+  (expect-it "throws IllegalArgumentException if target has no handler map"
     (try
       (get-option-value (javax.swing.JPanel.) :text) false
       (catch IllegalArgumentException e true)))
-  (it "throws IllegalArgumentException if option doesn't support getter"
+  (expect-it "throws IllegalArgumentException if option doesn't support getter"
     (try
       (get-option-value (javax.swing.JPanel.) :text [{:text (default-option :text nil nil)}]) false
       (catch IllegalArgumentException e true)))
-  (it "uses the getter of an option to retrieve a value"
+  (expect-it "uses the getter of an option to retrieve a value"
     (= "hi" (get-option-value 
               (javax.swing.JPanel.) 
               :text 
@@ -55,8 +54,8 @@
       ;(expect (= "expected text" (.getText l)))
       ;(expect (= "expected name" (.getName l))))))
 
-(describe around-option
-  (it "calls the provided converter after calling the getter from the wrapped option"
+(defdescribe around-option-test
+  (expect-it "calls the provided converter after calling the getter from the wrapped option"
     (= 100 (get-option-value nil 
                              :foo 
                              [{:foo (around-option 

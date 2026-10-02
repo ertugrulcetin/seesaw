@@ -1,5 +1,5 @@
 (ns seesaw.test.examples.example
-  (:use [seesaw.core :only [config! pack! show! invoke-now]]))
+  (:require [seesaw.core :refer [config! pack! show! invoke-now]]))
 
 (defmacro defexample
   "Does the boilerplate for an example.
@@ -17,9 +17,9 @@
 
   See the plethora of examples in this directory for usage examples.
   "
-  [arg-vec & body]
+  [fn-name arg-vec & body]
   `(do
-     (defn ~'run [on-close# & args#]
+     (defn ~fn-name [on-close# & args#]
        (let [~arg-vec args#
              f# (invoke-now ~@body)]
          (config! f# :on-close on-close#)
@@ -28,4 +28,4 @@
          (show! f#)))
 
      (defn ~'-main [& args#]
-       (apply ~'run :exit args#))))
+       (apply ~fn-name :exit args#))))

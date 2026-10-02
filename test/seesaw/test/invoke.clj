@@ -9,16 +9,16 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.invoke
-  (:use seesaw.invoke)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect expect-it it]]
+   [seesaw.invoke :refer :all]))
 
-(describe invoke-now
-  (it "should execute code on the swing thread, wait, and return the result"
+(defdescribe invoke-now-test
+  (expect-it "should execute code on the swing thread, wait, and return the result"
     (invoke-now (javax.swing.SwingUtilities/isEventDispatchThread))))
 
-(describe invoke-soon
-  (it "should execute code and return the result immediately if executed on the swing thread"
+(defdescribe invoke-soon-test
+  (expect-it "should execute code and return the result immediately if executed on the swing thread"
     (= {:foo :hi :edt? true} 
        (invoke-now 
         (invoke-soon {:foo :hi :edt? (javax.swing.SwingUtilities/isEventDispatchThread)}))))
@@ -30,7 +30,7 @@
         (deliver p {:edt? (javax.swing.SwingUtilities/isEventDispatchThread)}))))
       (expect (= {:edt? true} @p)))))
 
-(describe signaller*
+(defdescribe signaller*-test
   (it "should not invoke a call if one is already in flight"
     (let [call-count (atom 0)
           signal     (signaller* #(swap! % inc))]

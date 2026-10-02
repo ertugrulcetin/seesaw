@@ -12,11 +12,12 @@
   (:import
     javax.swing.JPanel
     com.jgoodies.forms.builder.DefaultFormBuilder
+    com.jgoodies.forms.factories.Paddings
     com.jgoodies.forms.layout.FormLayout)
   (:require
     seesaw.core)
   (:use
-    [seesaw.options :only (bean-option default-option apply-options ignore-options option-map option-provider)]
+    [seesaw.options :only (default-option apply-options ignore-options option-map option-provider)]
     [seesaw.util :only (resource)]))
 
 (defprotocol ComponentSpec
@@ -86,9 +87,9 @@
   (reify
     ComponentSpec
     (append [this builder]
-      (.setRowGroupingEnabled builder true)
+      (.rowGroupingEnabled ^DefaultFormBuilder builder true)
       (doseq [item items] (append item builder))
-      (.setRowGroupingEnabled builder false))))
+      (.rowGroupingEnabled ^DefaultFormBuilder builder false))))
 
 (def ^{:private true} layout-options
   (option-map
@@ -104,11 +105,13 @@
 (def ^{:private true} builder-options
   (option-map
     (default-option :items #(doseq [item %2] (append item %1)))
-    (default-option :default-dialog-border? #(when %2 (.setDefaultDialogBorder %1)))
-    (bean-option :default-row-spec DefaultFormBuilder)
-    (bean-option :leading-column-offset DefaultFormBuilder)
-    (bean-option :line-gap-size DefaultFormBuilder)
-    (bean-option :paragraph-gap-size DefaultFormBuilder)))
+    ; JGoodies Forms 1.9 replaced the builder's bean setters with fluent methods
+    (default-option :default-dialog-border?
+      #(when %2 (.border ^DefaultFormBuilder %1 ^javax.swing.border.Border Paddings/DIALOG)))
+    (default-option :default-row-spec #(.defaultRowSpec ^DefaultFormBuilder %1 %2))
+    (default-option :leading-column-offset #(.leadingColumnOffset ^DefaultFormBuilder %1 (int %2)))
+    (default-option :line-gap-size #(.lineGapSize ^DefaultFormBuilder %1 %2))
+    (default-option :paragraph-gap-size #(.paragraphGapSize ^DefaultFormBuilder %1 %2))))
 
 
 (def ^{:private true} ignore-builder-options

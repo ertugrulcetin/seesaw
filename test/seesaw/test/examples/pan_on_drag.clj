@@ -1,11 +1,11 @@
 (ns seesaw.test.examples.pan-on-drag
-  (:use seesaw.test.examples.example)
-  (:require [seesaw.core :as sc]
-            [seesaw.behave :as behave]))
+  (:require [seesaw.core :refer :all]
+            [seesaw.behave :as behave]
+            [seesaw.test.examples.example :refer [defexample]]))
 
 (defn scrollable-image [id]
-  (sc/scrollable
-    (sc/label :id id 
+  (scrollable
+    (label :id id 
               ;:icon "file:///Users/dave/Desktop/IMG_0058.JPG"
               )))
 
@@ -30,28 +30,28 @@
                 (pan view-to-pan (* dx sx speed) (* dy sy speed)))))))
 
 (defn add-behaviors [root]
-  (pan-on-drag (sc/select root [:#image]))
-  (pan-on-drag (sc/select root [:#image]) 
-               :panner (sc/select root [:#panner]) 
+  (pan-on-drag (select root [:#image]))
+  (pan-on-drag (select root [:#image]) 
+               :panner (select root [:#panner]) 
                :scale 5.0)
   root)
 
 (defn app []
-  (sc/frame
+  (frame
     :title "Pan on drag"
     :size [480 :by 480]
     :content 
-     (sc/border-panel 
+     (border-panel 
        :north  "Click and drag to pan the image"
        :center (scrollable-image :image)
-       :south  (sc/flow-panel 
+       :south  (flow-panel 
                  :items ["Or drag on the blue field to pan the image"
-                        (sc/label 
+                        (label 
                           :id         :panner
                           :size       [50 :by 50]
                           :background :blue)]))))
 
-(defexample []
+(defexample run []
   (-> (app) add-behaviors))
 
 ;(run :dispose)

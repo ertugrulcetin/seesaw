@@ -9,8 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.slider
-  (:use [seesaw core color border]
-        seesaw.test.examples.example))
+  (:require
+   [seesaw.border :refer [line-border]]
+   [seesaw.color :refer [color]]
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 (defn make-frame []
   (frame 
@@ -31,7 +34,7 @@
     (config! (select root [:#canvas]) 
              :background (color red green blue))))
 
-(defexample []
+(defexample run []
   (let [root (make-frame)]
     (listen (map #(select root [%]) [:#red :#green :#blue]) :change
             (fn [e]

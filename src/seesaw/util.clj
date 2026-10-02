@@ -111,19 +111,19 @@
     (cast c x)
     (catch ClassCastException e nil)))
 
-(defn ^URL to-url
+(defn to-url
   "Try to parse (str s) as a URL. Returns new java.net.URL on success, nil
   otherwise. This is different from clojure.java.io/as-url in that it doesn't
   throw an exception and it uses (str) on the input."
-  [s]
+  ^URL [s]
   (if (instance? URL s) s
   (try
     (URL. (str s))
     (catch MalformedURLException e nil))))
 
-(defn ^URI to-uri
+(defn to-uri
   "Try to make a java.net.URI from s"
-  [s]
+  ^URI [s]
   (cond
     (instance? URI s) s
     (instance? URL s) (.toURI ^URL s)
@@ -132,7 +132,7 @@
             (catch URISyntaxException e nil))))
 
 (defn to-dimension
-  [v]
+  ^java.awt.Dimension [v]
   (cond
     (instance? java.awt.Dimension v) v
     (and (vector? v) (= 3 (count v)) (= :by (second v)))
@@ -155,7 +155,7 @@
   (children [c] "Returns a seq of the children of the given widget"))
 
 (extend-protocol Children
-  ; Thankfully container covers JComponent, JFrame, dialogs, applets, etc.
+  ; Thankfully container covers JComponent, JFrame, dialogs, etc.
   java.awt.Container    (children [this] (seq (.getComponents this)))
   ; Special case for menus. We want the logical menu items, not whatever
   ; junk is used to build them.

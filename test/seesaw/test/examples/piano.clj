@@ -9,8 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.piano
-  (:use [seesaw core border]
-        seesaw.test.examples.example))
+  (:require
+   [seesaw.border :refer [line-border]]
+   [seesaw.core :refer :all]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 (def num-octaves 7)
 (def piano-key-info
@@ -70,7 +72,7 @@
                          (println "You hit " note "/" midi)))))
   root)
 
-(defexample []
+(defexample run []
   (-> (frame
         :title   "Seesaw piano example"
         :content (border-panel

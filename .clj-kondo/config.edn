@@ -1,0 +1,4 @@
+{:lint-as {seesaw.test.examples.example/defexample clojure.core/defn}
+ :linters {:clojure-lsp/unused-public-var {:level :off}
+           :refer-all {:level :off}
+           :unused-binding {:level :off}}}

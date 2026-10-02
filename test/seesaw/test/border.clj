@@ -9,13 +9,18 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.border
-  (:use seesaw.border)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)])
-  (:import [javax.swing.border EmptyBorder LineBorder MatteBorder TitledBorder]
-           [java.awt Insets Color]))
+  (:require
+   [lazytest.core :refer [defdescribe expect it expect-it]]
+   [seesaw.border :refer :all])
+  (:import
+   [java.awt Color Insets]
+   [javax.swing.border
+    EmptyBorder
+    LineBorder
+    MatteBorder
+    TitledBorder]))
 
-(describe empty-border
+(defdescribe empty-border-test
   (it "creates a 1 pixel border by default"
       (let [b (empty-border)]
         (expect (= EmptyBorder (class b)))
@@ -33,7 +38,7 @@
       (expect (= EmptyBorder (class b)))
       (expect (= (Insets. 0 3 0 0) (.getBorderInsets b))))))
 
-(describe line-border
+(defdescribe line-border-test
   (it "creates a black, one pixel border by default"
     (let [b (line-border)]
       (expect (= LineBorder (class b)))
@@ -55,7 +60,7 @@
       (expect (= (Insets. 2 0 0 0) (.getBorderInsets b)))
       (expect (= Color/BLACK (.getMatteColor b))))))
 
-(describe compound-border
+(defdescribe compound-border-test
   (it "creates nested compound borders inner to outer"
     (let [in (line-border)
           mid (line-border)
@@ -65,8 +70,8 @@
       (expect (= mid (.. b (getInsideBorder) (getOutsideBorder))))
       (expect (= in (.. b (getInsideBorder) (getInsideBorder)))))))
 
-(describe to-border
-  (it "returns nil given nil"
+(defdescribe to-border-test
+  (expect-it "returns nil given nil"
     (nil? (to-border nil)))
   (it "returns input if it's already a border"
     (let [b (line-border)]
@@ -92,8 +97,8 @@
         (expect (= "Outer" (.. b getOutsideBorder getTitle)))
         (expect (= "Inner" (.. b getInsideBorder getTitle))))))
 
-(describe custom-border
-  (it "creates a custom border implementation"
+(defdescribe custom-border-test
+  (expect-it "creates a custom border implementation"
     (instance? javax.swing.border.Border (custom-border)))
   (it "returns integer insets"
     (let [b (custom-border :insets 3)]
@@ -115,4 +120,3 @@
           b (custom-border :paint (fn [c g x y w h] (reset! called true)))]
       (.paintBorder b nil nil 0 0 0 0)
       (expect @called))))
-

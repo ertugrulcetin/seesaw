@@ -1,9 +1,10 @@
 (ns seesaw.test.examples.text-editor
-  (:use seesaw.core
-        seesaw.chooser
-        seesaw.mig
-        seesaw.test.examples.example
-        [clojure.java.io :only [file]]))
+  (:require
+   [clojure.java.io :refer [file]]
+   [seesaw.chooser :refer [choose-file]]
+   [seesaw.core :refer :all]
+   [seesaw.mig :refer [mig-panel]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 (native!)
 
@@ -72,7 +73,7 @@
         :items [(menu :text "File" :items [a-new a-open a-save a-save-as a-exit])
                 (menu :text "Edit" :items [a-copy a-cut a-paste])])))
 
-(defexample []
+(defexample run []
   (add-watch
     current-file
     nil

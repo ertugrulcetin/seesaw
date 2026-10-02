@@ -9,8 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.paintable
-  (:use [seesaw core graphics]
-        seesaw.test.examples.example))
+  (:require
+   [seesaw.core :refer :all]
+   [seesaw.graphics :refer [draw line style]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 (defn draw-a-red-x
   "Draw a red X on a widget with the given graphics context"
@@ -31,7 +33,7 @@
       (label  :text "I'm a bad label!"  :font "ARIAL-BOLD-40" :paint draw-a-red-x)
       (button :text "I'm a bad button!"  :font "ARIAL-BOLD-40" :paint draw-a-red-x)]))
 
-(defexample []
+(defexample run []
   (frame :title "Seesaw :paint example"
          :content (content)))
 

@@ -9,12 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.timer
-  (:use seesaw.timer)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)])
-  (:import [javax.swing Action]))
+  (:require
+   [lazytest.core :refer [defdescribe expect it]]
+   [seesaw.timer :refer :all]))
 
-(describe timer
+(defdescribe timer-test
   (it "Creates a timer for a handler function and calls it"
     (let [called (atom nil)
           t (timer #(inc (reset! called %)) :start? false :initial-value 99)]

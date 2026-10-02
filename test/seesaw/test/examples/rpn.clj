@@ -9,10 +9,11 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.rpn
-  (:use [seesaw.core]
-        [seesaw.style :only [apply-stylesheet]]
-        seesaw.test.examples.example)
-  (:require [seesaw.bind :as bind]))
+  (:require
+   [seesaw.bind :as bind]
+   [seesaw.core :refer :all]
+   [seesaw.style :refer [apply-stylesheet]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 ;; A simple RPN calculator
 
@@ -118,7 +119,7 @@
                :editable? false}
     [:#stack] {:font "ARIAL-PLAIN-20"} })
 
-(defexample [] 
+(defexample run [] 
   (->
     (layout)
     behave

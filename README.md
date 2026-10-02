@@ -1,5 +1,5 @@
 ## Seesaw with virtual dom
-It's a fork of [seesaw](https://github.com/daveray/seesaw). This fork has virtual dom feature like **React.js** does.
+It's a fork of [seesaw](https://github.com/clj-commons/seesaw). This fork has virtual dom feature like **React.js** does.
 
 ```clojure
 (ns seesaw.ex
@@ -32,7 +32,9 @@ Seesaw is a library/DSL for constructing user interfaces in Clojure. It happens 
 
 ## Features
 
-Seesaw is compatible with Clojure 1.4, but will probably work fine with 1.3 and 1.5. Maybe even 1.2.
+Built and tested against Clojure 1.12 on JDK 25 and 27. Applet support (`seesaw.applet`) has been removed since the JDK dropped the Applet API in Java 26.
+
+`seesaw.core/jfxpanel` (and `seesaw.javafx`) embeds JavaFX via `JFXPanel`. JavaFX isn't bundled with the JDK, so add OpenJFX to your own dependencies to use it, e.g. `[org.openjfx/javafx-swing "27"]`.
 
 * Swing knowledge is *not required* for many apps!
 * [Construct widgets](https://github.com/clj-commons/seesaw/wiki/Widgets) with simple functions, e.g. `(listbox :model (range 100))`

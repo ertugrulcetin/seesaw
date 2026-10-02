@@ -9,22 +9,22 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.selection
-  (:require [seesaw.core :as sc])
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]
-        seesaw.selection
-        seesaw.action))
+  (:require
+   [lazytest.core :refer [defdescribe describe expect expect-it it]]
+   [seesaw.core :as sc]
+   [seesaw.selection :refer :all]
+   [seesaw.action :refer [action]]))
 
-(describe selection
-  (testing "when given an Action"
-      (it "returns nil when the action is not selected"
-        (nil? (selection (action) )))
-      (it "returns a single-element seq with true if the action is selected and multi? is given"
+(defdescribe selection-test
+  (describe "when given an Action"
+      (expect-it "returns nil when the action is not selected"
+        (nil? (selection (action))))
+      (expect-it "returns a single-element seq with true if the action is selected and multi? is given"
         (= [true] (selection (action :selected? true) {:multi? true})))
-      (it "returns a single-element seq with true if the action is selected"
+      (expect-it "returns a single-element seq with true if the action is selected"
         (= true (selection (action :selected? true)))))
-  (testing "when given an AbstractButton (e.g. toggle or checkbox)"
-    (it "returns false when the button is not selected"
+  (describe "when given an AbstractButton (e.g. toggle or checkbox)"
+    (expect-it "returns false when the button is not selected"
       (false? (selection (javax.swing.JCheckBox. "something" false))))
     (it "returns true if it is selected"
       (let [b (javax.swing.JCheckBox. "something" true)]
@@ -33,21 +33,21 @@
       (let [b (javax.swing.JCheckBox. "something" true)]
         (expect (= [true] (selection b {:multi? true}))))))
 
-  (testing "when given a ButtonGroup"
-    (it "returns nil when no button is selected"
+  (describe "when given a ButtonGroup"
+    (expect-it "returns nil when no button is selected"
       (nil? (selection (sc/button-group :buttons [(sc/toggle) (sc/radio)]))))
     (it "returns the first selected button in the group"
       (let [b (sc/toggle :selected? true)]
         (expect (= b (selection (sc/button-group :buttons [(sc/toggle) b (sc/radio)])))))))
 
-  (testing "when given a ComboBox"
-    (it "returns nil when nothing is selected"
+  (describe "when given a ComboBox"
+    (expect-it "returns nil when nothing is selected"
       (nil? (selection (javax.swing.JComboBox.))))
-    (it "returns a single-element seq with the selected value when multi? is true"
+    (expect-it "returns a single-element seq with the selected value when multi? is true"
       (= [1] (selection (javax.swing.JComboBox. (to-array [1 2 3 4])) {:multi? true}))))
 
-  (testing "when given a JTree"
-    (it "returns nil when the selection is empty"
+  (describe "when given a JTree"
+    (expect-it "returns nil when the selection is empty"
       (nil? (selection (javax.swing.JTree.))))
     (it "returns the selection as a seq of paths when it isn't empty"
       (let [jtree (javax.swing.JTree. (to-array [1 2 3 4 5]))]
@@ -58,8 +58,8 @@
         (expect (= [["root" 2] ["root" 3] ["root" 4]]
                   (map (fn [path] (map #(.getUserObject %) path)) (selection jtree {:multi? true})))))))
 
-  (testing "when given a JList"
-    (it "returns nil when the selection is empty"
+  (describe "when given a JList"
+    (expect-it "returns nil when the selection is empty"
       (nil? (selection (javax.swing.JList.))))
     (it "returns the selection when it isn't empty"
       (let [jlist (javax.swing.JList. (to-array [1 2 3 4 5 6 7]))]
@@ -67,24 +67,24 @@
         (expect (= 2 (selection jlist)))
         (expect (= [2 3 4] (selection jlist {:multi? true}))))))
 
-  (testing "when given a JSlider"
-    (it "returns the current value"
+  (describe "when given a JSlider"
+    (expect-it "returns the current value"
       (= 32 (selection (sc/slider :min 0 :max 100 :value 32)))))
 
-  (testing "when given a JSpinner"
-    (it "returns the current value"
+  (describe "when given a JSpinner"
+    (expect-it "returns the current value"
       (= 32 (selection (sc/spinner :model (sc/spinner-model 32 :from 30 :to 35))))))
 
-  (testing "when given a JTextComponent"
-    (it "returns nil when the selection is empty"
+  (describe "when given a JTextComponent"
+    (expect-it "returns nil when the selection is empty"
       (nil? (selection (javax.swing.JTextField. "HELLO"))))
     (it "returns a range vector [start end] when the selection is non-empty"
       (let [t (javax.swing.JTextField. "HELLO")]
         (.select t 2 4)
         (expect (= [2 4] (selection t))))))
 
-  (testing "when given a JTabbedPane"
-    (it "returns nil when there are no tabs"
+  (describe "when given a JTabbedPane"
+    (expect-it "returns nil when there are no tabs"
       (nil? (selection (javax.swing.JTabbedPane.))))
     (it "returns {:index i :title \"the title\" :content widget} for the selected tab"
       (let [a (sc/label :text "A")
@@ -101,8 +101,8 @@
         (.setSelectedIndex tp 2)
         (expect (= {:title c-title :content c-content :index 2} (selection tp))))))
 
-  (testing "when given a JTable"
-    (it "returns nil when no rows are selected"
+  (describe "when given a JTable"
+    (expect-it "returns nil when no rows are selected"
       (nil? (selection (javax.swing.JTable.))))
     (it "returns a seq of selected model row indices when selection is non-empty"
       (let [jtable (javax.swing.JTable. 5 3)]
@@ -111,62 +111,57 @@
         (expect (= 1 (selection jtable)))))))
 
 
-(describe selection!
-  (testing "when given an AbstractButton (e.g. toggle or checkbox) and an argument"
+(defdescribe selection!-test
+  (describe "when given an AbstractButton (e.g. toggle or checkbox) and an argument"
     (it "deselects the button if the argument is nil"
       (let [cb (javax.swing.JCheckBox. "something" true)]
-        (do
-          (expect (= cb (selection! cb nil)))
-          (expect (false? (selection cb))))))
+        (expect (= cb (selection! cb nil)))
+        (expect (false? (selection cb)))))
     (it "selects the button if the argument is truthy"
       (let [cb (javax.swing.JCheckBox. "something" false)]
-        (do
-          (expect (= cb (selection! cb "true")))
-          (expect (selection cb))))))
+        (expect (= cb (selection! cb "true")))
+        (expect (selection cb)))))
 
-  (testing "when given a ButtonGroup and an argument"
+  (describe "when given a ButtonGroup and an argument"
     (it "deselects the button if the argument is nil"
       (let [bg (sc/button-group :buttons [(sc/toggle) (sc/radio :selected? true) (sc/radio)])]
-        (do
-          (expect (= bg (selection! bg nil)))
-          (expect (nil? (selection bg))))))
+        (expect (= bg (selection! bg nil)))
+        (expect (nil? (selection bg)))))
     (it "selects a button if the argument is a button"
       (let [b (sc/radio)
             bg (sc/button-group :buttons [(sc/toggle :selected? true) b (sc/radio)])]
-        (do
-          (expect (= bg (selection! bg b)))
-          (expect (= b (selection bg)))
-          (expect (.isSelected b))))))
+        (expect (= bg (selection! bg b)))
+        (expect (= b (selection bg)))
+        (expect (.isSelected b)))))
 
-  (testing "when given a ComboBox and an argument"
+  (describe "when given a ComboBox and an argument"
     (it "sets the selection to that argument"
       (let [cb (javax.swing.JComboBox. (to-array [1 2 3 4]))]
-        (do
-          (expect (= cb (selection! cb 3)))
-          (expect (= 3 (selection cb)))))))
+        (expect (= cb (selection! cb 3)))
+        (expect (= 3 (selection cb))))))
 
-  (testing "when given a JSlider and an argument"
+  (describe "when given a JSlider and an argument"
     (it "sets the slider value to that argument"
       (let [s (sc/slider :min 0 :max 100 :value 0)
             result (selection! s 32)]
         (expect (= result s))
         (expect (= 32 (.getValue s))))))
 
-  (testing "when given a JSpinner and an argument"
+  (describe "when given a JSpinner and an argument"
     (it "sets the spinner value to that argument"
       (let [s (sc/spinner :model (sc/spinner-model 30 :from 30 :to 35))
             result (selection! s 32)]
         (expect (= result s))
         (expect (= 32 (.getValue s))))))
 
-  (testing "when given a JTree and an argument"
+  (describe "when given a JTree and an argument"
     (it "Clears the selection when the argument is nil"
       (let [jtree (javax.swing.JTree. (to-array [1 2 3 4 5]))]
         (.setSelectionInterval jtree 1 3)
         (expect (= jtree (selection! jtree nil)))
         (expect (nil? (selection jtree))))))
 
-  (testing "when given a JList and an argument"
+  (describe "when given a JList and an argument"
     (it "Clears the selection when the argument is nil"
       (let [jlist (javax.swing.JList. (to-array [1 2 3 4 5 6 7]))]
         (.setSelectionInterval jlist 1 3)
@@ -178,7 +173,7 @@
         (expect (= ["test" 4 6] (selection jlist {:multi? true})))
         (expect (= "test" (selection jlist))))))
 
-  (testing "when given a text component"
+  (describe "when given a text component"
     (it "Clears the selection when the argument is nil"
       (let [t (javax.swing.JTextArea. "This is some text with a selection")]
         (.select t 5 10)
@@ -189,7 +184,7 @@
         (selection! t [4 9])
         (expect (= [4 9] (selection t))))))
 
-  (testing "when given a JTabbedPane"
+  (describe "when given a JTabbedPane"
     (it "selects a tab by title when given a string"
       (let [tp (sc/tabbed-panel :tabs [{:title "A" :content "A"}
                                        {:title "B" :content "B"}])]
@@ -221,7 +216,7 @@
         (selection! tp {:content b})
         (expect (= 1 (.getSelectedIndex tp))))))
 
-  (testing "when given a JTable and an argument"
+  (describe "when given a JTable and an argument"
     (it "Clears the row selection when the argument is nil"
       (let [jtable (javax.swing.JTable. 5 3)]
         (.setRowSelectionInterval jtable 1 3)

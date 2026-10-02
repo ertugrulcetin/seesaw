@@ -9,10 +9,13 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.explorer
-  (:use [seesaw core tree]
-        seesaw.test.examples.example)
-  (:import [java.io File]
-           [javax.swing.filechooser FileSystemView]))
+  (:require
+   [seesaw.core :refer [border-panel config! frame label left-right-split
+                        listbox listen scrollable select selection tree]]
+   [seesaw.test.examples.example :refer [defexample]]
+   [seesaw.tree :refer [simple-tree-model]])
+  (:import
+   [java.io File]))
 
 ; Make a model for the directory tree
 (def tree-model
@@ -43,12 +46,12 @@
 
       :south  (label :id :status :text "Ready"))))
 
-(defexample []
+(defexample run []
   (let [f (make-frame)]
     ; Hook up a selection listener to the tree to update stuff
     (listen (select f [:#tree]) :selection
       (fn [e]
-        (if-let [dir (last (selection e))]
+        (when-let [dir (last (selection e))]
           (let [files (.listFiles dir)]
             (config! (select f [:#current-dir]) :text (.getAbsolutePath dir))
             (config! (select f [:#status]) :text (format "Ready (%d items)" (count files)))

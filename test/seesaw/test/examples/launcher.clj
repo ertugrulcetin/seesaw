@@ -9,10 +9,13 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.launcher
-  (:use [seesaw core swingx keymap]
-        seesaw.test.examples.example)
-  (:require [seesaw.bind :as b]
-            [seesaw.dev :as dev]))
+  (:require
+   [seesaw.bind :as b]
+   [seesaw.core :refer :all]
+   [seesaw.dev :as dev]
+   [seesaw.keymap :refer [map-key]]
+   [seesaw.swingx :refer [hl-color hl-simple-striping listbox-x]]
+   [seesaw.test.examples.example :refer [defexample]]))
 
 ; A simple launcher for all the examples.
 
@@ -103,7 +106,7 @@
     (selection! list (first examples)))
   f)
 
-(defexample []
+(defexample run []
   (dev/debug!)
   (-> (make-frame)
     add-behaviors))

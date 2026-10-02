@@ -9,9 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.pi
-  (:use seesaw.core
-        seesaw.test.examples.example)
-  (:require seesaw.invoke)
+  (:require [seesaw.invoke]
+            [seesaw.core :refer :all]
+            [seesaw.test.examples.example :refer [defexample]])
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
 (defn calculate-pi-for 
@@ -157,7 +157,7 @@
     (apply listen (select root sel) (reduce concat handlers)))
   root)
 
-(defexample []
+(defexample run []
   (-> (make-frame) 
     (apply-stylesheet stylesheet) 
     (apply-behaviors behaviors)))

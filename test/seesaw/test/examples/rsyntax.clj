@@ -9,10 +9,10 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.rsyntax
-  (:use [seesaw core]
-        seesaw.test.examples.example)
   (:require [seesaw.rsyntax :as rsyntax]
-            [clojure.java.io :as io]))
+            [seesaw.core :refer :all]
+            [clojure.java.io :as io]
+            [seesaw.test.examples.example :refer [defexample]]))
 
 (defn make-frame []
   (frame :title "RSyntax Example" :width 500 :height 400 
@@ -21,8 +21,8 @@
                  :text (io/resource "seesaw/test/examples/rsyntax.clj")
                  :syntax :clojure))))
 
-(defexample []
-  (make-frame) )
+(defexample run []
+  (make-frame))
 
 ;(run :dispose)
 

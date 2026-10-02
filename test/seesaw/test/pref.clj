@@ -9,21 +9,21 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.pref
-  (:use seesaw.pref)
-  (:use [lazytest.describe :only (describe it testing)]
-        [lazytest.expect :only (expect)]))
+  (:require
+   [lazytest.core :refer [defdescribe expect it]]
+   [seesaw.pref :refer :all]))
 
-(describe preference-atom
+(defdescribe preference-atom-test
   (it "should return an atom with nil as its default value"
-    (do (.remove (preferences-node) (pr-str "key"))
-     (let [atom (preference-atom "key")]
-       (expect (nil? @atom)))))
+    (.remove (preferences-node) (pr-str "key"))
+    (let [atom (preference-atom "key")]
+      (expect (nil? @atom))))
   (it "should return an atom with the specified default value"
-    (do (.remove (preferences-node) (pr-str "key"))
-        (let [atom (preference-atom "key" 'some-value)]
-          (expect (= @atom 'some-value)))))
+    (.remove (preferences-node) (pr-str "key"))
+    (let [atom (preference-atom "key" 'some-value)]
+      (expect (= @atom 'some-value))))
   (it "should keep pref in sync with atom"
-    (do (.remove (preferences-node) (pr-str "key"))
-        (let [atom (preference-atom "key")]
-          (reset! atom 'new-value)
-          (expect (= (read-string (.get (preferences-node) (pr-str "key") "nil")) 'new-value))))))
+    (.remove (preferences-node) (pr-str "key"))
+    (let [atom (preference-atom "key")]
+      (reset! atom 'new-value)
+      (expect (= (read-string (.get (preferences-node) (pr-str "key") "nil")) 'new-value)))))
