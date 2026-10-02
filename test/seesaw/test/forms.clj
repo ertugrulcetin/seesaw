@@ -11,7 +11,7 @@
 (ns seesaw.test.forms
   (:require
    [lazytest.core :refer [defdescribe expect it]]
-   [seesaw.core :refer [action text]]
+   [seesaw.core :refer [action button text]]
    [seesaw.forms :refer [forms-panel next-column next-line separator span title]]))
 
 (defdescribe forms-panel-test
@@ -25,7 +25,7 @@
                       (separator "General")
                       "Company" (span (text) 5)
                       "Contact" (span (text) 5)
-                      "Click here" (next-column) (span (action :name "A button") 5)
+                      "Click here" (next-column 2) (span (action :name "A button") 3)
                       (next-line)
                       (separator "Propeller")
                       "PTI/kW"  (text :columns 10) "Power/kW" (text :columns 10)
@@ -34,3 +34,11 @@
               :default-dialog-border? true)]
       (expect (instance? javax.swing.JPanel p)))))
 
+(defdescribe next-column-test
+  (it "moves to a later column on the same line"
+    (let [b (button :text "B")
+          p (forms-panel "pref,4dlu,pref,4dlu,pref"
+                         :items ["L" (next-column 2) b])
+          cc (.getConstraints (.getLayout p) b)]
+      (expect (= 5 (.gridX cc)))
+      (expect (= 1 (.gridY cc))))))

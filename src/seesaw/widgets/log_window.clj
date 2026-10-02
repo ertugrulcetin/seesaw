@@ -24,7 +24,8 @@
     ; this is how you disable auto-scrolling :(
     (scrollRectToVisible [rect]
                          (if @(:auto-scroll? state)
-                           (proxy-super scrollRectToVisible rect)))))
+                           (let [^javax.swing.JTextArea this this]
+                             (proxy-super scrollRectToVisible rect))))))
 
 (defprotocol LogWindow
   (log   [this message] "Log a message to the given log-window")
@@ -66,13 +67,13 @@
                :auto-scroll? (atom true)
                 ; Efficiently tell the ui thread to grab the buffer
                 ; contents and move it to the text area.
-               :signal (signaller [this]
-                         (let [{:keys [buffer limit]} @this] 
+               :signal (signaller [^javax.swing.JTextArea this]
+                         (let [{:keys [^StringBuffer buffer limit]} @this] 
                            (locking buffer
                              (.append this (str buffer))
                              (.setLength buffer 0))
                            (if-let [limit @limit]
-                             (let [doc    (config this :model)
+                             (let [^javax.swing.text.Document doc (config this :model)
                                    length (.getLength doc)]
                                (if (> length limit)
                                  (.remove doc 0 (- length limit))))))) }
@@ -108,8 +109,8 @@
 
   LogWindow
   (log [this message]
-    (let [{:keys [buffer signal]} @this]
-      (.append buffer message)
+    (let [{:keys [^StringBuffer buffer signal]} @this]
+      (.append buffer (str message))
       (signal this)))
   (clear [this] 
     (invoke-soon (text! this "")))

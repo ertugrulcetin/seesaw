@@ -95,8 +95,22 @@
   (let [[s v] @cache]
     (if (identical? s src) v (f src))))
 
+(defprotocol ^{:private true} Refreshable
+  (-refresh! [this] "Recompute the value, e.g. after its function changed, and
+                     notify watchers if it differs."))
+
 (deftype Reaction [source f cache watches]
   Reactive
+
+  Refreshable
+  (-refresh! [this]
+    (let [[[_ old]] (reset-vals! cache [no-value nil])]
+      (when (seq @watches)
+        (let [new (memo-value cache f @source)]
+          (when-not (= old new)
+            (doseq [[k watch] @watches]
+              (watch k this old new)))))
+      this))
 
   IDeref
   (deref [_] (memo-value cache f @source))
@@ -138,19 +152,42 @@
 ;*******************************************************************************
 ; re-frame style subscriptions
 
-(def ^{:doc "The default app state used by (subscribe query-v)."}
+(defonce ^{:doc "The default app state used by (subscribe query-v)."}
   app-db (ratom {}))
 
 (defonce ^{:private true} subscriptions (atom {}))
+
+; query-id -> weak set of the live subscription reactions for it, so (reg-sub)
+; can refresh them when a handler is re-registered, e.g. from the REPL
+(defonce ^{:private true} live-subscriptions (atom {}))
+
+(defn- weak-set []
+  (java.util.Collections/synchronizedSet
+    (java.util.Collections/newSetFromMap (java.util.WeakHashMap.))))
+
+(defn- track-subscription! [query-id r]
+  (let [subs (or (get @live-subscriptions query-id)
+                 (get (swap! live-subscriptions update query-id #(or % (weak-set))) query-id))]
+    (.add ^java.util.Set subs r)
+    r))
+
+(defn- live-subscriptions-for [query-id]
+  (when-let [^java.util.Set subs (get @live-subscriptions query-id)]
+    (locking subs (vec subs))))
 
 (defn reg-sub
   "Register a subscription handler. handler is called as (handler db query-v),
   where db is the current value of the subscribed ratom.
 
     (reg-sub :todo-count (fn [db _] (count (:todos db))))
-    (reg-sub :todo (fn [db [_ id]] (get-in db [:todos id])))"
+    (reg-sub :todo (fn [db [_ id]] (get-in db [:todos id])))
+
+  Re-registering a handler (e.g. re-evaluating the form at the REPL) applies
+  to existing subscriptions too: they're recomputed and bound widgets update."
   [query-id handler]
   (swap! subscriptions assoc query-id handler)
+  (doseq [r (live-subscriptions-for query-id)]
+    (-refresh! r))
   query-id)
 
 (defn- cached-subscription
@@ -185,6 +222,7 @@
 
   If a handler was registered for (first query-v) with (reg-sub), it computes
   the value. Otherwise query-v is a path into the db, as with get-in.
+  Re-registering the handler updates existing subscriptions.
 
     (frame :title (subscribe [:title]))            ; (:title @app-db)
     (label :text  (subscribe app-db [:user :name]))
@@ -192,14 +230,16 @@
   ([query-v] (subscribe app-db query-v))
   ([db query-v]
    {:pre [(vector? query-v) (seq query-v)]}
-   (let [handler (get @subscriptions (first query-v))
-         make    #(reaction db (if handler
-                                 (fn [v] (handler v query-v))
-                                 (fn [v] (get-in v query-v))))]
+   (let [query-id (first query-v)
+         ; look the handler up on every computation so a re-registered one
+         ; takes effect
+         compute  (fn [v]
+                    (if-let [handler (get @subscriptions query-id)]
+                      (handler v query-v)
+                      (get-in v query-v)))
+         make     #(track-subscription! query-id (reaction db compute))]
      (if (instance? RAtom db)
-       ; the handler is part of the key so re-registering it with (reg-sub)
-       ; takes effect for new subscriptions
-       (cached-subscription db [query-v handler] make)
+       (cached-subscription db query-v make)
        (make)))))
 
 ;*******************************************************************************

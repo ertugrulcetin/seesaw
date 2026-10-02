@@ -14,7 +14,7 @@
             [seesaw.dnd :refer :all]))
 
 (defn drop-handler [t support]
-  (let [flavors (.getDataFlavors support)] 
+  (let [flavors (.getDataFlavors ^javax.swing.TransferHandler$TransferSupport support)] 
     (table/clear! t)
     (apply table/insert-at! t 
           (mapcat 
@@ -23,7 +23,7 @@
             (iterate inc 0)))))
 
 (defn app []
-  (let [t (doto (table
+  (let [t (doto ^javax.swing.JTable (table
             :show-grid? true
             :model [:columns [:N
                               :representationClass

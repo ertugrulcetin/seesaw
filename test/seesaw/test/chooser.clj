@@ -11,9 +11,18 @@
 (ns seesaw.test.chooser
   (:require
    [lazytest.core :refer [defdescribe expect-it]]
-   [seesaw.chooser :refer :all]))
+   [seesaw.chooser :refer :all]
+   [seesaw.core]
+   [seesaw.options]))
 
 (defdescribe file-filter-test
   (expect-it "should create a FileFilter"
     (instance? javax.swing.filechooser.FileFilter
                (file-filter "All files" (constantly true)))))
+
+(defdescribe file-chooser-options-test
+  (expect-it ":multi? and :all-files? can be read back with config"
+    (let [fc (javax.swing.JFileChooser.)]
+      (seesaw.options/apply-options fc [:multi? true :all-files? false])
+      (and (true? (seesaw.core/config fc :multi?))
+           (false? (seesaw.core/config fc :all-files?))))))

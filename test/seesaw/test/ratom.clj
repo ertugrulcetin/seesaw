@@ -116,14 +116,35 @@
       (invoke-now nil)
       (expect (= 1 @calls))
       (expect (every? #(= "2" (core/text %)) ls))))
-  (it "uses a re-registered handler for new subscriptions"
+  (it "applies a re-registered handler to existing subscriptions"
     (let [db (ratom {:n 1})
           _  (reg-sub ::rereg (fn [db _] (:n db)))
           s1 (subscribe db [::rereg])
+          _  (expect (= 1 @s1))
           _  (reg-sub ::rereg (fn [db _] (* 100 (:n db))))
           s2 (subscribe db [::rereg])]
-      (expect (= 1 @s1))
-      (expect (= 100 @s2))))
+      (expect (= 100 @s1))
+      (expect (identical? s1 s2))))
+  (it "updates bound widgets when a handler is re-registered, like a REPL reload"
+    (let [db    (ratom {:todos [1 2]})
+          calls (atom [])
+          _     (reg-sub ::reload (fn [db _] (swap! calls conj :v1) (count (:todos db))))
+          l     (core/label :text (subscribe db [::reload]))]
+      (expect (= "2" (core/text l)))
+      (reg-sub ::reload (fn [db _] (swap! calls conj :v2) (* 10 (count (:todos db)))))
+      (invoke-now nil)
+      (expect (= "20" (core/text l)))
+      (swap! db update :todos conj 3)
+      (invoke-now nil)
+      (expect (= "30" (core/text l)))
+      (expect (= :v2 (last @calls)))
+      (expect (not-any? #{:v1} (drop-while #{:v1} @calls)))))
+  (it "refreshes path subscriptions when a handler is registered for their id"
+    (let [db (ratom {::late 5})
+          s  (subscribe db [::late])]
+      (expect (= 5 @s))
+      (reg-sub ::late (fn [db _] (inc (::late db))))
+      (expect (= 6 @s))))
   (it "keeps a subscription cached while a widget is bound to it"
     (let [db (ratom {:a 1})
           l  (core/label :text (subscribe db [:a]))

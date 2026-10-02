@@ -383,3 +383,14 @@
   (expect-it "creates a JXPanel with card-panel"
     (instance? java.awt.CardLayout
                        (.getLayout (card-panel-x :alpha 0.5)))))
+
+(defdescribe titled-panel-painter-test
+  (it "sets and gets the title painter with :painter"
+    (let [p (org.jdesktop.swingx.painter.BusyPainter.)
+          t (titled-panel :painter p)]
+      (expect (= p (.getTitlePainter t)))
+      (expect (= p (core/config t :painter))))))
+
+(defdescribe hyperlink-uri-test
+  (expect-it "sets the URI with :uri"
+    (instance? org.jdesktop.swingx.JXHyperlink (hyperlink :uri "https://example.com"))))

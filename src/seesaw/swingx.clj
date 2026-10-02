@@ -78,11 +78,11 @@
 
 (defn p-and [& args]
   (HighlightPredicate$AndHighlightPredicate.
-                      (map to-p args)))
+                      ^java.util.Collection (doall (map to-p args))))
 
 (defn p-or [& args]
   (HighlightPredicate$OrHighlightPredicate.
-                      (map to-p args)))
+                      ^java.util.Collection (doall (map to-p args))))
 
 (defn p-not [p]
   (HighlightPredicate$NotHighlightPredicate. (to-p p)))
@@ -107,9 +107,9 @@
 
 (defn p-pattern [pattern & {:keys [test-column highlight-column]}]
   (org.jdesktop.swingx.decorator.PatternPredicate.
-    pattern
-    (or test-column -1)
-    (or highlight-column -1)))
+    ^java.util.regex.Pattern (re-pattern pattern)
+    (int (or test-column -1))
+    (int (or highlight-column -1))))
 
 ;*******************************************************************************
 ; Highlighters
@@ -151,9 +151,9 @@
       (HighlighterFactory/createSimpleStriping
         (seesaw.color/to-color background) lines-per-stripe)
     background
-      (HighlighterFactory/createSimpleStriping (seesaw.color/to-color background))
+      (HighlighterFactory/createSimpleStriping ^java.awt.Color (seesaw.color/to-color background))
     lines-per-stripe
-      (HighlighterFactory/createSimpleStriping lines-per-stripe)
+      (HighlighterFactory/createSimpleStriping (int lines-per-stripe))
     :else
       (HighlighterFactory/createSimpleStriping)))
 
@@ -311,7 +311,8 @@
   (merge
     button-options
     (option-map
-      (bean-option [:uri :URI] org.jdesktop.swingx.JXHyperlink to-uri))))
+      ; JXHyperlink has setURI but no getURI
+      (default-option :uri #(.setURI ^org.jdesktop.swingx.JXHyperlink %1 (to-uri %2))))))
 
 (widget-option-provider org.jdesktop.swingx.JXHyperlink hyperlink-options)
 
@@ -548,7 +549,7 @@
       ; When the model is changed, make sure the sort order is preserved
       ; Otherwise, it doesn't look like :sort-with is working.
       (default-option :model
-        (fn [c v]
+        (fn [^org.jdesktop.swingx.JXList c v]
           (let [old (.getSortOrder c)]
             ((:setter (:model listbox-options)) c v)
             (.setSortOrder c old)))
@@ -598,7 +599,8 @@
     default-options
     (option-map
       (resource-option :resource [:title :title-color])
-      (bean-option :painter org.jdesktop.swingx.JXTitledPanel)
+      ; the title bar painter (there's no setPainter)
+      (bean-option [:painter :title-painter] org.jdesktop.swingx.JXTitledPanel)
       (bean-option :title org.jdesktop.swingx.JXTitledPanel resource)
       (bean-option [:title-color :title-foreground] org.jdesktop.swingx.JXTitledPanel seesaw.color/to-color)
       (bean-option [:content :content-container] org.jdesktop.swingx.JXTitledPanel make-widget)

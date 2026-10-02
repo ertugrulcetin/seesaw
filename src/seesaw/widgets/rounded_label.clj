@@ -23,7 +23,11 @@
     (paintComponent [g]
       (anti-alias g)
       (if paint (paint this g))
-      (proxy-super paintComponent g))))
+      ; paintComponent is protected, so this is (proxy-super paintComponent g)
+      ; with explicit reflection
+      (proxy-call-with-super
+        #(clojure.lang.Reflector/invokeInstanceMethod this "paintComponent" (object-array [g]))
+        this "paintComponent"))))
 
 (def ^{:private true} RoundedLabel (class (rounded-label-proxy nil)))
 

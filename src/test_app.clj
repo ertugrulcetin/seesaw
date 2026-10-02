@@ -8,7 +8,7 @@
 
 (reg-sub :todo-count
          (fn [db _]
-           (println "ertu")
+           (println "ertu22")
            (count (:todos db))))
 
 (defn- view []
@@ -21,7 +21,7 @@
   (view))
 
 (comment
+  (-main)
   (swap! app-db assoc :title "helloo")
   (swap! app-db update :todos conj "ses")
-  (-main)
   )

@@ -57,11 +57,14 @@
         ; below, so going through proxy-super would record the row twice (#228)
         (let [^javax.swing.table.DefaultTableModel this this]
           (.insertRow this (.getRowCount this) values)))
-      (insertRow [row ^objects values]
+      (insertRow [row values]
         (swap! full-values insert-at row (last values))
-        ; TODO reflection - I can't get rid of the reflection here without crashes
-        ; It has something to do with Object[] vs. Vector overrides.
-        (proxy-super insertRow row values))
+        ; This overrides both insertRow(int, Object[]) and insertRow(int, Vector),
+        ; so call the matching super method explicitly.
+        (let [^javax.swing.table.DefaultTableModel this this]
+          (if (instance? java.util.Vector values)
+            (proxy-super insertRow (int row) ^java.util.Vector values)
+            (proxy-super insertRow (int row) ^objects values))))
       (removeRow [row]
         (swap! full-values remove-at row)
         (let [^javax.swing.table.DefaultTableModel this this]
@@ -79,8 +82,7 @@
           (swap! full-values assoc row value)
           (let [^javax.swing.table.DefaultTableModel this this]
             (proxy-super setValueAt value row col))))
-      (getColumnClass [^Integer c]
-        (proxy-super getColumnClass c)
+      (getColumnClass [c]
         (nth column-classes c)))))
 
 (defn- get-full-value [^javax.swing.table.TableModel model row]

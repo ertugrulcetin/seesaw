@@ -25,11 +25,11 @@
 
 (extend-protocol ComponentSpec
   Object
-  (append [this builder]
+  (append [this ^DefaultFormBuilder builder]
     (.append builder (seesaw.core/make-widget this)))
   String
-  (append [this builder]
-    (.append builder this))
+  (append [this ^DefaultFormBuilder builder]
+    (.append builder ^String this))
   clojure.lang.Keyword
   (append [this builder]
     (append (resource this) builder)))
@@ -40,7 +40,7 @@
   (reify
     ComponentSpec
     (append [this builder]
-      (.append builder (seesaw.core/make-widget component) column-span))))
+      (.append ^DefaultFormBuilder builder (seesaw.core/make-widget component) (int column-span)))))
 
 (defn next-line
   "Continue with the nth next line in the builder."
@@ -49,7 +49,7 @@
    (reify
      ComponentSpec
      (append [this builder]
-       (.nextLine builder n)))))
+       (.nextLine ^DefaultFormBuilder builder (int n))))))
 
 (defn next-column
   "Continue with the nth next column in the builder."
@@ -58,7 +58,7 @@
    (reify
      ComponentSpec
      (append [this builder]
-       (.nextLine builder n)))))
+       (.nextColumn ^DefaultFormBuilder builder (int n))))))
 
 (defn title
   "Adds the given title to the form."
@@ -66,7 +66,7 @@
   (reify
     ComponentSpec
     (append [this builder]
-      (.appendTitle builder (resource title)))))
+      (.appendTitle ^DefaultFormBuilder builder ^String (resource title)))))
 
 (defn separator
   "Adds a separator with an optional label to the form."
@@ -74,12 +74,12 @@
    (reify
      ComponentSpec
      (append [this builder]
-       (.appendSeparator builder))))
+       (.appendSeparator ^DefaultFormBuilder builder))))
   ([label]
    (reify
      ComponentSpec
      (append [this builder]
-       (.appendSeparator builder (resource label))))))
+       (.appendSeparator ^DefaultFormBuilder builder ^String (resource label))))))
 
 (defn group
   "Group the rows of the contained items into a row group."
@@ -98,9 +98,9 @@
       (fn set-column-groups [c v]
         (cond
           (instance? FormLayout c)
-            (.setColumnGroups c (into-array (map int-array v)))
+            (.setColumnGroups ^FormLayout c ^"[[I" (into-array (map int-array v)))
           :else
-            (set-column-groups (.getLayout c) v))))))
+            (set-column-groups (.getLayout ^java.awt.Container c) v))))))
 
 (def ^{:private true} builder-options
   (option-map
@@ -147,7 +147,7 @@
   See http://www.jgoodies.com/freeware/forms/index.html"
   {:seesaw {:class `JPanel}}
   [column-spec & opts]
-  (let [layout  (FormLayout. column-spec "")
+  (let [layout  (FormLayout. ^String column-spec "")
         panel   (seesaw.core/construct JPanel)
         builder (DefaultFormBuilder. layout panel)]
     (apply-options layout opts)

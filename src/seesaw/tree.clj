@@ -35,9 +35,9 @@
   (fire-event* tree-model
               :tree-structure-changed
               (javax.swing.event.TreeModelEvent. tree-model
-                                                 (ensure-array node-path)
-                                                 nil
-                                                 nil)))
+                                                 ^objects (ensure-array node-path)
+                                                 ^ints (identity nil)
+                                                 ^objects (identity nil))))
 
 (defn nodes-removed 
   "Fire a node removed event on a tree model created with 
@@ -53,9 +53,9 @@
   (fire-event* tree-model
               :tree-nodes-removed
               (javax.swing.event.TreeModelEvent. tree-model 
-                                                 (ensure-array parent-path)
+                                                 ^objects (ensure-array parent-path)
                                                  (int-array indices)
-                                                 (ensure-array children))))
+                                                 ^objects (ensure-array children))))
 
 (defn node-removed 
   "Fire a node removed event on a tree model created with 
@@ -71,11 +71,12 @@
 
 (defn- build-insert-or-change-event [tree-model parent-path children]
   (let [indices (if-let [parent (last parent-path)] 
-                  (map #(.getIndexOfChild tree-model parent %) children)) ]
+                  (map #(.getIndexOfChild ^javax.swing.tree.TreeModel tree-model parent %) children))
+        ^ints indices (when indices (int-array indices))]
     (javax.swing.event.TreeModelEvent. tree-model 
-                                       (ensure-array parent-path)
-                                       (if indices (int-array indices))
-                                       (ensure-array children))))
+                                       ^objects (ensure-array parent-path)
+                                       indices
+                                       ^objects (ensure-array children))))
 
 (defn nodes-inserted 
   "Fire a node insertion event. parent-path is the path to the parent of the
@@ -165,10 +166,10 @@
       TreeModelEventSource
       (fire-event* [this event-type event]
         (let [handler (condp = event-type
-                        :tree-nodes-changed     #(.treeNodesChanged %1 %2)
-                        :tree-nodes-inserted    #(.treeNodesInserted %1 %2)
-                        :tree-nodes-removed     #(.treeNodesRemoved %1 %2)
-                        :tree-structure-changed #(.treeStructureChanged %1 %2))]
+                        :tree-nodes-changed     #(.treeNodesChanged ^javax.swing.event.TreeModelListener %1 %2)
+                        :tree-nodes-inserted    #(.treeNodesInserted ^javax.swing.event.TreeModelListener %1 %2)
+                        :tree-nodes-removed     #(.treeNodesRemoved ^javax.swing.event.TreeModelListener %1 %2)
+                        :tree-structure-changed #(.treeStructureChanged ^javax.swing.event.TreeModelListener %1 %2))]
           (doseq [listener @listeners]
             (handler listener event)))))))
 

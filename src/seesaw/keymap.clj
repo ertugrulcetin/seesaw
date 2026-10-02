@@ -33,7 +33,7 @@
 (defn- ^javax.swing.JComponent to-target [target]
   (cond
     (instance? javax.swing.JComponent target) target
-    (instance? javax.swing.JFrame target) (.getRootPane target)
+    (instance? javax.swing.RootPaneContainer target) (.getRootPane ^javax.swing.RootPaneContainer target)
     :else (illegal-argument "Don't know how to map keys on '%s'" target)))
 
 (def ^{:private true} scope-table

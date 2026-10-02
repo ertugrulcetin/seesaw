@@ -1078,9 +1078,9 @@
 ;*******************************************************************************
 ; Abstract Panel
 (defn abstract-panel
-  ([panel layout opts]
+  ([^java.awt.Container panel layout opts]
    (doto panel
-     (.setLayout (if (fn? layout) (layout panel) layout))
+     (.setLayout ^java.awt.LayoutManager (if (fn? layout) (layout panel) layout))
      (apply-options opts)))
   ([layout opts] (abstract-panel (construct JPanel) layout opts)))
 
@@ -1938,9 +1938,12 @@
                              (.getShowVerticalLines t))))
       (default-option :column-widths
                       #(doall
-                         (map (fn [c w] (.setWidth c w) (.setPreferredWidth c w)) (table-columns %1) %2))
+                         (map (fn [^javax.swing.table.TableColumn c w]
+                                (.setWidth c (int w))
+                                (.setPreferredWidth c (int w)))
+                              (table-columns %1) %2))
                       #(doall
-                         (map (fn [c] (.getWidth c)) (table-columns %1))))
+                         (map (fn [^javax.swing.table.TableColumn c] (.getWidth c)) (table-columns %1))))
       (bean-option [:show-vertical-lines? :show-vertical-lines] javax.swing.JTable boolean)
       (bean-option [:show-horizontal-lines? :show-horizontal-lines] javax.swing.JTable boolean)
       (bean-option [:fills-viewport-height? :fills-viewport-height] javax.swing.JTable boolean)
@@ -2820,9 +2823,12 @@
   (let [{:keys [before after super?] :or {super? true}} (get-meta this paint-property)]
     (seesaw.graphics/anti-alias g)
     (when before (seesaw.graphics/push g (before this g)))
-    ; TODO reflection here can't be eliminated thanks for proxy limitations
-    ; with protected methods
-    (when super? (proxy-super paintComponent g))
+    ; paintComponent is protected, so it can't be called with a type hint.
+    ; This is (proxy-super paintComponent g) with explicit reflection.
+    (when super?
+      (proxy-call-with-super
+        #(clojure.lang.Reflector/invokeInstanceMethod this "paintComponent" (object-array [g]))
+        this "paintComponent"))
     (when after (seesaw.graphics/push g (after this g)))))
 
 (defn- paint-option-handler [^java.awt.Component c v]
@@ -2926,8 +2932,8 @@
     (default-option
       :content
       (fn [^javax.swing.RootPaneContainer f v]
-        (doto f
-          (.setContentPane (make-widget v))
+        (.setContentPane f (make-widget v))
+        (doto ^java.awt.Component f
           .invalidate
           .validate
           .repaint))
@@ -2941,11 +2947,20 @@
                  dimension-examples)
 
     (bean-option :visible? java.awt.Window boolean)
-    ; TODO reflection. transfer-handler is in JWindow, JDialog, and JFrame, not a common
+    ; transfer-handler is in JWindow, JDialog, and JFrame, not a common
     ; base or interface.
-    (bean-option :transfer-handler java.awt.Window
-                 seesaw.dnd/to-transfer-handler
-                 identity
+    (default-option :transfer-handler
+                 (fn [w v]
+                   (let [h (seesaw.dnd/to-transfer-handler v)]
+                     (condp instance? w
+                       JFrame              (.setTransferHandler ^JFrame w h)
+                       JDialog             (.setTransferHandler ^JDialog w h)
+                       javax.swing.JWindow (.setTransferHandler ^javax.swing.JWindow w h))))
+                 (fn [w]
+                   (condp instance? w
+                     JFrame              (.getTransferHandler ^JFrame w)
+                     JDialog             (.getTransferHandler ^JDialog w)
+                     javax.swing.JWindow (.getTransferHandler ^javax.swing.JWindow w)))
                  "See (seesaw.dnd/to-transfer-handler)")))
 
 (def window-options abstract-window-options)

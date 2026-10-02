@@ -69,7 +69,7 @@
 
 (defn- set-suggested-name [^JFileChooser chooser suggested-name]
   (.setSelectedFile chooser (if (instance? java.io.File suggested-name)
-                              suggested-name (java.io.File. suggested-name))))
+                              suggested-name (java.io.File. (str suggested-name)))))
 
 (def ^{:private true} file-chooser-options 
   (option-map
@@ -77,10 +77,14 @@
       (fn [^JFileChooser chooser dir] 
         (.setCurrentDirectory chooser (if (instance? java.io.File dir) dir 
                                           (java.io.File. (str dir))))))
-    (bean-option [:multi? :multi-selection-enabled] JFileChooser boolean)
+    (default-option :multi?
+      #(.setMultiSelectionEnabled ^JFileChooser %1 (boolean %2))
+      #(.isMultiSelectionEnabled ^JFileChooser %1))
     (bean-option [:selection-mode :file-selection-mode] JFileChooser file-selection-modes)
     (default-option :filters set-file-filters)
-    (bean-option [:all-files? :accept-all-file-filter-used] JFileChooser boolean)
+    (default-option :all-files?
+      #(.setAcceptAllFileFilterUsed ^JFileChooser %1 (boolean %2))
+      #(.isAcceptAllFileFilterUsed ^JFileChooser %1))
     (default-option :suggested-name set-suggested-name)))
 
 (option-provider JFileChooser file-chooser-options)
