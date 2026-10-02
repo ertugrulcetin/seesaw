@@ -9,17 +9,23 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.invoke
-  (:import [javax.swing SwingUtilities]))
+  (:import (javax.swing SwingUtilities)))
 
-(defn invoke-later* [f & args] (SwingUtilities/invokeLater #(apply f args)))
+(defn invoke-later* [f & args]
+  (let [f (bound-fn* f)]
+    (SwingUtilities/invokeLater #(apply f args))))
 
 (defn invoke-now* [f & args]
-  (let [result (atom nil)]
-   (letfn [(invoker [] (reset! result (apply f args)))]
-     (if (SwingUtilities/isEventDispatchThread)
-       (invoker)
-       (SwingUtilities/invokeAndWait invoker))
-     @result)))
+  (if (SwingUtilities/isEventDispatchThread)
+    (apply f args)
+    (let [f      (bound-fn* f)
+          result (volatile! nil)]
+      (try
+        (SwingUtilities/invokeAndWait #(vreset! result (apply f args)))
+        ; rethrow what body threw, rather than invokeAndWait's wrapper
+        (catch java.lang.reflect.InvocationTargetException e
+          (throw (or (.getCause e) e))))
+      @result)))
 
 (defn invoke-soon* 
   [f & args]
@@ -51,6 +57,9 @@
 
     (invoke-now
       (config! my-label :text \"New Text\"))
+
+  Dynamic bindings are conveyed to the UI thread, and an exception thrown by
+  body is rethrown as-is in the calling thread.
 
   Notes:
     Be very careful with this function in the presence of locks and stuff.

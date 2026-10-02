@@ -29,3 +29,23 @@
       (expect (not (.isRunning t)))
       (expect (not (.isRepeats t))))))
 
+
+(defdescribe debounce-test
+  (it "calls f once, with the last arguments, after calls stop"
+    (let [calls (atom [])
+          done  (promise)
+          d (debounce 50 (fn [x] (swap! calls conj x) (deliver done true)))]
+      (d 1) (d 2) (d 3)
+      (expect (= [] @calls))
+      (expect (deref done 2000 false))
+      (expect (= [3] @calls))))
+  (it "can be flushed and cancelled"
+    (let [calls (atom [])
+          d (debounce 10000 (fn [x] (swap! calls conj x)))]
+      (d :a)
+      (flush! d)
+      (expect (= [:a] @calls))
+      (d :b)
+      (cancel! d)
+      (flush! d)
+      (expect (= [:a] @calls)))))

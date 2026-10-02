@@ -12,9 +12,9 @@
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.core :refer :all]
-   [seesaw.font :refer [default-font font to-font]])
+   [seesaw.font :refer [default-font font to-font can-display? first-available line-height]])
   (:import
-   [java.awt Font]))
+   (java.awt Font)))
 
 (defdescribe font-test
   (it "can create a font from a font-spec"
@@ -78,3 +78,27 @@
       (expect (not (nil? f)))
       (expect (= expected f)))))
 
+
+(defdescribe font-attributes-test
+  (it "supports :weight, :tracking, :underline? and :strikethrough?"
+    (let [f (font :name :sans-serif :size 14 :weight :semibold :tracking 0.05
+                  :underline? true :strikethrough? true)
+          a (.getAttributes f)]
+      (expect (= 14 (.getSize f)))
+      (expect (= java.awt.font.TextAttribute/WEIGHT_SEMIBOLD (get a java.awt.font.TextAttribute/WEIGHT)))
+      (expect (= (float 0.05) (get a java.awt.font.TextAttribute/TRACKING)))
+      (expect (= java.awt.font.TextAttribute/UNDERLINE_ON (get a java.awt.font.TextAttribute/UNDERLINE)))
+      (expect (= true (get a java.awt.font.TextAttribute/STRIKETHROUGH)))))
+  (it "derives with attributes from another font"
+    (let [f (font :from (font :name :serif :size 10) :size 20 :weight :bold)]
+      (expect (= 20 (.getSize f)))
+      (expect (= java.awt.font.TextAttribute/WEIGHT_BOLD
+                 (get (.getAttributes f) java.awt.font.TextAttribute/WEIGHT))))))
+
+(defdescribe font-helpers-test
+  (expect-it "can-display? checks glyphs"
+    (can-display? (font :name :sans-serif) "abc"))
+  (expect-it "first-available returns the first installed family"
+    (= "Dialog" (first-available "No Such Font Family 123" "Dialog" "Serif")))
+  (expect-it "line-height is positive"
+    (pos? (line-height (font :name :sans-serif :size 12)))))

@@ -17,7 +17,7 @@
             [seesaw.widget-options :as widget-options]
             clojure.reflect
             clojure.string)
-  (:import [org.fife.ui.rsyntaxtextarea AbstractTokenMakerFactory]))
+  (:import (org.fife.ui.rsyntaxtextarea AbstractTokenMakerFactory)))
 
 ;;; Go through the available syntax highlighting modes,
 ;;; e.g. "text/clojure" and then for backwards compatibility map them to

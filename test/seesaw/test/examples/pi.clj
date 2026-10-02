@@ -12,7 +12,7 @@
   (:require [seesaw.invoke]
             [seesaw.core :refer :all]
             [seesaw.test.examples.example :refer [defexample]])
-  (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
+  (:import (java.util.concurrent LinkedBlockingQueue TimeUnit)))
 
 (defn calculate-pi-for 
   "Calculate a sliver of pi"

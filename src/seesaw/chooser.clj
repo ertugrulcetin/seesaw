@@ -11,12 +11,12 @@
 (ns ^{:doc "File chooser and other common dialogs."
       :author "Dave Ray"}
   seesaw.chooser
-  (:use [seesaw.color :only [to-color]]
-        [seesaw.options :only [default-option bean-option apply-options 
-                               option-map option-provider]]
-        [seesaw.util :only [illegal-argument]])
+  (:require [seesaw.color :refer [to-color]]
+            [seesaw.options :refer [default-option bean-option apply-options
+                                    option-map option-provider]]
+            [seesaw.util :refer [illegal-argument]])
   (:import (javax.swing.filechooser FileFilter FileNameExtensionFilter)
-           [javax.swing JFileChooser]))
+           (javax.swing JFileChooser)))
 
 (defn file-filter
   "Create a FileFilter.
@@ -203,6 +203,63 @@
                 (.getSelectedFiles chooser)
                 (.getSelectedFile chooser))))
         :else (cancel-fn chooser)))))
+
+(defn- dialog-owner [parent]
+  (when parent
+    (let [w (if (instance? java.awt.Window parent)
+              parent
+              (javax.swing.SwingUtilities/getWindowAncestor
+                ((requiring-resolve 'seesaw.core/to-widget) parent)))]
+      (when (or (instance? java.awt.Frame w) (instance? java.awt.Dialog w)) w))))
+
+(defn choose-native-file
+  "Choose a file with the platform's native file dialog (java.awt.FileDialog),
+  e.g. the real Finder dialog on macOS. Like (choose-file), the first argument
+  may be a parent widget. Options:
+
+    :type        :open (default) or :save
+    :title       Dialog title
+    :dir         Initial directory (string or File)
+    :file        Initial file name, e.g. a suggested name to save as
+    :multi?      Allow selecting several files and return a seq
+    :extensions  Only offer files with these extensions, e.g. [\"md\" \"txt\"].
+                 Not supported by the Windows dialog.
+    :dirs?       Choose folders instead of files (macOS only)
+
+  Returns the java.io.File (or seq of them with :multi?), or nil if
+  cancelled.
+
+  See https://docs.oracle.com/javase/8/docs/api/java/awt/FileDialog.html
+  "
+  [& args]
+  (let [[parent & {:keys [type title dir file multi? extensions dirs?] :or {type :open}}]
+        (if (keyword? (first args)) (cons nil args) args)
+        owner (dialog-owner parent)
+        mode  (case type :open java.awt.FileDialog/LOAD :save java.awt.FileDialog/SAVE)
+        title (str (or title ""))
+        ^java.awt.FileDialog d (cond
+                                 (instance? java.awt.Dialog owner) (java.awt.FileDialog. ^java.awt.Dialog owner title (int mode))
+                                 :else (java.awt.FileDialog. ^java.awt.Frame owner title (int mode)))
+        exts (set (map #(.toLowerCase (str %)) extensions))
+        dirs-prop "apple.awt.fileDialogForDirectories"
+        old-dirs (System/getProperty dirs-prop)]
+    (when dir (.setDirectory d (str (clojure.java.io/file dir))))
+    (when file (.setFile d (str file)))
+    (.setMultipleMode d (boolean multi?))
+    (when (seq exts)
+      (.setFilenameFilter d (reify java.io.FilenameFilter
+                              (accept [_ _ n]
+                                (let [i (.lastIndexOf ^String n ".")]
+                                  (and (pos? i) (contains? exts (.toLowerCase (subs n (inc i))))))))))
+    (when dirs? (System/setProperty dirs-prop "true"))
+    (try
+      (.setVisible d true)
+      (let [files (seq (.getFiles d))]
+        (if multi? files (first files)))
+      (finally
+        (when dirs?
+          (if old-dirs (System/setProperty dirs-prop old-dirs) (System/clearProperty dirs-prop)))
+        (.dispose d)))))
 
 (defn choose-color
   "Choose a color with a color chooser dialog. The optional first argument is the

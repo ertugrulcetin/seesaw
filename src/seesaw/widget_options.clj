@@ -11,7 +11,7 @@
 (ns ^{:doc "Functions and protocol for dealing with widget options."
       :author "Dave Ray"}
   seesaw.widget-options
-  (:use [seesaw.options :only [OptionProvider get-option-maps*]]))
+  (:require [seesaw.options :refer [OptionProvider get-option-maps*]]))
 
 (defprotocol WidgetOptionProvider
   (get-widget-option-map* [this])

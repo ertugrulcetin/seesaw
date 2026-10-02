@@ -9,8 +9,8 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.selection
-  (:use [seesaw.util :only [check-args]])
-  (:require [seesaw.to-widget]))
+  (:require [seesaw.to-widget]
+            [seesaw.util :refer [check-args]]))
 
 ;TODO put this somewhere
 ; I think this is generally useful, but the main reason for its existence is

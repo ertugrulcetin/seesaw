@@ -11,13 +11,14 @@
 (ns ^{:doc "Functions for dealing with Swing Actions. Prefer (seesaw.core/action)."
       :author "Dave Ray"}
   seesaw.action
-  (:use [seesaw.util :only [resource to-mnemonic-keycode]])
-  (:use [seesaw icon keystroke meta]
-        [seesaw.options :only [option-map 
-                               default-option bean-option resource-option 
-                               apply-options
-                               option-provider]])
-  (:import [javax.swing Action AbstractAction]))
+  (:require [seesaw.util :refer [resource to-mnemonic-keycode]]
+            [seesaw.icon :refer :all]
+            [seesaw.keystroke :refer :all]
+            [seesaw.meta :refer :all]
+            [seesaw.options :refer [option-map default-option bean-option
+                                    resource-option apply-options
+                                    option-provider]])
+  (:import (javax.swing Action AbstractAction)))
 
 ;*******************************************************************************
 ; Actions

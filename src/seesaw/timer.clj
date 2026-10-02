@@ -9,8 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.timer
-  (:use [seesaw.action :only [action]]
-        [seesaw.options :only [bean-option apply-options option-map option-provider]]))
+  (:require [seesaw.action :refer [action]]
+            [seesaw.options :refer [bean-option apply-options option-map
+                                    option-provider]]))
 
 (def ^{:private true} timer-opts
   (option-map
@@ -48,3 +49,51 @@
     (when start? (.start t))
     t))
 
+
+(defn restart!
+  "Restart a timer: cancel any pending call and wait its initial delay again."
+  [^javax.swing.Timer t]
+  (.restart t)
+  t)
+
+(defn debounce
+  "Returns a function that calls f only once calls stop for ms milliseconds,
+  with the arguments of the last call. f runs on the Swing thread. Typical
+  for autosave or search-as-you-type:
+
+    (def save-soon (debounce 700 save!))
+    (listen editor :document (fn [_] (save-soon)))
+
+  Use (cancel! d) to drop a pending call and (flush! d) to run it now."
+  [ms f]
+  (let [args (atom nil)
+        t    (doto (javax.swing.Timer. (int ms) nil)
+               (.setRepeats false))]
+    (.addActionListener t (reify java.awt.event.ActionListener
+                            (actionPerformed [_ _]
+                              (let [[a] (reset-vals! args nil)]
+                                (when a (apply f (second a)))))))
+    (with-meta
+      (fn [& xs]
+        (reset! args [:pending xs])
+        (.restart t)
+        nil)
+      {::timer t ::args args ::f f})))
+
+(defn cancel!
+  "Drop the pending call of a (debounce) function. Returns d."
+  [d]
+  (let [{t ::timer args ::args} (meta d)]
+    (.stop ^javax.swing.Timer t)
+    (reset! args nil)
+    d))
+
+(defn flush!
+  "Run the pending call of a (debounce) function now, on the calling thread.
+  Returns d."
+  [d]
+  (let [{t ::timer args ::args f ::f} (meta d)
+        [a] (reset-vals! args nil)]
+    (.stop ^javax.swing.Timer t)
+    (when a (apply f (second a)))
+    d))

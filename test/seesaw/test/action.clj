@@ -15,7 +15,7 @@
    [seesaw.core :refer [config]]
    [seesaw.keystroke :refer [keystroke]])
   (:import
-   [javax.swing Action]))
+   (javax.swing Action)))
 
 (defdescribe action-test
   (it "sets the name, tooltip, and command"

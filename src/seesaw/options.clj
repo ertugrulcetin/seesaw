@@ -11,9 +11,10 @@
 (ns ^{:doc    "Functions for dealing with options."
       :author "Dave Ray"}
 seesaw.options
-  (:use [seesaw.util :only [camelize illegal-argument check-args
-                            resource resource-key?]])
-  (:import (clojure.lang IAtom IDeref IMeta IRef)))
+  (:require [seesaw.meta :refer [get-meta put-meta!]]
+            [seesaw.ratom :as ratom]
+            [seesaw.util :refer [camelize illegal-argument check-args resource
+                                 resource-key?]]))
 
 (defprotocol OptionProvider
   (get-option-maps* [this]))
@@ -109,87 +110,17 @@ seesaw.options
     [(str "A i18n prefix for a resource with keys")
      (pr-str keys)]))
 
-;;TODO there is a small memory leak, find out how to fix it!
-(def satoms (atom {}))
-
-(defn- apply-setter
-  [this old-val new-val]
-  (when-not (= old-val new-val)
-    (doseq [[ins m] (get @satoms this)]
-      (doseq [opt (vals m)]
-        (if-let [setter (:setter opt)]
-          (if (seq (:keys opt))
-            (let [o-val (apply get-in (cons old-val [(:keys opt)]))
-                  n-val (apply get-in (cons new-val [(:keys opt)]))]
-              (when-not (= o-val n-val)
-                (setter ins n-val)))
-            (setter ins new-val))
-          (illegal-argument "No setter found for option %s" (:name opt))))))
-  new-val)
-
-(deftype SAtom [state meta validator watches]
-
-  IAtom
-  (swap [this f]
-    (apply-setter this @state (swap! state f)))
-  (swap [this f x]
-    (apply-setter this @state (swap! state f x)))
-  (swap [this f x y]
-    (apply-setter this @state (swap! state f x y)))
-  (swap [this f x y args]
-    (apply-setter this @state (swap! state f x y args)))
-  (compareAndSet [this old new]
-    (when (compare-and-set! state old new)
-      (apply-setter this @state new)))
-  (reset [this new]
-    (apply-setter this @state (reset! state new)))
-
-  IDeref
-  (deref [_]
-    @state)
-
-  IRef
-  (addWatch [_ k call]
-    (.addWatch state k call))
-  (removeWatch [_ k]
-    (.removeWatch state k))
-
-  IMeta
-  (meta [_] meta))
-
-(defn get-k
-  [^SAtom a k & ks]
-  {:satom a :keys (cons k ks)})
-
-(defn setup-reference*
-  [^clojure.lang.ARef r options]
-  (let [opts (apply hash-map options)]
-    (when (:meta opts)
-      (.resetMeta r (:meta opts)))
-    (when (:validator opts)
-      (.setValidator r (:validator opts)))
-    r))
-
-(defn satom
-  ([x] (SAtom. (atom x) nil nil nil))
-  ([x & options] (setup-reference* (satom x) options)))
-
 (defn- apply-option
   [target ^Option opt v]
   (if-let [setter (:setter opt)]
-    (cond
-      (and (map? v) (= (class (:satom v)) SAtom))
-      (do
-        (swap! satoms assoc-in [(:satom v) target (:name opt)] (assoc opt :keys (:keys v)))
-        (setter target (apply get-in (cons @(:satom v) [(:keys v)]))))
-
-      (= SAtom (class v))
-      (do
-        (swap! satoms assoc-in [v target (:name opt)] opt)
-        (setter target @v))
-
-      :else
-      (setter target v))
+    (let [binding-key [::binding (:name opt)]]
+      ; a new value replaces any reactive binding previously set for this option
+      (when-let [unbind (get-meta target binding-key)]
+        (unbind)
+        (put-meta! target binding-key nil))
+      (if (ratom/reactive? v)
+        (put-meta! target binding-key (ratom/bind! target setter v))
+        (setter target v)))
     (illegal-argument "No setter found for option %s" (:name opt))))
 
 (defn- ^Option lookup-option [target handler-maps name]

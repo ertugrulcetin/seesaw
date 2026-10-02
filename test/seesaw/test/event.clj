@@ -13,9 +13,9 @@
         [seesaw.util :refer [root-cause]]
             [seesaw.core :as sc]
             [lazytest.core :refer [defdescribe describe expect expect-it it]])
-  (:import [javax.swing JPanel JTextField JButton JRadioButton JToggleButton]
-           [javax.swing.event ChangeListener]
-           [java.awt.event ComponentListener ItemListener MouseListener MouseMotionListener]))
+  (:import (javax.swing JPanel JTextField JButton JRadioButton JToggleButton)
+           (javax.swing.event ChangeListener)
+           (java.awt.event ComponentListener ItemListener MouseListener MouseMotionListener)))
 
 (defn test-handler [_])
 
@@ -371,3 +371,52 @@
       (remove-fn)
       (.setText b "BYE")
       (expect (nil? @called)))))
+
+(defdescribe new-event-groups-test
+  (it "supports :adjustment-value-changed on scroll bars and scroll panes"
+    (let [called (atom 0)
+          sp (javax.swing.JScrollPane.)
+          sb (.getVerticalScrollBar sp)]
+      (.setMaximum sb 1000)
+      (listen sp :adjustment-value-changed (fn [_] (swap! called inc)))
+      (.setValue sb 100)
+      (expect (= 1 @called))))
+  (it "supports :menu-selected on menus"
+    (let [called (atom nil)
+          m (javax.swing.JMenu. "File")]
+      (listen m :menu-selected (fn [e] (reset! called e)))
+      (.setSelected m true)
+      (expect (instance? javax.swing.event.MenuEvent @called))))
+  (it "supports :popup-menu-will-become-visible on popups and combo boxes"
+    (let [called (atom 0)
+          p (javax.swing.JPopupMenu.)
+          c (javax.swing.JComboBox.)
+          before (count (.getPopupMenuListeners p))]
+      (listen [p c] :popup-menu-will-become-visible (fn [_] (swap! called inc)))
+      (expect (= (inc before) (count (.getPopupMenuListeners p))))
+      (.firePopupMenuWillBecomeVisible c)
+      (expect (= 1 @called))))
+  (it "supports :undoable-edit-happened on text components"
+    (let [called (atom 0)
+          t (JTextField.)]
+      (listen t :undoable-edit-happened (fn [_] (swap! called inc)))
+      (.setText t "hi")
+      (expect (pos? @called))))
+  (it "supports :component-added on containers"
+    (let [added (atom nil)
+          p (JPanel.)
+          b (JButton.)]
+      (listen p :component-added (fn [e] (reset! added (.getChild e))))
+      (.add p b)
+      (expect (= b @added))))
+  (it "supports :hierarchy-changed and :ancestor-added"
+    (let [h (atom 0) a (atom 0)
+          p (JPanel.)
+          b (JButton.)]
+      (listen b :hierarchy-changed (fn [_] (swap! h inc)) :ancestor-added (fn [_] (swap! a inc)))
+      (.add p b)
+      (expect (pos? @h))))
+  (it "supports :window-state-changed and :window-gained-focus"
+    (let [f (javax.swing.JFrame.)]
+      (expect (fn? (listen f :window-state-changed (fn [_]) :window-gained-focus (fn [_]))))
+      (.dispose f))))

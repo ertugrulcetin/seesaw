@@ -11,8 +11,8 @@
 (ns ^{:doc "Functions for styling apps. Prefer (seesaw.core/stylesheet) and friends."
       :author "Dave Ray"}
   seesaw.style
-  (:use [seesaw.config :only [config!]]
-        [seesaw.selector]))
+  (:require [seesaw.config :refer [config!]]
+            [seesaw.selector :refer :all]))
 
 (defn apply-stylesheet
   "ALPHA - EXPERIMENTAL AND GUARANTEED TO CHANGE

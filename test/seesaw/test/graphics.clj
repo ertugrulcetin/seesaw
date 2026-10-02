@@ -14,7 +14,7 @@
    [seesaw.color :refer [to-color]]
    [seesaw.graphics :refer :all])
   (:import
-   [java.awt RenderingHints]))
+   (java.awt RenderingHints)))
 
 (defdescribe anti-alias-test
   (it "turns on anti-aliasing on a graphics object"
@@ -279,3 +279,20 @@
     (let [p (path [] (move-to 1 1) (line-to 10 10) (curve-to 1 2 3 4 5 6) (quad-to 7 8 9 10))]
       (expect (instance? java.awt.geom.Path2D p))
       (expect (= (java.awt.geom.Point2D$Double. 9 10) (.getCurrentPoint p))))))
+
+(defdescribe snapshot-test
+  (it "renders a widget to an image, optionally scaled"
+    (let [p (doto (javax.swing.JPanel.) (.setBackground java.awt.Color/RED) (.setSize 10 8))
+          img (snapshot p)
+          img2 (snapshot p :scale 2)]
+      (expect (= [10 8] [(.getWidth img) (.getHeight img)]))
+      (expect (= [20 16] [(.getWidth img2) (.getHeight img2)]))
+      (expect (= (.getRGB java.awt.Color/RED) (.getRGB img 5 5))))))
+
+(defdescribe write-png!-test
+  (it "writes a PNG that reads back"
+    (let [f (java.io.File/createTempFile "seesaw" ".png")
+          img (buffered-image 3 2)]
+      (write-png! img f)
+      (expect (= 3 (.getWidth (javax.imageio.ImageIO/read f))))
+      (.delete f))))

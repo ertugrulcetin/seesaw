@@ -11,11 +11,10 @@
 (ns ^{:doc "Function to create a label with a rounded border and background."
       :author "Dave Ray"}
   seesaw.widgets.rounded-label
-  (:use [seesaw.core :only [label label-options]]
-        [seesaw.options :only [apply-options]]
-        [seesaw.options :only [apply-options option-map default-option]]
-        [seesaw.widget-options :only [WidgetOptionProvider]]
-        [seesaw.graphics :only [anti-alias]]))
+  (:require [seesaw.core :refer [label label-options]]
+            [seesaw.options :refer [apply-options option-map default-option]]
+            [seesaw.widget-options :refer [WidgetOptionProvider]]
+            [seesaw.graphics :refer [anti-alias]]))
 
 (defn- rounded-label-proxy [paint]
   (proxy [javax.swing.JLabel] []
@@ -48,8 +47,8 @@
     (apply-options widget opts)))
 
 (comment
-  (use '[seesaw.core]
-       '[seesaw.widgets.rounded-label])
+  (require '[seesaw.core :refer :all]
+           '[seesaw.widgets.rounded-label :refer :all])
   (-> (frame :content (rounded-label :border 5
                                      :background :darkgrey
                                      :text "I'm a rounded label"))

@@ -14,8 +14,8 @@
   seesaw.bind
   (:refer-clojure :exclude [some filter])
   (:require [seesaw.core :as ssc]
-            [seesaw.invoke :as invoke])
-  (:use [clojure.string :only (capitalize split)]))
+            [seesaw.invoke :as invoke]
+            [clojure.string :refer [capitalize split]]))
 
 (defn- remove-handler [handler handler-vec]
   (vec (remove #(= % handler) handler-vec)))

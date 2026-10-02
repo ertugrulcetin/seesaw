@@ -12,8 +12,9 @@
             use these implicitly through the :font option."
       :author "Dave Ray"}
   seesaw.font
-  (:use [seesaw.util :only [constant-map resource resource-key?]])
-  (:import [java.awt Font GraphicsEnvironment]))
+  (:require [seesaw.util :refer [constant-map resource resource-key?]])
+  (:import (java.awt Font GraphicsEnvironment)
+           (java.awt.font TextAttribute)))
 
 (defn font-families
   "Returns a seq of strings naming the font families on the system. These
@@ -39,6 +40,28 @@
 
 (declare to-font)
 
+(def ^{:private true} weight-table
+  {:extra-light TextAttribute/WEIGHT_EXTRA_LIGHT
+   :light       TextAttribute/WEIGHT_LIGHT
+   :regular     TextAttribute/WEIGHT_REGULAR
+   :medium      TextAttribute/WEIGHT_MEDIUM
+   :semibold    TextAttribute/WEIGHT_SEMIBOLD
+   :bold        TextAttribute/WEIGHT_BOLD
+   :heavy       TextAttribute/WEIGHT_HEAVY
+   :extra-bold  TextAttribute/WEIGHT_EXTRABOLD
+   :ultra-bold  TextAttribute/WEIGHT_ULTRABOLD})
+
+(defn- text-attributes
+  "TextAttribute map for the extra font options"
+  [{:keys [weight tracking underline? strikethrough? kerning? ligatures?]}]
+  (cond-> {}
+    weight         (assoc TextAttribute/WEIGHT (float (get weight-table weight weight)))
+    tracking       (assoc TextAttribute/TRACKING (float tracking))
+    (some? underline?)     (assoc TextAttribute/UNDERLINE (if underline? TextAttribute/UNDERLINE_ON (int -1)))
+    (some? strikethrough?) (assoc TextAttribute/STRIKETHROUGH (boolean strikethrough?))
+    (some? kerning?)       (assoc TextAttribute/KERNING (int (if kerning? TextAttribute/KERNING_ON 0)))
+    (some? ligatures?)     (assoc TextAttribute/LIGATURES (int (if ligatures? TextAttribute/LIGATURES_ON 0)))))
+
 (defn font
   "Create and return a Font.
 
@@ -54,6 +77,11 @@
             to combine them. Default: :plain.
     :size   The size of the font. Default: 12.
     :from   A Font from which to derive the new Font.
+    :weight One of :extra-light :light :regular :medium :semibold :bold
+            :heavy :extra-bold :ultra-bold, or a number. Finer grained than
+            :style, if the font has those weights.
+    :tracking  Letter spacing as a fraction of the size, e.g. 0.05
+    :underline?, :strikethrough?, :kerning?, :ligatures?  booleans
 
    Returns a java.awt.Font instance.
 
@@ -79,12 +107,33 @@
           font-name (:name opts)
           font-style (get-style-mask (or style :plain))
           font-size (or size 12)
-          ^Font from (to-font from)]
-      (if from
-        (let [^Integer derived-style (if style font-style (.getStyle from))
-              derived-size (if size font-size (.getSize from))]
-          (.deriveFont from derived-style (float derived-size)))
-        (Font. (get name-table font-name font-name) font-style font-size)))))
+          ^Font from (to-font from)
+          ^Font f (if from
+                    (let [^Integer derived-style (if style font-style (.getStyle from))
+                          derived-size (if size font-size (.getSize from))]
+                      (.deriveFont from derived-style (float derived-size)))
+                    (Font. (get name-table font-name font-name) font-style font-size))
+          attrs (text-attributes opts)]
+      (if (seq attrs)
+        (.deriveFont f ^java.util.Map attrs)
+        f))))
+
+(defn can-display?
+  "True if font has glyphs for every character in string s."
+  [f s]
+  (= -1 (.canDisplayUpTo ^Font (to-font f) (str s))))
+
+(defn first-available
+  "The first of the given font family names that's installed, or nil. Handy
+  for font stacks: (first-available \"Inter\" \"SF Pro Text\" \"Segoe UI\")"
+  [& names]
+  (let [installed (set (font-families))]
+    (first (filter installed names))))
+
+(defn line-height
+  "The line height (ascent + descent + leading) of a font in pixels."
+  [f]
+  (.getHeight (.getFontMetrics (javax.swing.JLabel.) ^Font (to-font f))))
 
 (defn default-font
   "Look up a default font from the UIManager.

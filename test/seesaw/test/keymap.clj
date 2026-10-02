@@ -11,8 +11,8 @@
 (ns seesaw.test.keymap
   (:require
    [lazytest.core :refer [defdescribe describe expect it]]
-   [seesaw.core :refer [action button]]
-   [seesaw.keymap :refer [map-key]]
+   [seesaw.core :refer [action button frame menubar menu menu-item text vertical-panel]]
+   [seesaw.keymap :refer [map-key trigger!]]
    [seesaw.keystroke :refer [keystroke]]))
 
 (defdescribe map-key-test
@@ -69,3 +69,44 @@
           _ (map-key b k b :id :foo :scope :global)
           id (.. b (getInputMap javax.swing.JComponent/WHEN_IN_FOCUSED_WINDOW) (get k))]
       (expect (= id :foo)))))
+
+(defdescribe trigger!-test
+  (it "performs a :self mapping"
+    (let [called (atom nil)
+          t (text)]
+      (map-key t "menu B" (fn [_] (reset! called :bold)) :scope :self)
+      (expect (trigger! t "menu B"))
+      (expect (= :bold @called))))
+  (it "finds :descendants mappings on ancestors"
+    (let [called (atom 0)
+          t (text)
+          p (vertical-panel :items [t])]
+      (map-key p "F2" (fn [_] (swap! called inc)))
+      (expect (trigger! t "F2"))
+      (expect (= 1 @called))))
+  (it "finds :global mappings and menu accelerators in the window"
+    (let [called (atom [])
+          t  (text)
+          mi (menu-item :text "Find" :key "menu F" :listen [:action (fn [_] (swap! called conj :menu))])
+          f  (frame :content (vertical-panel :items [t]) :menubar (menubar :items [(menu :text "Edit" :items [mi])]))]
+      (map-key (.getContentPane f) "F3" (fn [_] (swap! called conj :global)) :scope :global)
+      (expect (trigger! t "F3"))
+      (expect (trigger! t "menu F"))
+      (expect (= [:global :menu] @called))
+      (.dispose f)))
+  (it "returns false when nothing is bound"
+    (expect (false? (trigger! (text) "F11"))))
+  (it ":none blocks a look and feel binding so a global mapping wins"
+    (let [called (atom 0)
+          t (text :text "abc")
+          f (frame :content (vertical-panel :items [t]))
+          select-all "menu A"]
+      ; the text field's own select-all binding comes from the look and feel
+      (expect (trigger! t select-all))
+      (map-key (.getContentPane f) select-all (fn [_] (swap! called inc)) :scope :global)
+      (expect (trigger! t select-all))
+      (expect (= 0 @called))
+      (map-key t select-all :none :scope :self)
+      (expect (trigger! t select-all))
+      (expect (= 1 @called))
+      (.dispose f))))

@@ -11,14 +11,14 @@
 (ns ^{:doc "Functions for dealing with drag and drop and data transfer."
       :author "Dave Ray"}
   seesaw.dnd
-  (:use [seesaw.util :only [constant-map illegal-argument]])
   (:require clojure.set
-            clojure.string)
-  (:import [java.awt.datatransfer DataFlavor
+            clojure.string
+            [seesaw.util :refer [constant-map illegal-argument]])
+  (:import (java.awt.datatransfer DataFlavor
                                   UnsupportedFlavorException
-                                  Transferable]
-           [javax.swing TransferHandler
-                        TransferHandler$TransferSupport]))
+                                  Transferable)
+           (javax.swing TransferHandler
+                        TransferHandler$TransferSupport)))
 
 (defprotocol Flavorful
   "Protocol for abstracting DataFlavor including automatic conversion from

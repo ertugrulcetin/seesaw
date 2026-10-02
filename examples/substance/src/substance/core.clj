@@ -9,7 +9,7 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns substance.core
-  (:use [seesaw.core])
+  (:require [seesaw.core :refer :all])
   (:import org.pushingpixels.substance.api.SubstanceLookAndFeel)
   (:gen-class))
 

@@ -22,13 +22,13 @@
    [seesaw.selector :as selector]
    [seesaw.util :refer [root-cause]])
   (:import
-   [java.awt
+   (java.awt
     BorderLayout
     Color
     Dimension
-    FlowLayout]
-   [java.awt.event ActionEvent]
-   [javax.swing
+    FlowLayout)
+   (java.awt.event ActionEvent)
+   (javax.swing
     Action
     BoxLayout
     JButton
@@ -44,8 +44,8 @@
     JTextPane
     JToggleButton
     ScrollPaneConstants
-    SwingConstants]
-   [javax.swing.text StyleConstants]))
+    SwingConstants)
+   (javax.swing.text StyleConstants)))
 
 (defdescribe id-of-test
   (expect-it "returns nil if a widget doesn't have an id"
@@ -1657,3 +1657,133 @@
       (show-card! p "third")
       (expect (visible? c)))))
 
+
+(defdescribe client-property-options-test
+  (it "sets arbitrary client properties"
+    (let [b (button :client-properties {"JComponent.minimumWidth" 64 :x 1})]
+      (expect (= 64 (.getClientProperty b "JComponent.minimumWidth")))
+      (expect (= 1 (.getClientProperty b :x)))))
+  (it "sets FlatLaf :style from a string or a map"
+    (expect (= "arc: 8" (.getClientProperty (label :style "arc: 8") "FlatLaf.style")))
+    (let [l (label :style {:arc 8 :font "+2 bold" :background :red})]
+      (expect (= "arc: 8; font: +2 bold; background: red" (.getClientProperty l "FlatLaf.style")))
+      (expect (= "arc: 8; font: +2 bold; background: red" (config l :style)))))
+  (it "sets :style-class and :outline"
+    (let [t (text :style-class [:h1 :muted] :outline :error)]
+      (expect (= "h1 muted" (.getClientProperty t "FlatLaf.styleClass")))
+      (expect (= "error" (.getClientProperty t "JComponent.outline"))))
+    (expect (= java.awt.Color/RED (.getClientProperty (text :outline :red) "JComponent.outline"))))
+  (it "sets text field FlatLaf options"
+    (let [lead (label "L")
+          t (text :placeholder "Search" :clear-button? true :leading-component lead
+                  :select-all-on-focus :always :round-rect? true)]
+      (expect (= "Search" (.getClientProperty t "JTextField.placeholderText")))
+      (expect (= true (.getClientProperty t "JTextField.showClearButton")))
+      (expect (= lead (.getClientProperty t "JTextField.leadingComponent")))
+      (expect (= "always" (.getClientProperty t "JTextField.selectAllOnFocusPolicy")))
+      (expect (= true (.getClientProperty t "JComponent.roundRect"))))
+    (expect (= "Pick" (.getClientProperty (combobox :placeholder "Pick") "JTextField.placeholderText")))
+    (expect (= "Secret" (.getClientProperty (password :placeholder "Secret") "JTextField.placeholderText"))))
+  (it "sets :button-type"
+    (expect (= "toolBarButton" (.getClientProperty (button :button-type :toolbar) "JButton.buttonType")))
+    (expect (= "roundRect" (.getClientProperty (toggle :button-type :round-rect) "JButton.buttonType")))))
+
+(defdescribe window-helpers-test
+  (it "centers, maximizes, minimizes and restores frames"
+    (let [f (frame :size [200 :by 100])]
+      (center! f)
+      (expect (identical? f (maximize! f)))
+      (expect (maximized? f))
+      (restore! f)
+      (expect (not (maximized? f)))
+      (minimize! f)
+      (expect (pos? (bit-and java.awt.Frame/ICONIFIED (.getExtendedState f))))
+      (.dispose f)))
+  (it "close! runs :window-closing listeners and the close operation"
+    (let [closing (atom 0)
+          f (frame :on-close :dispose)]
+      (listen f :window-closing (fn [_] (swap! closing inc)))
+      (pack! f)
+      (close! f)
+      (expect (= 1 @closing))
+      (expect (not (.isDisplayable f)))))
+  (it "sets root pane properties for the title bar"
+    (let [f (frame :unified-title? true :title-visible? false
+                   :root-client-properties {"x" 1})
+          rp (.getRootPane f)]
+      (expect (= true (.getClientProperty rp "apple.awt.fullWindowContent")))
+      (expect (= true (.getClientProperty rp "apple.awt.transparentTitleBar")))
+      (expect (= true (.getClientProperty rp "FlatLaf.fullWindowContent")))
+      (expect (= false (.getClientProperty rp "apple.awt.windowTitleVisible")))
+      (expect (= 1 (.getClientProperty rp "x")))
+      (expect (= true (config f :unified-title?)))
+      (.dispose f)))
+  (it "revalidate! returns its input"
+    (let [p (vertical-panel)]
+      (expect (identical? p (revalidate! p))))))
+
+(defdescribe show-popup!-test
+  (it "shows a popup below an anchor"
+    (let [b (button :text "More")
+          f (frame :content b)
+          p (popup :items ["A" "B"])]
+      (pack! f)
+      (show! f)
+      (try
+        (invoke-now (show-popup! p b))
+        (expect (invoke-now (.isVisible p)))
+        (expect (= (.getHeight b)
+                   (- (.y (.getLocationOnScreen p)) (.y (.getLocationOnScreen b)))))
+        (finally
+          (invoke-now (.setVisible p false))
+          (.dispose f))))))
+
+(defdescribe layout-setters-test
+  (it "changes grid columns at runtime"
+    (let [g (grid-panel :columns 2 :items (map str (range 6)))]
+      (expect (= 2 (config g :columns)))
+      (config! g :columns 3)
+      (expect (= 3 (.getColumns (.getLayout g))))))
+  (it "sets :continuous-layout? on splitters"
+    (expect (.isContinuousLayout (left-right-split (label) (label) :continuous-layout? true))))
+  (it "sets scroll increments and the viewport background"
+    (let [s (scrollable (label) :unit-increment 16 :block-increment [40 80] :viewport-background :red)]
+      (expect (= 16 (.getUnitIncrement (.getVerticalScrollBar s))))
+      (expect (= 16 (.getUnitIncrement (.getHorizontalScrollBar s))))
+      (expect (= 40 (.getBlockIncrement (.getHorizontalScrollBar s))))
+      (expect (= 80 (config s :block-increment)))
+      (expect (= java.awt.Color/RED (.getBackground (.getViewport s))))))
+  (it "makes the view follow the viewport width with :fit-width?"
+    (let [content (text :multi-line? true :wrap-lines? true :text (apply str (repeat 100 "word ")))
+          s (scrollable content :fit-width? true)]
+      (.setSize s 150 100)
+      (.doLayout s) (.validate s)
+      (expect (config s :fit-width?))
+      (expect (not (config s :fit-height?)))
+      (expect (<= (.getWidth content) 150))
+      (config! s :fit-width? false)
+      (expect (not (config s :fit-width?)))
+      (expect (= content (first (.getComponents (.getView (.getViewport s)))))))))
+
+(defdescribe styled-text-paragraph-test
+  (it "supports character and paragraph style attributes"
+    (let [t (styled-text :text "one\ntwo"
+                         :styles [[:quote :strikethrough true :left-indent 20 :line-spacing 0.5 :alignment :center]])
+          d (.getStyledDocument t)]
+      (style-text! t :quote 0 3)
+      (style-paragraph! t :quote 4 3)
+      (expect (javax.swing.text.StyleConstants/isStrikeThrough (.getAttributes (.getCharacterElement d 1))))
+      (let [p (.getAttributes (.getParagraphElement d 5))]
+        (expect (= (float 20) (javax.swing.text.StyleConstants/getLeftIndent p)))
+        (expect (= (float 0.5) (javax.swing.text.StyleConstants/getLineSpacing p)))
+        (expect (= javax.swing.text.StyleConstants/ALIGN_CENTER (javax.swing.text.StyleConstants/getAlignment p))))))
+  (it "applies :default-style to every paragraph"
+    (let [t (styled-text :text "a\nb\nc" :default-style [:line-spacing 0.3 :size 15])
+          d (.getStyledDocument t)]
+      (expect (every? #(= (float 0.3) (javax.swing.text.StyleConstants/getLineSpacing
+                                         (.getAttributes (.getParagraphElement d %))))
+                      [0 2 4]))
+      (expect (= 15 (javax.swing.text.StyleConstants/getFontSize (.getAttributes (.getCharacterElement d 2)))))))
+  (it "rejects unknown style options"
+    (expect (try (styled-text :styles [[:x :nope 1]]) false
+                 (catch IllegalArgumentException _ true)))))

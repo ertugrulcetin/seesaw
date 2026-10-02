@@ -9,9 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.make-widget
-  (:use [seesaw.icon :only [icon]])
-  (:import [java.awt Dimension]
-           [javax.swing Box JLabel JButton]))
+  (:require [seesaw.icon :refer [icon]])
+  (:import (java.awt Dimension)
+           (javax.swing Box JLabel JButton)))
 
 (defprotocol MakeWidget
   (make-widget* [v]))

@@ -14,7 +14,7 @@
    [seesaw.cursor :refer :all]
    [seesaw.graphics :refer :all])
   (:import
-   [java.awt Cursor]))
+   (java.awt Cursor)))
 
 (defmacro test-built-ins []
   `(describe "creating a built-in cursor"

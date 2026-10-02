@@ -9,7 +9,7 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.table
-  (:use [seesaw.util :only [illegal-argument]]))
+  (:require [seesaw.util :refer [illegal-argument]]))
 
 (defn- normalize-column [c]
   (conj {:text  (get c :text ((fnil name c) (:key c)))

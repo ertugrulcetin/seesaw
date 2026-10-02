@@ -11,9 +11,10 @@
 (ns ^{:doc "Functions for loading and creating icons."
       :author "Dave Ray"}
   seesaw.icon
-  (:use [seesaw.util :only [resource resource-key? to-url]])
-  (:require [clojure.java.io :as jio])
-  (:import [javax.swing ImageIcon]))
+  (:require [clojure.java.io :as jio]
+            [seesaw.util :refer [resource resource-key? to-url]])
+  (:import (javax.swing ImageIcon)
+           (java.awt Component Graphics2D RenderingHints)))
 
 ;*******************************************************************************
 ; Icons
@@ -47,3 +48,45 @@
         (if-let [url (to-url p)] 
           (ImageIcon. url)))))
 
+
+(defn paint-icon
+  "Create an icon painted by a function, e.g. a small vector glyph that
+  follows the theme.
+
+    (paint-icon 16 16 (fn [c g] ...))   ; or (paint-icon 16 (fn [c g] ...))
+
+  (paint c g) is called with the component the icon is painted on and a
+  java.awt.Graphics2D translated to the icon's top-left corner, anti-aliased,
+  with its color already set to the component's foreground (or :color if
+  given). Draw with the functions in seesaw.graphics, e.g. (draw g ...).
+
+  Options:
+
+    :color  Paint color instead of the component's foreground. Anything
+            accepted by (seesaw.color/to-color)
+    :disabled-color  Color used when the component is disabled (default:
+            the component's foreground with reduced alpha)
+  "
+  ([size paint] (paint-icon size size paint))
+  ([width height paint & {:keys [color disabled-color]}]
+   (let [color (some-> color ((requiring-resolve 'seesaw.color/to-color)))
+         disabled-color (some-> disabled-color ((requiring-resolve 'seesaw.color/to-color)))]
+     (reify javax.swing.Icon
+       (getIconWidth [_] width)
+       (getIconHeight [_] height)
+       (paintIcon [_ c g x y]
+         (let [^Graphics2D g2 (.create g)
+               ^Component c c
+               fg (or (when c (.getForeground c)) java.awt.Color/BLACK)
+               ^java.awt.Color fg (if (and c (not (.isEnabled c)))
+                                    (or disabled-color
+                                        (java.awt.Color. (.getRed fg) (.getGreen fg) (.getBlue fg)
+                                                         (int (/ (.getAlpha fg) 2.5))))
+                                    (or color fg))]
+           (try
+             (.translate g2 (int x) (int y))
+             (.setRenderingHint g2 RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+             (.setRenderingHint g2 RenderingHints/KEY_STROKE_CONTROL RenderingHints/VALUE_STROKE_PURE)
+             (.setColor g2 fg)
+             (paint c g2)
+             (finally (.dispose g2)))))))))

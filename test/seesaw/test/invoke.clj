@@ -41,3 +41,13 @@
       ; are processed.
       (expect (= 1 (invoke-now @call-count))))))
 
+
+(def ^:dynamic *dyn* :root)
+
+(defdescribe invoke-now-conveyance-test
+  (it "conveys dynamic bindings to the UI thread"
+    (expect (= :bound (binding [*dyn* :bound] (invoke-now *dyn*)))))
+  (it "rethrows the body's exception, not a wrapper"
+    (expect (= "boom"
+               (try (invoke-now (throw (IllegalStateException. "boom")))
+                    (catch IllegalStateException e (.getMessage e)))))))

@@ -13,7 +13,7 @@
    [clojure.java.io :as jio]
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.graphics :as g]
-   [seesaw.icon :refer [icon]]))
+   [seesaw.icon :refer [icon paint-icon]]))
 
 (defdescribe icon-test
   (expect-it "returns nil given nil"
@@ -39,3 +39,23 @@
     (let [i (icon ::test-icon)]
       (expect (instance? javax.swing.ImageIcon i)))))
 
+
+(defdescribe paint-icon-test
+  (it "has a size and paints with the component's foreground"
+    (let [seen (atom nil)
+          i (paint-icon 12 10 (fn [c g] (reset! seen [c (.getColor g)]) (.fillRect g 0 0 12 10)))
+          l (doto (javax.swing.JLabel.) (.setForeground java.awt.Color/RED))
+          img (g/buffered-image 20 20)
+          gr (.createGraphics img)]
+      (expect (= 12 (.getIconWidth i)))
+      (expect (= 10 (.getIconHeight i)))
+      (.paintIcon i l gr 3 4)
+      (.dispose gr)
+      (expect (= [l java.awt.Color/RED] @seen))
+      (expect (= (.getRGB java.awt.Color/RED) (.getRGB img 3 4)))
+      (expect (= 0 (.getRGB img 2 4)))))
+  (it "uses :color instead when given"
+    (let [seen (atom nil)
+          i (paint-icon 4 4 (fn [c g] (reset! seen (.getColor g))) :color :blue)]
+      (.paintIcon i (javax.swing.JLabel.) (.createGraphics (g/buffered-image 4 4)) 0 0)
+      (expect (= java.awt.Color/BLUE @seen)))))

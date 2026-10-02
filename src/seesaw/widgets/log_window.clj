@@ -9,12 +9,12 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.widgets.log-window
-  (:use [seesaw.core]
-        [seesaw.bind :only [bind]]
-        [seesaw.keymap :only [map-key]]
-        [seesaw.invoke :only [signaller]]
-        [seesaw.options :only [apply-options option-map default-option]]
-        [seesaw.widget-options :only [WidgetOptionProvider]]))
+  (:require [seesaw.core :refer :all]
+            [seesaw.bind :refer [bind]]
+            [seesaw.keymap :refer [map-key]]
+            [seesaw.invoke :refer [signaller]]
+            [seesaw.options :refer [apply-options option-map default-option]]
+            [seesaw.widget-options :refer [WidgetOptionProvider]]))
 
 (defn- log-window-proxy [state]
   (proxy [javax.swing.JTextArea clojure.lang.IDeref] []

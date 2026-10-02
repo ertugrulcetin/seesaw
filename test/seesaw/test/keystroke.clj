@@ -11,10 +11,10 @@
 (ns seesaw.test.keystroke
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
-   [seesaw.keystroke :refer [keystroke]])
+   [seesaw.keystroke :refer [keystroke label]])
   (:import
-   [java.awt Toolkit]
-   [javax.swing KeyStroke]))
+   (java.awt Toolkit)
+   (javax.swing KeyStroke)))
 
 (defdescribe keystroke-test
   (it "creates a keystroke from a descriptor string"
@@ -37,3 +37,24 @@
     (let [ks (keystroke \A)]
       (expect (= \A (.getKeyChar ks))))))
 
+
+(defdescribe keystroke-menu-test
+  (it "accepts cmd as an alias for menu"
+    (expect (= (keystroke "menu S") (keystroke "cmd S"))))
+  (it "only replaces menu as a whole word"
+    (let [ks (keystroke "CONTEXT_MENU")]
+      (expect (= java.awt.event.KeyEvent/VK_CONTEXT_MENU (.getKeyCode ks)))
+      (expect (= 0 (.getModifiers ks))))))
+
+(defdescribe label-test
+  (it "uses symbols on macOS"
+    ; Apple's order: control, option, shift, command
+    (expect (= "\u21E7\u2318G" (label "meta shift G" :mac? true)))
+    (expect (= "\u2303\u2325K" (label "ctrl alt K" :mac? true)))
+    (expect (= "\u2318\u21A9" (label "meta ENTER" :mac? true))))
+  (it "uses names elsewhere"
+    (expect (= "Ctrl+Shift+G" (label "ctrl shift G" :mac? false)))
+    (expect (= "Enter" (label "ENTER" :mac? false)))
+    (expect (= "Ctrl+PgDn" (label "ctrl PAGE_DOWN" :mac? false)))
+    (expect (= "Alt+F4" (label "alt F4" :mac? false)))
+    (expect (= "Ctrl+/" (label "ctrl SLASH" :mac? false)))))

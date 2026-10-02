@@ -27,7 +27,8 @@
             [dev.weavejester/lein-cljfmt "0.16.6"]]
   :profiles {:dev {:dependencies [[io.github.noahtheduke/lazytest "2.1.0"]
                                   [lein-autodoc "0.9.0"]
-                                  [org.openjfx/javafx-swing "27"]]}}
+                                  [org.openjfx/javafx-swing "27"]
+                                  [com.formdev/flatlaf "3.7.2"]]}}
   :autodoc {
             :name       "Seesaw",
             :page-title "Seesaw API Documentation"

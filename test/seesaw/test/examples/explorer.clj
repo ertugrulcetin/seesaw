@@ -15,7 +15,7 @@
    [seesaw.test.examples.example :refer [defexample]]
    [seesaw.tree :refer [simple-tree-model]])
   (:import
-   [java.io File]))
+   (java.io File)))
 
 ; Make a model for the directory tree
 (def tree-model

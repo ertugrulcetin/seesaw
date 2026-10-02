@@ -13,8 +13,8 @@
            or just a pain to implement."
       :author "Dave Ray"}
   seesaw.behave
-  (:use [seesaw core]
-        [seesaw.util :only [to-seq]]))
+  (:require [seesaw.core :refer :all]
+            [seesaw.util :refer [to-seq]]))
 
 (defn when-focused-select-all
   "A helper function which adds a \"select all when focus gained\" behavior to one

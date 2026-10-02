@@ -11,10 +11,11 @@
 (ns ^{:doc "MigLayout support for Seesaw"
       :author "Dave Ray"}
   seesaw.mig
-  (:use [seesaw.core :only [abstract-panel default-options]]
-        [seesaw.layout :only [LayoutManipulation add-widget handle-structure-change]]
-        [seesaw.options :only [default-option option-map option-provider]]
-        [seesaw.util :only [cond-doto]]))
+  (:require [seesaw.core :refer [abstract-panel default-options]]
+            [seesaw.layout :refer [LayoutManipulation add-widget
+                                   handle-structure-change]]
+            [seesaw.options :refer [default-option option-map option-provider]]
+            [seesaw.util :refer [cond-doto]]))
 
 ;*******************************************************************************
 ; MigLayout

@@ -1,6 +1,6 @@
 (ns window-builder.core
-  (:use [seesaw.core])
-  (:require [seesaw.selector :as selector]))
+  (:require [seesaw.selector :as selector]
+            [seesaw.core :refer :all]))
 
 ; This is the interesting part. Note that in MyPanel.java, the widgets we're
 ; interested in have their name set with setName().

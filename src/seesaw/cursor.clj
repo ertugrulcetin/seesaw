@@ -11,8 +11,8 @@
 (ns ^{:doc "Functions for creating Swing cursors."
       :author "Dave Ray"}
   seesaw.cursor
-  (:use [seesaw.util :only [constant-map illegal-argument]])
-  (:import [java.awt Cursor Toolkit]))
+  (:require [seesaw.util :refer [constant-map illegal-argument]])
+  (:import (java.awt Cursor Toolkit)))
 
 (def ^{:private true} built-in-cursor-map
   (constant-map Cursor {:suffix "_CURSOR"}

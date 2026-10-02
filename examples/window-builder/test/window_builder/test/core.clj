@@ -1,6 +1,6 @@
 (ns window-builder.test.core
-  (:use [window-builder.core])
-  (:use [clojure.test]))
+  (:require [window-builder.core :refer :all]
+            [clojure.test :refer :all]))
 
 (deftest replace-me ;; FIXME: write
   (is false "No tests have been written."))

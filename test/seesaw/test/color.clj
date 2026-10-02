@@ -13,7 +13,7 @@
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.color :refer :all]) 
   (:import
-   [java.awt Color]))
+   (java.awt Color)))
 
 (defdescribe get-rgba-test
   (expect-it "returns vector [r g b a] as integers"

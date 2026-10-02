@@ -11,11 +11,11 @@
 (ns ^{:doc "Functions for creating widget borders."
       :author "Dave Ray"}
   seesaw.border
-  (:use [seesaw.color :only [to-color]]
-        [seesaw.util  :only [to-insets resource resource-key?]])
-  (:import [javax.swing BorderFactory]
-           [javax.swing.border Border]
-           [java.awt Color]))
+  (:require [seesaw.color :refer [to-color]]
+            [seesaw.util :refer [to-insets resource resource-key?]])
+  (:import (javax.swing BorderFactory)
+           (javax.swing.border Border)
+           (java.awt Color)))
 
 ;*******************************************************************************
 ; Borders
@@ -123,6 +123,45 @@
         (boolean (opaque?)))
       (paintBorder [this c g x y w h]
         (when paint (paint c g x y w h))))))
+
+(defn rounded-border
+  "Create a line border with rounded corners. Properties:
+
+    :color     Line color, anything accepted by (seesaw.color/to-color).
+               Defaults to the component's foreground.
+    :thickness Line width in pixels. Defaults to 1.
+    :radius    Corner radius in pixels. Defaults to 6.
+    :padding   Extra space inside the line, a number or anything accepted by
+               (seesaw.util/to-insets). Defaults to 0.
+
+  The border only draws the outline. For a rounded background use FlatLaf's
+  :style {:arc n} or the :paint option.
+  "
+  [& {:keys [color thickness radius padding] :or {thickness 1 radius 6 padding 0}}]
+  (let [color (some-> color to-color)
+        ^java.awt.Insets pad (to-insets padding)
+        t (int thickness)]
+    (proxy [javax.swing.border.AbstractBorder] []
+      (getBorderInsets
+        ([c] (java.awt.Insets. (+ t (.top pad)) (+ t (.left pad)) (+ t (.bottom pad)) (+ t (.right pad))))
+        ([c ^java.awt.Insets i]
+         (set! (.top i) (+ t (.top pad)))
+         (set! (.left i) (+ t (.left pad)))
+         (set! (.bottom i) (+ t (.bottom pad)))
+         (set! (.right i) (+ t (.right pad)))
+         i))
+      (isBorderOpaque [] false)
+      (paintBorder [^java.awt.Component c ^java.awt.Graphics g x y w h]
+        (let [^java.awt.Graphics2D g2 (.create g)
+              half (/ t 2.0)]
+          (try
+            (.setRenderingHint g2 java.awt.RenderingHints/KEY_ANTIALIASING
+                               java.awt.RenderingHints/VALUE_ANTIALIAS_ON)
+            (.setColor g2 (or color (.getForeground c)))
+            (.setStroke g2 (java.awt.BasicStroke. (float t)))
+            (.draw g2 (java.awt.geom.RoundRectangle2D$Double.
+                        (+ x half) (+ y half) (- w t) (- h t) (* 2 radius) (* 2 radius)))
+            (finally (.dispose g2))))))))
 
 (defn to-border
   "Construct a border. The border returned depends on the input:

@@ -12,18 +12,21 @@
             Use (seesaw.core/listen) instead."
       :author "Dave Ray"}
   seesaw.event
-  (:use [seesaw.meta :only [put-meta! get-meta]]
-        [seesaw.util :only [camelize illegal-argument to-seq check-args]])
-  (:import [javax.swing.event ChangeListener
+  (:require [seesaw.meta :refer [put-meta! get-meta]]
+            [seesaw.util :refer [camelize illegal-argument to-seq check-args]])
+  (:import (javax.swing.event ChangeListener
             CaretListener DocumentListener
             ListSelectionListener
             TreeSelectionListener TreeExpansionListener TreeWillExpandListener TreeModelListener
-            HyperlinkListener]
-           [javax.swing.text Document]
-           [java.awt.event WindowListener FocusListener ActionListener ItemListener
+            HyperlinkListener MenuListener PopupMenuListener UndoableEditListener
+            AncestorListener)
+           (javax.swing.text Document)
+           (java.awt.event WindowListener FocusListener ActionListener ItemListener
                           MouseListener MouseMotionListener MouseWheelListener
-                          KeyListener ComponentListener]
-           [java.beans PropertyChangeListener]))
+                          KeyListener ComponentListener AdjustmentListener
+                          HierarchyListener ContainerListener
+                          WindowStateListener WindowFocusListener)
+           (java.beans PropertyChangeListener)))
 
 ; Use some protocols for listener installation to avoid reflection
 
@@ -36,6 +39,30 @@
 
 (defprotocol ^{:private true} AddActionListener
   (add-action-listener [this v]))
+
+(defprotocol ^{:private true} AddPopupMenuListener
+  (add-popup-menu-listener [this l]))
+
+(extend-listener-protocol AddPopupMenuListener add-popup-menu-listener addPopupMenuListener
+  javax.swing.JPopupMenu
+  javax.swing.JComboBox)
+
+(extend-protocol AddPopupMenuListener
+  javax.swing.JMenu
+    (add-popup-menu-listener [this l]
+      (add-popup-menu-listener (.getPopupMenu this) l)))
+
+(defn- to-adjustable
+  "A scroll pane means its vertical scroll bar"
+  ^java.awt.Adjustable [target]
+  (if (instance? javax.swing.JScrollPane target)
+    (.getVerticalScrollBar ^javax.swing.JScrollPane target)
+    target))
+
+(defn- to-document ^Document [target]
+  (if (instance? Document target)
+    target
+    (.getDocument ^javax.swing.text.JTextComponent target)))
 
 (defprotocol ^{:private true} AddListSelectionListener
   (add-list-selection-listener [this v]))
@@ -226,6 +253,62 @@
     ; See event-method-table below too!
     :named-events #{:dt-drag-enter :dt-drag-exit :dt-drag-over :dt-drop :dt-drop-action-changed}
     :install      #(.addDropTargetListener ^java.awt.dnd.DropTarget %1 ^java.awt.dnd.DropTargetListener %2)
+  }
+
+  :adjustment {
+    :name    :adjustment
+    :class   AdjustmentListener
+    :events  #{:adjustment-value-changed}
+    :install #(.addAdjustmentListener (to-adjustable %1) ^AdjustmentListener %2)
+  }
+  :menu {
+    :name    :menu
+    :class   MenuListener
+    :events  #{:menu-selected :menu-deselected :menu-canceled}
+    :install #(.addMenuListener ^javax.swing.JMenu %1 ^MenuListener %2)
+  }
+  :popup-menu {
+    :name    :popup-menu
+    :class   PopupMenuListener
+    :events  #{:popup-menu-will-become-visible :popup-menu-will-become-invisible
+               :popup-menu-canceled}
+    :install add-popup-menu-listener
+  }
+  :undoable-edit {
+    :name    :undoable-edit
+    :class   UndoableEditListener
+    :events  #{:undoable-edit-happened}
+    :install #(.addUndoableEditListener (to-document %1) ^UndoableEditListener %2)
+  }
+  :hierarchy {
+    :name    :hierarchy
+    :class   HierarchyListener
+    :events  #{:hierarchy-changed}
+    :install #(.addHierarchyListener ^java.awt.Component %1 ^HierarchyListener %2)
+  }
+  :ancestor {
+    :name    :ancestor
+    :class   AncestorListener
+    :events  #{:ancestor-added :ancestor-removed :ancestor-moved}
+    :install #(.addAncestorListener ^javax.swing.JComponent %1 ^AncestorListener %2)
+  }
+  :container {
+    :name    :container
+    :class   ContainerListener
+    :events  #{:component-added :component-removed}
+    :install #(.addContainerListener ^java.awt.Container %1 ^ContainerListener %2)
+  }
+  :window-state {
+    :name    :window-state
+    :class   WindowStateListener
+    :events  #{:window-state-changed}
+    :install #(.addWindowStateListener ^java.awt.Window %1 ^WindowStateListener %2)
+  }
+  :window-focus {
+    :name    :window-focus
+    :class   WindowFocusListener
+    :events  #{:window-gained-focus :window-lost-focus}
+    :install #(.addWindowFocusListener ^java.awt.Window %1 ^WindowFocusListener %2)
   }
 
   :hyperlink {

@@ -9,8 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.dnd-explorer
-  (:use [seesaw core dnd])
-  (:require [seesaw.table :as table]))
+  (:require [seesaw.table :as table]
+            [seesaw.core :refer :all]
+            [seesaw.dnd :refer :all]))
 
 (defn drop-handler [t support]
   (let [flavors (.getDataFlavors support)] 

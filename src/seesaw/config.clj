@@ -11,7 +11,7 @@
 (ns ^{:doc "Functions for configuring widgets. Prefer (seesaw.core/config) and friends."
       :author "Dave Ray"}
   seesaw.config
-  (:use [seesaw.util :only [to-seq]]))
+  (:require [seesaw.util :refer [to-seq]]))
 
 (defprotocol Configurable
   "A protocol for configuring and querying properties of an object. Client

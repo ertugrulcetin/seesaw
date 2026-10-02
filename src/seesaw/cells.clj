@@ -13,7 +13,7 @@
             can be given directly to the :renderer option."
       :author "Dave Ray"}
   seesaw.cells
-  (:use [seesaw.util :only [illegal-argument]]))
+  (:require [seesaw.util :refer [illegal-argument]]))
 
 (def ^{:private true} nil-fn (constantly nil))
 

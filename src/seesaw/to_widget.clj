@@ -9,9 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.to-widget
-  (:use [seesaw.util :only [try-cast]])
-  (:import [java.awt Dimension]
-           [javax.swing Box JLabel JButton]))
+  (:require [seesaw.util :refer [try-cast]])
+  (:import (java.awt Dimension)
+           (javax.swing Box JLabel JButton)))
 
 (defprotocol ToWidget 
   (to-widget* [v]))

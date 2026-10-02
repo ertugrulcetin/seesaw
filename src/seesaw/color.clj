@@ -12,8 +12,8 @@
             in the core color options."
       :author "Dave Ray"}
   seesaw.color
-  (:use [seesaw.util :only (illegal-argument resource resource-key?)])
-  (:import [java.awt Color]))
+  (:require [seesaw.util :refer [illegal-argument resource resource-key?]])
+  (:import (java.awt Color)))
 
 (def ^{:private true} color-names {
   "aliceblue" (Color. 240,248,255)

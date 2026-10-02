@@ -11,8 +11,11 @@
 (ns gaidica.core
   (:require [ororo.core :as storm]
             [seesaw.bind :as bind]
-            [clojure.string :as string])
-  (:use [seesaw core border table mig]))
+            [clojure.string :as string]
+            [seesaw.core :refer :all]
+            [seesaw.border :refer :all]
+            [seesaw.table :refer :all]
+            [seesaw.mig :refer :all]))
 
 (native!)
 

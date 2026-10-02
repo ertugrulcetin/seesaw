@@ -15,36 +15,34 @@
                 capability or makes them easier to use."
       :author "Dave Ray"}
   seesaw.core
-  (:use [seesaw.util :only [illegal-argument to-seq check-args
-                            constant-map resource resource-key?
-                            to-dimension to-insets to-url try-cast
-                            cond-doto to-mnemonic-keycode]]
-        [seesaw.config :only [Configurable config* config!*]]
-        [seesaw.options :only [ignore-option default-option bean-option
-                               resource-option around-option
-                               apply-options
-                               option-map option-provider
-                               get-option-value]]
-        [seesaw.widget-options :only [widget-option-provider]]
-        [seesaw.meta :only [get-meta put-meta!]]
-        [seesaw.to-widget :only [ToWidget to-widget*]]
-        [seesaw.make-widget :only [make-widget*]])
   (:require clojure.java.io
+            clojure.string
             clojure.set
             [seesaw color font border invoke timer selection value
              event selector icon action cells table graphics cursor scroll dnd]
-            [seesaw.layout :as layout])
-  (:import [javax.swing
+            [seesaw.layout :as layout]
+            [seesaw.util :refer [illegal-argument to-seq check-args constant-map
+                                 resource resource-key? to-dimension to-insets
+                                 to-url try-cast cond-doto to-mnemonic-keycode]]
+            [seesaw.config :refer [Configurable config* config!*]]
+            [seesaw.options :refer [ignore-option default-option bean-option
+                                    resource-option around-option apply-options
+                                    option-map option-provider get-option-value]]
+            [seesaw.widget-options :refer [widget-option-provider]]
+            [seesaw.meta :refer [get-meta put-meta!]]
+            [seesaw.to-widget :refer [ToWidget to-widget*]]
+            [seesaw.make-widget :refer [make-widget*]])
+  (:import (javax.swing
             SwingConstants UIManager ScrollPaneConstants DropMode
             BoxLayout
             JDialog JFrame JComponent Box JPanel JScrollPane JSplitPane JToolBar JTabbedPane
             JLabel JTextField JTextArea JTextPane
             AbstractButton JButton ButtonGroup
-            JOptionPane]
-           [javax.swing.text JTextComponent StyleConstants]
-           [java.awt Component FlowLayout BorderLayout GridLayout
+            JOptionPane)
+           (javax.swing.text JTextComponent StyleConstants)
+           (java.awt Component FlowLayout BorderLayout GridLayout
                      GridBagLayout GridBagConstraints
-                     Dimension]
+                     Dimension)
            (clojure.lang IAtom IDeref IMeta)))
 
 (declare to-widget)
@@ -358,6 +356,79 @@
   (let [^java.awt.Component w (to-widget target)]
     (.requestFocusInWindow w))
   target)
+
+(defn revalidate!
+  "Revalidate (re-layout) one or a list of widget-able things, e.g. after
+  adding or removing children directly. Returns targets."
+  [targets]
+  (doseq [^java.awt.Component target (map to-widget (to-seq targets))]
+    (.revalidate target))
+  targets)
+
+(defn focus-owner
+  "Returns the component that currently has keyboard focus, or nil."
+  []
+  (.getFocusOwner (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager)))
+
+(defn active-window
+  "Returns the active window (the one with focus or owning it), or nil."
+  []
+  (.getActiveWindow (java.awt.KeyboardFocusManager/getCurrentKeyboardFocusManager)))
+
+(defn center!
+  "Center a frame, dialog or window on the screen, or over another widget-able
+  thing (its window, really) if relative-to is given. target can be anything
+  that can be converted with (to-root). Returns its input.
+
+  See:
+    http://docs.oracle.com/javase/8/docs/api/java/awt/Window.html#setLocationRelativeTo-java.awt.Component-
+  "
+  ([targets] (center! targets nil))
+  ([targets relative-to]
+   (let [rel (when relative-to (to-widget relative-to))]
+     (doseq [^java.awt.Window w (map to-root (to-seq targets))]
+       (.setLocationRelativeTo w rel)))
+   targets))
+
+(defn- set-frame-state! [targets f]
+  (doseq [w (map to-root (to-seq targets))]
+    (when (instance? java.awt.Frame w)
+      (let [^java.awt.Frame w w]
+        (.setExtendedState w (int (f (.getExtendedState w)))))))
+  targets)
+
+(defn minimize!
+  "Minimize (iconify) frames. Returns its input."
+  [targets]
+  (set-frame-state! targets #(bit-or % java.awt.Frame/ICONIFIED)))
+
+(defn maximize!
+  "Maximize (zoom) frames. Returns its input."
+  [targets]
+  (set-frame-state! targets #(bit-or (bit-and-not % java.awt.Frame/ICONIFIED)
+                                     java.awt.Frame/MAXIMIZED_BOTH)))
+
+(defn restore!
+  "Restore minimized or maximized frames to their normal state. Returns its input."
+  [targets]
+  (set-frame-state! targets (constantly java.awt.Frame/NORMAL)))
+
+(defn maximized?
+  "True if the frame is maximized."
+  [target]
+  (let [w (to-root target)]
+    (boolean (and (instance? java.awt.Frame w)
+                  (= java.awt.Frame/MAXIMIZED_BOTH
+                     (bit-and (.getExtendedState ^java.awt.Frame w) java.awt.Frame/MAXIMIZED_BOTH))))))
+
+(defn close!
+  "Close windows as if the user clicked their close button: :window-closing
+  listeners run and the window's :on-close behavior applies. Use (dispose!)
+  to get rid of a window unconditionally. Returns its input."
+  [targets]
+  (doseq [^java.awt.Window w (map to-root (to-seq targets))]
+    (.dispatchEvent w (java.awt.event.WindowEvent. w java.awt.event.WindowEvent/WINDOW_CLOSING)))
+  targets)
 
 ;*******************************************************************************
 ; move!
@@ -816,8 +887,81 @@
 
 (def base-resource-options [:text :foreground :background :font :icon :tip])
 
-(def default-options
+;*******************************************************************************
+; Client properties and FlatLaf (https://www.formdev.com/flatlaf/) options.
+; FlatLaf reads these client properties, other look and feels ignore them, so
+; seesaw doesn't depend on FlatLaf for them.
+
+(defn- client-property-option
+  "An option stored in client property k, with an optional value conversion"
+  ([name k] (client-property-option name k identity nil))
+  ([name k convert examples]
+   (default-option name
+                   (fn [^JComponent c v] (.putClientProperty c k (when (some? v) (convert v))))
+                   (fn [^JComponent c] (.getClientProperty c k))
+                   examples)))
+
+(defn- to-flatlaf-style
+  "FlatLaf style string from a string or a map like {:arc 8 :font \"+2 bold\"}"
+  [v]
+  (if (map? v)
+    (clojure.string/join "; " (for [[k v] v]
+                                (str (name k) ": " (if (keyword? v) (name v) v))))
+    (str v)))
+
+(defn- to-style-class [v]
+  (if (string? v) v (clojure.string/join " " (map name (to-seq v)))))
+
+(def ^{:private true} outline-table {:error "error" :warning "warning"})
+
+(def flatlaf-options
   (option-map
+    (client-property-option :style "FlatLaf.style" to-flatlaf-style
+                            ["\"arc: 8; font: +2 bold\"" "{:arc 8 :font \"+2 bold\"}"
+                             "A FlatLaf style, see https://www.formdev.com/flatlaf/client-properties/"])
+    (client-property-option :style-class "FlatLaf.styleClass" to-style-class
+                            ["\"h1\"" [:h1 :small] "FlatLaf style classes"])
+    (client-property-option :outline "JComponent.outline"
+                            #(or (outline-table %) (seesaw.color/to-color %))
+                            [:error :warning :red "FlatLaf outline color"])))
+
+(def ^{:private true} button-type-table
+  {:square "square" :round-rect "roundRect" :tab "tab" :help "help"
+   :borderless "borderless" :toolbar "toolBarButton"})
+
+(def ^{:private true} select-all-on-focus-table
+  {:never "never" :once "once" :always "always"})
+
+(def flatlaf-text-field-options
+  (option-map
+    (client-property-option :placeholder "JTextField.placeholderText" str
+                            ["\"Search\"" "Hint text shown while the field is empty"])
+    (client-property-option :leading-icon "JTextField.leadingIcon" seesaw.icon/icon
+                            ["See (seesaw.icon/icon)"])
+    (client-property-option :trailing-icon "JTextField.trailingIcon" seesaw.icon/icon
+                            ["See (seesaw.icon/icon)"])
+    (client-property-option :leading-component "JTextField.leadingComponent" make-widget
+                            ["A widget shown before the text"])
+    (client-property-option :trailing-component "JTextField.trailingComponent" make-widget
+                            ["A widget shown after the text"])
+    (client-property-option :clear-button? "JTextField.showClearButton" boolean boolean-examples)
+    (client-property-option :select-all-on-focus "JTextField.selectAllOnFocusPolicy"
+                            #(select-all-on-focus-table % %) (keys select-all-on-focus-table))
+    (client-property-option :round-rect? "JComponent.roundRect" boolean boolean-examples)))
+
+(def ^{:private true} client-properties-option
+  (default-option :client-properties
+                  (fn [^JComponent c props]
+                    (doseq [[k v] props] (.putClientProperty c k v)))
+                  nil
+                  ["{\"JComponent.minimumWidth\" 64}"
+                   "A map of client properties to set with putClientProperty"]))
+
+(def default-options
+  (merge
+   flatlaf-options
+   (option-map
+    client-properties-option
     (bean-option :layout JComponent nil nil "A layout manager.")
     (default-option :listen #(apply seesaw.event/listen %1 %2) nil ["vector of args for (seesaw.core/listen)"])
 
@@ -891,7 +1035,7 @@
     (bean-option :transfer-handler JComponent
                  seesaw.dnd/to-transfer-handler
                  identity
-                 "See (seesaw.dnd/to-transfer-handler)")))
+                 "See (seesaw.dnd/to-transfer-handler)"))))
 
 (widget-option-provider
   javax.swing.JPanel
@@ -1258,7 +1402,9 @@
       (bean-option :margin javax.swing.AbstractButton to-insets)
 
       (default-option :group #(.add ^javax.swing.ButtonGroup %2 %1) nil ["A button group"])
-      (bean-option :mnemonic javax.swing.AbstractButton to-mnemonic-keycode nil ["See (seesaw.util/to-mnemonic-keycode)"]))))
+      (bean-option :mnemonic javax.swing.AbstractButton to-mnemonic-keycode nil ["See (seesaw.util/to-mnemonic-keycode)"])
+      (client-property-option :button-type "JButton.buttonType"
+                              #(button-type-table % %) (keys button-type-table)))))
 
 (widget-option-provider javax.swing.AbstractButton button-options)
 
@@ -1356,7 +1502,8 @@
     text-options
     (option-map
       (bean-option [:halign :horizontal-alignment] javax.swing.JTextField h-alignment-table nil (keys h-alignment-table))
-      (bean-option :columns javax.swing.JTextField))))
+      (bean-option :columns javax.swing.JTextField))
+    flatlaf-text-field-options))
 
 (widget-option-provider javax.swing.JTextField text-field-options)
 
@@ -1481,19 +1628,54 @@
     (set-text w value))
   targets)
 
+(def ^{:private true} style-alignment-table
+  {:left      StyleConstants/ALIGN_LEFT
+   :center    StyleConstants/ALIGN_CENTER
+   :right     StyleConstants/ALIGN_RIGHT
+   :justified StyleConstants/ALIGN_JUSTIFIED})
+
+(defn- add-style-attributes
+  "Add style options like [:bold true :line-spacing 0.2] to a MutableAttributeSet"
+  [^javax.swing.text.MutableAttributeSet style options]
+  (doseq [[k v] (if (map? options) options (partition 2 options))]
+    (let [[attr v] (case k
+                     ; character attributes
+                     :font          [StyleConstants/FontFamily (name v)]
+                     :size          [StyleConstants/FontSize (int v)]
+                     :color         [StyleConstants/Foreground (seesaw.color/to-color v)]
+                     :background    [StyleConstants/Background (seesaw.color/to-color v)]
+                     :bold          [StyleConstants/Bold (boolean v)]
+                     :italic        [StyleConstants/Italic (boolean v)]
+                     :underline     [StyleConstants/Underline (boolean v)]
+                     :strikethrough [StyleConstants/StrikeThrough (boolean v)]
+                     :subscript     [StyleConstants/Subscript (boolean v)]
+                     :superscript   [StyleConstants/Superscript (boolean v)]
+                     ; paragraph attributes
+                     :line-spacing      [StyleConstants/LineSpacing (float v)]
+                     :space-above       [StyleConstants/SpaceAbove (float v)]
+                     :space-below       [StyleConstants/SpaceBelow (float v)]
+                     :left-indent       [StyleConstants/LeftIndent (float v)]
+                     :right-indent      [StyleConstants/RightIndent (float v)]
+                     :first-line-indent [StyleConstants/FirstLineIndent (float v)]
+                     :alignment         [StyleConstants/Alignment
+                                         (int (or (style-alignment-table v)
+                                                  (illegal-argument "Unknown :alignment %s" v)))]
+                     (illegal-argument "Option %s is not supported in styles" k))]
+      (.addAttribute style attr v)))
+  style)
+
 (defn- add-styles [^JTextPane text-pane styles]
   (doseq [[id & options] styles]
-    (let [style (.addStyle text-pane (name id) nil)]
-      (doseq [[k v] (partition 2 options)]
-        (case k
-          :font (.addAttribute style StyleConstants/FontFamily (name v))
-          :size (.addAttribute style StyleConstants/FontSize (Integer. v))
-          :color (.addAttribute style StyleConstants/Foreground (seesaw.color/to-color v))
-          :background (.addAttribute style StyleConstants/Background (seesaw.color/to-color v))
-          :bold (.addAttribute style StyleConstants/Bold (boolean v))
-          :italic (.addAttribute style StyleConstants/Italic (boolean v))
-          :underline (.addAttribute style StyleConstants/Underline (boolean v))
-          (illegal-argument "Option %s is not supported in :styles" k))))))
+    (add-style-attributes (.addStyle text-pane (name id) nil) options)))
+
+(defn- set-default-style [^JTextPane text-pane options]
+  ; Paragraphs resolve to the document's default style. Also apply the
+  ; attributes to the existing paragraphs, so their views pick up paragraph
+  ; attributes like :line-spacing right away.
+  (let [style (.getStyle text-pane javax.swing.text.StyleContext/DEFAULT_STYLE)
+        doc   (.getStyledDocument text-pane)]
+    (add-style-attributes style options)
+    (.setParagraphAttributes doc 0 (inc (.getLength doc)) style false)))
 
 (def styled-text-options
   (merge
@@ -1501,7 +1683,10 @@
     (option-map
       (default-option :wrap-lines? #(put-meta! %1 :wrap-lines? (boolean %2))
                       #(get-meta %1 :wrap-lines?))
-      (default-option :styles add-styles))))
+      (default-option :styles add-styles)
+      (default-option :default-style set-default-style nil
+                      ["[:font \"Inter\" :size 14 :line-spacing 0.3]"
+                       "Style options applied to the whole document"]))))
 
 (widget-option-provider javax.swing.JTextPane styled-text-options)
 
@@ -1528,6 +1713,15 @@
                     :bold        bold if true.
                     :italic      italic if true.
                     :underline   underline if true.
+                    :strikethrough, :subscript, :superscript  if true.
+                  Paragraph options, see (seesaw.core/style-paragraph!):
+                    :line-spacing, :space-above, :space-below,
+                    :left-indent, :right-indent, :first-line-indent
+                                 Numbers (line spacing is a fraction of the
+                                 line height, the others are pixels).
+                    :alignment   :left, :center, :right or :justified
+    :default-style  Style options for the whole document, e.g.
+                    [:font \"Inter\" :size 14 :line-spacing 0.3]
 
   See:
     (seesaw.core/style-text!)
@@ -1553,6 +1747,21 @@
   (check-args (instance? JTextPane target) "style-text! only applied to styled-text widgets")
   (.setCharacterAttributes (.getStyledDocument target)
                            start length (.getStyle target (name id)) true)
+  target)
+
+(defn style-paragraph!
+  "Apply the paragraph attributes (:line-spacing, :alignment, :left-indent, ...)
+  of a style to the paragraphs overlapping the given range of a JTextPane.
+  id identifies a style that has been added to the text pane with :styles.
+
+  See:
+    (seesaw.core/styled-text)
+    (seesaw.core/style-text!)
+  "
+  ^JTextPane [^JTextPane target id ^Integer start ^Integer length]
+  (check-args (instance? JTextPane target) "style-paragraph! only applied to styled-text widgets")
+  (.setParagraphAttributes (.getStyledDocument target)
+                           start length (.getStyle target (name id)) false)
   target)
 
 ;*******************************************************************************
@@ -1839,7 +2048,8 @@
       (around-option model-option to-combobox-model identity "See (seesaw.core/combobox)")
       (default-option :renderer
                       #(.setRenderer ^javax.swing.JComboBox %1 (seesaw.cells/to-cell-renderer %1 %2))
-                      #(.getRenderer ^javax.swing.JComboBox %1)))))
+                      #(.getRenderer ^javax.swing.JComboBox %1)))
+    (select-keys flatlaf-text-field-options [:placeholder :round-rect?])))
 
 (widget-option-provider javax.swing.JComboBox combobox-options)
 
@@ -1985,6 +2195,40 @@
 (defn- set-scrollable-corner [k ^JScrollPane w v]
   (.setCorner w (scrollable-corner-constants k) (make-widget v)))
 
+;; A Scrollable wrapper that makes its view follow the viewport's width and/or
+;; height, e.g. so a column of cards reflows to the scroll pane's width instead
+;; of scrolling horizontally.
+(defprotocol ^{:private true} ViewportFit
+  (set-fit! [this k v])
+  (get-fit [this k]))
+
+(defn- fit-panel [^java.awt.Component view]
+  (let [fit (atom {:width? false :height? false})]
+    (doto ^JPanel
+      (proxy [JPanel javax.swing.Scrollable seesaw.core.ViewportFit] [(java.awt.BorderLayout.)]
+        (getPreferredScrollableViewportSize [] (.getPreferredSize ^JPanel this))
+        (getScrollableUnitIncrement [_ _ _] 16)
+        (getScrollableBlockIncrement [^java.awt.Rectangle r o _]
+          (if (= o javax.swing.SwingConstants/VERTICAL) (.height r) (.width r)))
+        (getScrollableTracksViewportWidth [] (boolean (:width? @fit)))
+        (getScrollableTracksViewportHeight [] (boolean (:height? @fit)))
+        (set_fit_BANG_ [k v] (swap! fit assoc k (boolean v)))
+        (get_fit [k] (get @fit k)))
+      (.setOpaque false)
+      (.add view java.awt.BorderLayout/CENTER))))
+
+(defn- set-viewport-fit [^JScrollPane sp k v]
+  (let [view (.getView (.getViewport sp))
+        view (if (satisfies? ViewportFit view)
+               view
+               (let [p (fit-panel view)] (.setViewportView sp p) p))]
+    (set-fit! view k v)
+    (.revalidate sp)))
+
+(defn- get-viewport-fit [^JScrollPane sp k]
+  (let [view (.getView (.getViewport sp))]
+    (boolean (and (satisfies? ViewportFit view) (get-fit view k)))))
+
 (def scrollable-options
   (merge
     default-options
@@ -2003,6 +2247,33 @@
                           (if (instance? javax.swing.JViewport v)
                             (.setColumnHeader w v)
                             (.setColumnHeaderView w v))))))
+    (option-map
+      (default-option :unit-increment
+                      (fn [^JScrollPane w v]
+                        (let [[h v] (if (sequential? v) v [v v])]
+                          (.setUnitIncrement (.getHorizontalScrollBar w) h)
+                          (.setUnitIncrement (.getVerticalScrollBar w) v)))
+                      #(.getUnitIncrement (.getVerticalScrollBar ^JScrollPane %1))
+                      ["Pixels per scroll wheel/arrow step, or [horizontal vertical]"])
+      (default-option :block-increment
+                      (fn [^JScrollPane w v]
+                        (let [[h v] (if (sequential? v) v [v v])]
+                          (.setBlockIncrement (.getHorizontalScrollBar w) h)
+                          (.setBlockIncrement (.getVerticalScrollBar w) v)))
+                      #(.getBlockIncrement (.getVerticalScrollBar ^JScrollPane %1))
+                      ["Pixels per page step, or [horizontal vertical]"])
+      (default-option :fit-width?
+                      #(set-viewport-fit %1 :width? %2)
+                      #(get-viewport-fit %1 :width?)
+                      ["Make the view follow the viewport width, so it reflows instead of scrolling horizontally"])
+      (default-option :fit-height?
+                      #(set-viewport-fit %1 :height? %2)
+                      #(get-viewport-fit %1 :height?)
+                      ["Make the view follow the viewport height"])
+      (default-option :viewport-background
+                      #(.setBackground (.getViewport ^JScrollPane %1) (seesaw.color/to-color %2))
+                      #(.getBackground (.getViewport ^JScrollPane %1))
+                      color-examples))
     (apply option-map
            (for [k (keys scrollable-corner-constants)]
              (default-option k (partial set-scrollable-corner k))))))
@@ -2027,6 +2298,13 @@
     :lower-right   - Widget in lower-right corner
     :upper-left    - Widget in upper-left corner
     :upper-right   - Widget in upper-right corner
+    :unit-increment  - Pixels scrolled per wheel/arrow step, n or [horizontal vertical]
+    :block-increment - Pixels scrolled per page step, n or [horizontal vertical]
+    :viewport-background - Background color of the viewport
+    :fit-width?    - Make the scrolled widget follow the viewport width, so it
+                     reflows instead of scrolling horizontally. This wraps it
+                     in a panel that implements javax.swing.Scrollable.
+    :fit-height?   - Same for the height
 
   Examples:
 
@@ -2167,7 +2445,8 @@
       (default-option :divider-location divider-location! #(.getDividerLocation ^JSplitPane %1))
       (bean-option :divider-size JSplitPane)
       (bean-option :resize-weight JSplitPane)
-      (bean-option :one-touch-expandable? JSplitPane boolean))))
+      (bean-option :one-touch-expandable? JSplitPane boolean)
+      (bean-option :continuous-layout? JSplitPane boolean))))
 
 (widget-option-provider JSplitPane splitter-options)
 
@@ -2353,6 +2632,33 @@
     http://download.oracle.com/javase/6/docs/api/javax/swing/JPopupMenu.html"
   [& opts]
   (apply-options (construct javax.swing.JPopupMenu) opts))
+
+(defn show-popup!
+  "Show a popup menu (see (seesaw.core/popup)) next to an anchor widget,
+  e.g. from a button's :action handler. where is one of:
+
+    :below  (default) under the anchor, left aligned
+    :above  over the anchor
+    :right  to the right of the anchor
+    [x y]   at a point in the anchor's coordinates
+
+  Returns the popup.
+
+  Example:
+
+    (button :text \"More\"
+            :listen [:action #(show-popup! (popup :items [...]) %)])
+  "
+  ([popup anchor] (show-popup! popup anchor :below))
+  ([^javax.swing.JPopupMenu popup anchor where]
+   (let [^java.awt.Component anchor (to-widget anchor)
+         [x y] (case where
+                 :below [0 (.getHeight anchor)]
+                 :above [0 (- (.height (.getPreferredSize popup)))]
+                 :right [(.getWidth anchor) 0]
+                 where)]
+     (.show popup anchor (int x) (int y))
+     popup)))
 
 
 (defn- ^javax.swing.JPopupMenu make-popup [target arg event]
@@ -2774,9 +3080,35 @@
     :else (let [^javax.swing.ImageIcon i (make-icon value)]
             (.getImage i))))
 
+;; Root pane client properties, which macOS and FlatLaf use for window chrome
+(defn- root-property-option [name ks convert examples]
+  (default-option name
+                  (fn [^javax.swing.RootPaneContainer w v]
+                    (doseq [k ks]
+                      (.putClientProperty (.getRootPane w) k (convert v))))
+                  (fn [^javax.swing.RootPaneContainer w]
+                    (.getClientProperty (.getRootPane w) (first ks)))
+                  examples))
+
+(def root-pane-options
+  (option-map
+    (root-property-option :unified-title?
+                          ["apple.awt.fullWindowContent" "apple.awt.transparentTitleBar"
+                           "FlatLaf.fullWindowContent"]
+                          boolean
+                          ["Extend the content under a transparent title bar (macOS, FlatLaf)"])
+    (root-property-option :title-visible? ["apple.awt.windowTitleVisible"] boolean
+                          ["Show the title text in the title bar (macOS)"])
+    (default-option :root-client-properties
+                    (fn [^javax.swing.RootPaneContainer w props]
+                      (doseq [[k v] props] (.putClientProperty (.getRootPane w) k v)))
+                    nil
+                    ["A map of client properties for the window's root pane"])))
+
 (def frame-options
   (merge
     abstract-window-options
+    root-pane-options
     (option-map
       (resource-option :resource [:title :icon])
 

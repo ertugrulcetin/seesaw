@@ -4,21 +4,36 @@ It's a fork of [seesaw](https://github.com/clj-commons/seesaw). This fork has vi
 ```clojure
 (ns seesaw.ex
   (:require [seesaw.core :as s]
-            [seesaw.options :refer [satom get-k]]))
+            [seesaw.ratom :refer [ratom reg-sub subscribe]]))
 
-(def app-state (satom {:title "my-title"
-                       :size [200 :by 325]}))
+(def app-db (ratom {:title "my-title"
+                    :size  [200 :by 325]
+                    :todos ["write docs"]}))
 
-(def ff (s/frame :title (get-k app-state :title)
-                 :size (get-k app-state :size)
+;; re-frame style subscription handlers: (fn [db query-v] ...)
+(reg-sub :todo-count (fn [db _] (count (:todos db))))
+
+(def ff (s/frame :title (subscribe app-db [:title])  ; no handler: a path into app-db
+                 :size  (subscribe app-db [:size])
+                 :content (s/label :text (subscribe app-db [:todo-count]))
                  :visible? true))
 
-(swap! app-state update :title (constantly "helloo"))
-;=>> re-renders the UI
+(swap! app-db assoc :title "helloo")
+;=>> re-renders the frame title
 
-(swap! app-state update :size (constantly [500 :by 300]))
-;=>> re-renders the UI
+(swap! app-db update :todos conj "ship it")
+;=>> re-renders the label
 ```
+
+Pass a subscription to an option *without* `@`. `subscribe` returns a reaction and the
+widget stays bound to it; `@(subscribe ...)` gives you the current value once, like in
+re-frame. Any `ratom` or `(reaction source f)` can be used as an option value too,
+widgets are only updated when their value actually changes, and updates happen on the
+Swing thread. `(subscribe [:title])` with no db uses the default `seesaw.ratom/app-db`.
+
+Like re-frame, subscriptions are cached: the same db and query return the same reaction,
+whose value is computed once per change no matter how many widgets use it. Unused
+subscriptions are garbage collected.
 
 [Here's a brief tutorial](https://gist.github.com/1441520) that covers some Seesaw basics. It assumes no knowledge of Swing or Java.
 
@@ -68,7 +83,7 @@ Now edit the generated `src/hello_seesaw/core.clj` file:
 
 ```clojure
 (ns hello-seesaw.core
-  (:use seesaw.core))
+  (:require [seesaw.core :refer :all]))
 
 (defn -main [& args]
   (invoke-later

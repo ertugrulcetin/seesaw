@@ -14,8 +14,8 @@
    [seesaw.dnd :refer :all]
    [seesaw.graphics :refer :all])
   (:import
-   [java.awt.datatransfer DataFlavor StringSelection UnsupportedFlavorException]
-   [javax.swing TransferHandler]))
+   (java.awt.datatransfer DataFlavor StringSelection UnsupportedFlavorException)
+   (javax.swing TransferHandler)))
 
 (defdescribe local-object-flavor-test
   (it "creates a JVM local flavor for an arbitrary class"

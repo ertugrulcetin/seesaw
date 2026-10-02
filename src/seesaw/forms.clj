@@ -15,10 +15,10 @@
     com.jgoodies.forms.factories.Paddings
     com.jgoodies.forms.layout.FormLayout)
   (:require
-    seesaw.core)
-  (:use
-    [seesaw.options :only (default-option apply-options ignore-options option-map option-provider)]
-    [seesaw.util :only (resource)]))
+    seesaw.core
+    [seesaw.options :refer [default-option apply-options ignore-options
+                            option-map option-provider]]
+    [seesaw.util :refer [resource]]))
 
 (defprotocol ComponentSpec
   (append [this builder] "Add the given component to the form builder"))

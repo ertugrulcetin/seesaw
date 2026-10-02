@@ -11,7 +11,7 @@
 (ns ^{:doc "Functions for dealing with the mouse."
       :author "Dave Ray"}
   seesaw.mouse
-  (:use [seesaw.util :only [illegal-argument]]))
+  (:require [seesaw.util :refer [illegal-argument]]))
 
 (defn- ^java.awt.PointerInfo info [] (java.awt.MouseInfo/getPointerInfo))
 

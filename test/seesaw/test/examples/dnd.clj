@@ -9,9 +9,9 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.test.examples.dnd
-  (:use seesaw.core
-        seesaw.test.examples.example)
-  (:require [seesaw.dnd :as dnd]))
+  (:require [seesaw.dnd :as dnd]
+            [seesaw.core :refer :all]
+            [seesaw.test.examples.example :refer :all]))
 
 ; Set up a few targets for different data flavors.
 

@@ -11,10 +11,10 @@
 (ns ^{:doc "Functions for mapping key strokes to actions."
       :author "Dave Ray"}
   seesaw.keymap
-  (:use [seesaw.util :only [illegal-argument]]
-        [seesaw.keystroke :only [keystroke]]
-        [seesaw.action :only [action]]
-        [seesaw.to-widget :only [to-widget*]]))
+  (:require [seesaw.util :refer [illegal-argument]]
+            [seesaw.keystroke :refer [keystroke]]
+            [seesaw.action :refer [action]]
+            [seesaw.to-widget :refer [to-widget*]]))
 
 (defn- ^javax.swing.Action to-action [act]
   (cond
@@ -79,6 +79,10 @@
     * A button, menu, menuitem, or other button-y thing. An action
       that programmatically clicks the button will be created.
     * nil to disable or remove a mapping 
+    * :none to block the key in this widget's own input map, including the
+      bindings it inherits from the look and feel. As usual in Swing, the
+      key then goes on to ancestors and :global mappings, so this lets e.g.
+      a menu accelerator win over a text field's built-in binding.
 
   target may be a widget, frame, or something convertible through to-widget.
 
@@ -102,12 +106,74 @@
         scope  (scope-table scope default-scope)
         im     (.getInputMap target scope)
         am     (.getActionMap target)
-        act    (to-action act)
-        id     (or id act)
         ks     (keystroke key)]
-    (.put im ks id)
-    (.put am id act)
-    (fn []
-      (.remove im ks)
-      (.remove am id))))
+    (if (= :none act)
+      (do
+        (.put im ks "none")
+        (fn [] (.remove im ks)))
+      (let [act (to-action act)
+            id  (or id act)]
+        (.put im ks id)
+        (.put am id act)
+        (fn []
+          (.remove im ks)
+          (.remove am id))))))
+
+(defn- binding-action
+  "The enabled action bound to ks in c's input map for the given condition"
+  [^javax.swing.JComponent c condition ks]
+  (when-let [id (.get (.getInputMap c condition) ks)]
+    (when-not (= "none" id)
+      (when-let [^javax.swing.Action a (.get (.getActionMap c) id)]
+        (when (.isEnabled a) a)))))
+
+(defn- window-components
+  "All JComponents in w, including menu items that live in closed menus"
+  [^java.awt.Container w]
+  (letfn [(walk [^java.awt.Component c]
+            (cons c (mapcat walk
+                            (cond
+                              (instance? javax.swing.JMenu c)
+                                (.getMenuComponents ^javax.swing.JMenu c)
+                              (instance? java.awt.Container c)
+                                (.getComponents ^java.awt.Container c)))))]
+    (filter #(instance? javax.swing.JComponent %) (walk w))))
+
+(defn trigger!
+  "Perform the action that pressing key would trigger in target, following
+  Swing's precedence: target's own :self mapping, then :descendants mappings
+  of target and its ancestors, then :global mappings (including menu
+  accelerators) in target's window. Doesn't need keyboard focus, so it's
+  handy in tests and for things like command palettes.
+
+  Returns true if an action was performed, false otherwise.
+
+  Examples:
+
+    (trigger! text-field \"menu B\")
+    (trigger! frame \"menu shift G\")
+  "
+  [target key]
+  (let [target (to-target (to-widget* target))
+        ks     (keystroke key)
+        ancestors (take-while some? (iterate #(.getParent ^java.awt.Component %) target))
+        window (javax.swing.SwingUtilities/getWindowAncestor target)
+        found  (or (binding-action target javax.swing.JComponent/WHEN_FOCUSED ks)
+                   (some (fn [c]
+                           (when (instance? javax.swing.JComponent c)
+                             (when-let [a (binding-action c javax.swing.JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT ks)]
+                               [c a])))
+                         ancestors)
+                   (some (fn [c]
+                           (when-let [a (binding-action c javax.swing.JComponent/WHEN_IN_FOCUSED_WINDOW ks)]
+                             [c a]))
+                         (window-components (or window (last ancestors)))))
+        [source ^javax.swing.Action a] (if (vector? found) found [target found])]
+    (if a
+      (do
+        (.actionPerformed a (java.awt.event.ActionEvent.
+                              source java.awt.event.ActionEvent/ACTION_PERFORMED
+                              (str (.getValue a javax.swing.Action/ACTION_COMMAND_KEY))))
+        true)
+      false)))
 

@@ -15,22 +15,20 @@
            This is an incomplete wrapper. If something's missing that you want, just ask."
       :author "Dave Ray"}
   seesaw.swingx
-  (:require [seesaw.color])
-  (:use [seesaw.util :only [to-uri resource constant-map illegal-argument]]
-        [seesaw.icon :only [icon]]
-        [seesaw.selection :only [Selection ViewModelIndexConversion]]
-        [seesaw.event :only [listen-for-named-event listen-to-property]]
-        [seesaw.core :only [construct to-widget make-widget
-                            abstract-panel
-                            default-options button-options label-options
-                            listbox-options tree-options table-options
-                            ConfigIcon get-icon* set-icon*
-                            config config!]]
-        [seesaw.layout :only [default-items-option box-layout grid-layout]]
-        [seesaw.options :only [option-map bean-option apply-options
-                               default-option resource-option around-option]]
-        [seesaw.widget-options :only [widget-option-provider]])
-  (:import [org.jdesktop.swingx.decorator
+  (:require [seesaw.color]
+            [seesaw.util :refer [to-uri resource constant-map illegal-argument]]
+            [seesaw.icon :refer [icon]]
+            [seesaw.selection :refer [Selection ViewModelIndexConversion]]
+            [seesaw.event :refer [listen-for-named-event listen-to-property]]
+            [seesaw.core :refer [construct to-widget make-widget abstract-panel
+                                 default-options button-options label-options
+                                 listbox-options tree-options table-options
+                                 ConfigIcon get-icon* set-icon* config config!]]
+            [seesaw.layout :refer [default-items-option box-layout grid-layout]]
+            [seesaw.options :refer [option-map bean-option apply-options
+                                    default-option resource-option around-option]]
+            [seesaw.widget-options :refer [widget-option-provider]])
+  (:import (org.jdesktop.swingx.decorator
               Highlighter
               HighlighterFactory
               HighlightPredicate
@@ -42,7 +40,7 @@
               HighlightPredicate$ColumnHighlightPredicate
               HighlightPredicate$RowGroupHighlightPredicate
               HighlightPredicate$DepthHighlightPredicate
-              HighlightPredicate$TypeHighlightPredicate]))
+              HighlightPredicate$TypeHighlightPredicate)))
 
 ;*******************************************************************************
 ; Highlighter Predicates

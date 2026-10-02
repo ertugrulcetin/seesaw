@@ -12,7 +12,7 @@
   (:refer-clojure :exclude [boolean?])
   (:require clojure.string
             [j18n.core :as j18n])
-  (:import [java.net URL URI MalformedURLException URISyntaxException]))
+  (:import (java.net URL URI MalformedURLException URISyntaxException)))
 
 (defn illegal-argument
   "Throw an illegal argument exception formatted as with (clojure.core/format)"

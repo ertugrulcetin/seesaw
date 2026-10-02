@@ -11,11 +11,12 @@
 (ns ^{:doc "Basic graphics functions to simplify use of Graphics2D."
       :author "Dave Ray"}
   seesaw.graphics
-  (:use [seesaw.color :only [to-color]]
-        [seesaw.font :only [to-font]]
-        [seesaw.util :only [illegal-argument]])
-  (:import [java.awt Graphics2D RenderingHints]
-           [java.awt.image BufferedImage]))
+  (:require clojure.java.io
+            [seesaw.color :refer [to-color]]
+            [seesaw.font :refer [to-font]]
+            [seesaw.util :refer [illegal-argument]])
+  (:import (java.awt Graphics2D RenderingHints)
+           (java.awt.image BufferedImage)))
 
 (defn anti-alias
   "Enable anti-aliasing on the given Graphics2D object.
@@ -28,6 +29,30 @@
 (defn buffered-image
   (^BufferedImage [width height]   (buffered-image width height BufferedImage/TYPE_INT_ARGB))
   (^BufferedImage [width height t] (BufferedImage. width height t)))
+
+(defn snapshot
+  "Render a widget (or window) into a new java.awt.image.BufferedImage, as
+  it currently looks. The widget must have a size, i.e. be laid out (packed
+  or shown). With :scale, renders at that factor, e.g. 2 for HiDPI."
+  ^java.awt.image.BufferedImage [^java.awt.Component c & {:keys [scale] :or {scale 1}}]
+  (let [w   (max 1 (int (Math/ceil (* scale (.getWidth c)))))
+        h   (max 1 (int (Math/ceil (* scale (.getHeight c)))))
+        img (buffered-image w h)
+        g   (.createGraphics img)]
+    (try
+      (.scale g (double scale) (double scale))
+      (.printAll c g)
+      (finally (.dispose g)))
+    img))
+
+(defn write-png!
+  "Write a java.awt.image.RenderedImage (e.g. from (snapshot) or
+  (buffered-image)) to a PNG file. Returns the file."
+  [^java.awt.image.RenderedImage image file]
+  (let [f (clojure.java.io/file file)]
+    (when-let [d (.getParentFile f)] (.mkdirs d))
+    (javax.imageio.ImageIO/write image "png" f)
+    f))
 
 (defn- to-image [v]
   (cond

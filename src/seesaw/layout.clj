@@ -12,15 +12,13 @@
       :author "Dave Ray"}
   seesaw.layout
 
-  (:use [seesaw.options :only [option-map
-                               default-option bean-option resource-option
-                               ignore-option
-                               apply-options
-                               option-provider]]
-        [seesaw.util :only [check-args constant-map]]
-        [seesaw.make-widget :only [make-widget*]]
-        [seesaw.to-widget :only [to-widget*]])
-  (:import [java.awt GridBagConstraints GridBagLayout]))
+  (:require [seesaw.options :refer [option-map default-option bean-option
+                                    resource-option ignore-option apply-options
+                                    option-provider]]
+            [seesaw.util :refer [check-args constant-map]]
+            [seesaw.make-widget :refer [make-widget*]]
+            [seesaw.to-widget :refer [to-widget*]])
+  (:import (java.awt GridBagConstraints GridBagLayout)))
 
 (defprotocol LayoutManipulation
   (add!* [layout target widget constraint])
@@ -169,8 +167,20 @@
 (def grid-layout-options
   (option-map
     default-items-option
-    (ignore-option :rows    ["Integer rows"])
-    (ignore-option :columns ["Integer columns"])
+    (default-option :rows
+      (fn [^java.awt.Container c v]
+        (when v
+          (.setRows ^java.awt.GridLayout (.getLayout c) (int v))
+          (.revalidate c)))
+      #(.getRows ^java.awt.GridLayout (.getLayout ^java.awt.Container %1))
+      ["Integer rows"])
+    (default-option :columns
+      (fn [^java.awt.Container c v]
+        (when v
+          (.setColumns ^java.awt.GridLayout (.getLayout c) (int v))
+          (.revalidate c)))
+      #(.getColumns ^java.awt.GridLayout (.getLayout ^java.awt.Container %1))
+      ["Integer columns"])
     (default-option :hgap
       #(.setHgap ^java.awt.GridLayout (.getLayout ^java.awt.Container %1) %2)
       nil
