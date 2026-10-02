@@ -1,7 +1,9 @@
 (ns seesaw.test.examples.pan-on-drag
   (:require [seesaw.core :refer :all]
             [seesaw.behave :as behave]
-            [seesaw.test.examples.example :refer [defexample]]))
+            [seesaw.test.examples.example :refer [defexample]])
+  (:import (java.awt Point)
+           (javax.swing JViewport)))
 
 (defn scrollable-image [id]
   (scrollable
@@ -10,13 +12,13 @@
               )))
 
 (defn pan [view-to-pan dx dy]
-  (let [^javax.swing.JViewport  viewport (.. view-to-pan getParent)
+  (let [^JViewport  viewport (.. view-to-pan getParent)
         rect      (.getViewRect viewport)
         full-size (.getViewSize viewport)
         [x y w h] [(.x rect) (.y rect) (.width rect) (.height rect)]
         new-x (Math/min (Math/max 0 (+ x (int dx))) (- (.width full-size) w))
         new-y (Math/min (Math/max 0 (+ y (int dy))) (- (.height full-size) h))]
-    (.setViewPosition viewport (java.awt.Point. new-x new-y))))
+    (.setViewPosition viewport (Point. new-x new-y))))
 
 (defn- calculate-scales [panner view-to-pan]
   [(/ (.getWidth view-to-pan) (.getWidth panner))

@@ -21,38 +21,30 @@
    [seesaw.options :refer [apply-options]]
    [seesaw.selector :as selector]
    [seesaw.util :refer [root-cause]])
-  (:import
-   (java.awt
-    BorderLayout
-    Color
-    Dimension
-    FlowLayout)
-   (java.awt.event ActionEvent)
-   (javax.swing
-    Action
-    BoxLayout
-    JButton
-    JCheckBox
-    JFrame
-    JLabel
-    JPanel
-    JRadioButton
-    JScrollPane
-    JTabbedPane
-    JTextArea
-    JTextField
-    JTextPane
-    JToggleButton
-    ScrollPaneConstants
-    SwingConstants)
-   (javax.swing.text StyleConstants)))
+  (:import (java.awt BorderLayout Color Dimension FlowLayout Point Rectangle
+                     Cursor GridBagLayout GridBagConstraints CardLayout Frame)
+           (java.awt.event ActionEvent)
+           (java.util Date Calendar)
+           (javax.swing Action BoxLayout JButton JCheckBox JFrame JLabel JPanel
+                        JRadioButton JScrollPane JTabbedPane JTextArea JTextField JTextPane
+                        JToggleButton ScrollPaneConstants SwingConstants DefaultButtonModel
+                        JSeparator Box$Filler JPasswordField JEditorPane ButtonGroup JList
+                        ListSelectionModel JComboBox SpinnerNumberModel SpinnerDateModel
+                        JSpinner SpinnerListModel JTable JTree JSplitPane JMenuItem JMenu
+                        JPopupMenu$Separator JPopupMenu JMenuBar JToolBar JToolBar$Separator
+                        JWindow JDialog JSlider JProgressBar)
+           (javax.swing.event DocumentEvent$EventType)
+           (javax.swing.table DefaultTableModel)
+           (javax.swing.text StyleConstants PlainDocument
+                             AbstractDocument$DefaultDocumentEvent Style)
+           (javax.swing.tree TreeSelectionModel DefaultTreeModel)))
 
 (defdescribe id-of-test
   (expect-it "returns nil if a widget doesn't have an id"
     (nil? (id-of (label))))
   (it "coerces to a widget before getting the id"
     (let [b (button :id :my-button)
-          e (java.awt.event.ActionEvent. b java.awt.event.ActionEvent/ACTION_PERFORMED "")]
+          e (ActionEvent. b ActionEvent/ACTION_PERFORMED "")]
       (expect (= :my-button (id-of e)))))
   (expect-it "returns the correct id, as a keyword, if a widget has an id"
     (= (keyword "id of the label") (id-of (label :id "id of the label")))))
@@ -96,7 +88,7 @@
 
   (describe "the :layout option"
     (it "sets the layout of the widget"
-      (let [layout (java.awt.BorderLayout.)
+      (let [layout (BorderLayout.)
             b (button :layout layout)]
         (expect (= layout (config b :layout))))))
 
@@ -137,11 +129,11 @@
             l (.getLocation p)]
         (expect (= [23 0] [(.x l) (.y l)]))))
     (it "sets the component's location with a java.awt.Point"
-      (let [p (apply-options (JPanel.) {:location (java.awt.Point. 23 45)})
+      (let [p (apply-options (JPanel.) {:location (Point. 23 45)})
             l (.getLocation p)]
         (expect (= [23 45] [(.x l) (.y l)]))))
     (it "sets the component's location with a java.awt.Rectangle"
-      (let [p (apply-options (JPanel.) {:location (java.awt.Rectangle. 23 45 99 100)})
+      (let [p (apply-options (JPanel.) {:location (Rectangle. 23 45 99 100)})
             l (.getLocation p)]
         (expect (= [23 45] [(.x l) (.y l)])))))
   (describe "the :bounds option"
@@ -162,11 +154,11 @@
         (expect (= [23 45 (.width ps) (.height ps)] [(.x b) (.y b) (.width b) (.height b)]))))
     (it "sets the component's bounds with a java.awt.Dimension, preserving x and y"
       (let [p (label :bounds [23 45 67 89])
-            p (config! p :bounds (java.awt.Dimension. 80 90))
+            p (config! p :bounds (Dimension. 80 90))
             b (.getBounds p)]
         (expect (= [23 45 80 90] [(.x b) (.y b) (.width b) (.height b)]))))
     (it "sets the component's bounds with a java.awt.Rectangle"
-      (let [p (apply-options (JPanel.) {:bounds (java.awt.Rectangle. 23 45 67 89)})
+      (let [p (apply-options (JPanel.) {:bounds (Rectangle. 23 45 67 89)})
             b (.getBounds p)]
         (expect (= [23 45 67 89] [(.x b) (.y b) (.width b) (.height b)])))))
 
@@ -177,7 +169,7 @@
         (expect (= c (.getCursor p)))))
     (it "sets the widget's cursor when given a cursor type keyword"
       (let [p (apply-options (JPanel.) {:cursor :hand})]
-        (expect (= java.awt.Cursor/HAND_CURSOR (.getType (.getCursor p)))))))
+        (expect (= Cursor/HAND_CURSOR (.getType (.getCursor p)))))))
 
   (describe "setting enabled option"
     (it "does nothing when omitted"
@@ -215,7 +207,7 @@
         (expect (not (.isOpaque c))))))
   (describe "the :model property"
     (it "sets the model when provided"
-      (let [model  (javax.swing.DefaultButtonModel.)
+      (let [model  (DefaultButtonModel.)
             widget (button :model model)]
         (expect (= model (.getModel widget))))))
   (it "sets background using to-color when provided"
@@ -232,7 +224,7 @@
       (expect (= "TEST" (.. c getBorder getTitle)))))
   (it "sets cursor when provided"
     (let [c (apply-options (JPanel.) {:cursor :hand})]
-      (expect (= java.awt.Cursor/HAND_CURSOR (.getType (.getCursor c)))))))
+      (expect (= Cursor/HAND_CURSOR (.getType (.getCursor c)))))))
 
 (defdescribe show!-test
   (expect-it "makes a widget visible and returns it"
@@ -259,40 +251,40 @@
   (it "returns a button if input is an Action"
     (let [a (action :handler #(println "HI") :name "Test")
           c (make-widget a)]
-      (expect (instance? javax.swing.JButton c))
+      (expect (instance? JButton c))
       (expect (= "Test" (.getText c)))))
   (expect-it "creates a separator for :separator"
-    (instance? javax.swing.JSeparator (make-widget :separator)))
+    (instance? JSeparator (make-widget :separator)))
   (it "creates horizontal glue for :fill-h"
     (let [c (make-widget :fill-h)]
-      (expect (instance? javax.swing.Box$Filler c))
+      (expect (instance? Box$Filler c))
       (expect (= 32767.0 (.. c getMaximumSize getWidth)))))
   (it "creates vertical glue for :fill-v"
     (let [c (make-widget :fill-v)]
-      (expect (instance? javax.swing.Box$Filler c))
+      (expect (instance? Box$Filler c))
       (expect (= 32767.0 (.. c getMaximumSize getHeight)))))
   (it "creates a vertical strut for [:fill-v N]"
     (let [c (make-widget [:fill-v 99])]
-      (expect (instance? javax.swing.Box$Filler c))
+      (expect (instance? Box$Filler c))
       (expect (= 32767.0 (.. c getMaximumSize getWidth)))
       (expect (= 99.0 (.. c getMaximumSize getHeight)))
       (expect (= 99.0 (.. c getPreferredSize getHeight)))))
   (it "creates a horizontal strut for [:fill-h N]"
     (let [c (make-widget [:fill-h 88])]
-      (expect (instance? javax.swing.Box$Filler c))
+      (expect (instance? Box$Filler c))
       (expect (= 32767.0 (.. c getMaximumSize getHeight)))
       (expect (= 88.0 (.. c getMaximumSize getWidth)))
       (expect (= 88.0 (.. c getPreferredSize getWidth)))))
   (it "creates a rigid area for a Dimension"
     (let [c (make-widget (Dimension. 12 34))]
-      (expect (instance? javax.swing.Box$Filler c))
+      (expect (instance? Box$Filler c))
       (expect (= 12.0 (.. c getMaximumSize getWidth)))
       (expect (= 34.0 (.. c getMaximumSize getHeight)))
       (expect (= 12.0 (.. c getPreferredSize getWidth)))
       (expect (= 34.0 (.. c getPreferredSize getHeight)))))
   (it "creates a rigid area for a [N :by N]"
     (let [c (make-widget [12 :by 34])]
-      (expect (instance? javax.swing.Box$Filler c))
+      (expect (instance? Box$Filler c))
       (expect (= 12.0 (.. c getMaximumSize getWidth)))
       (expect (= 34.0 (.. c getMaximumSize getHeight)))
       (expect (= 12.0 (.. c getPreferredSize getWidth)))
@@ -318,7 +310,7 @@
   (expect-it "returns nil if input is nil"
     (nil? (to-document nil)))
   (it "returns input if it's already a document"
-    (let [d (javax.swing.text.PlainDocument.)]
+    (let [d (PlainDocument.)]
       (expect (= d (to-document d)))))
   (it "returns the document of text component"
     (let [t (text)]
@@ -372,8 +364,8 @@
   (verify-config (text :visible? true) :visible? true)
   (verify-config (text :visible? false) :visible? false)
   (verify-config (border-panel :border 1) :border getBorder)
-  (verify-config (border-panel :location [100 200]) :location (java.awt.Point. 100 200))
-  (verify-config (border-panel :bounds [100 200 300 400]) :bounds (java.awt.Rectangle. 100 200 300 400))
+  (verify-config (border-panel :location [100 200]) :location (Point. 100 200))
+  (verify-config (border-panel :bounds [100 200 300 400]) :bounds (Rectangle. 100 200 300 400))
   (verify-config (border-panel :font :monospace) :border getBorder)
   (verify-config (border-panel :tip "A tool tip") :tip "A tool tip")
   (verify-config (border-panel :cursor :hand) :cursor getCursor)
@@ -426,7 +418,7 @@
     (let [[a b c] [(JPanel.) (JPanel.) (JPanel.)]
           p (flow-panel :items [a b c] :align :trailing :hgap 99 :vgap 12 :align-on-baseline? true)
           l (.getLayout p)]
-      (expect (= java.awt.FlowLayout (class l)))
+      (expect (= FlowLayout (class l)))
       (expect (= FlowLayout/TRAILING (.getAlignment l)))
       (expect (= 99 (.getHgap l)))
       (expect (= 12 (.getVgap l)))
@@ -453,14 +445,14 @@
   (it "should create a BorderLayout with given h and v gaps"
     (let [p (border-panel :hgap 99 :vgap 12)
           l (.getLayout p)]
-      (expect (= java.awt.BorderLayout (class l)))
+      (expect (= BorderLayout (class l)))
       (expect (= 99 (.getHgap l)))
       (expect (= 12 (.getVgap l)))))
   (it "should create a BorderLayout using direction options"
     (let [[n s e w c] [(JPanel.) (JPanel.) (JPanel.)(JPanel.)(JPanel.)]
           p (border-panel :hgap 99 :vgap 12 :north n :south s :east e :west w :center c)
           l (.getLayout p)]
-      (expect (= java.awt.BorderLayout (class l)))
+      (expect (= BorderLayout (class l)))
       (expect (= 99 (.getHgap l)))
       (expect (= 12 (.getVgap l)))
       (expect (= #{n s e w c} (apply hash-set (.getComponents p))))))
@@ -468,7 +460,7 @@
     (let [[n s e w c] [(JPanel.) (JPanel.) (JPanel.)(JPanel.)(JPanel.)]
           p (border-panel :hgap 99 :vgap 12 :items [[n :north] [s :south][e :east][w :west][c :center]])
           l (.getLayout p)]
-      (expect (= java.awt.BorderLayout (class l)))
+      (expect (= BorderLayout (class l)))
       (expect (= #{n s e w c} (apply hash-set (.getComponents p))))))
   (it "should return its :items with config"
     (let [[n s e w c] [(JPanel.) (JPanel.) (JPanel.)(JPanel.)(JPanel.)]
@@ -525,13 +517,13 @@
 
 (defdescribe form-panel-test
   (expect-it "should create a JPanel with a GridBagLayout"
-    (= java.awt.GridBagLayout (class (.getLayout (form-panel)))))
+    (= GridBagLayout (class (.getLayout (form-panel)))))
   (it "should add an item with grid bag constraints"
     (let [p (form-panel :items [["hi" :weighty 999 :gridwidth 1]])
           w (first (.getComponents p))
           gbcs (.getConstraints (.getLayout p) w)]
       (expect (instance? JLabel w))
-      (expect (= java.awt.GridBagConstraints (class gbcs)))
+      (expect (= GridBagConstraints (class gbcs)))
       (expect (= 999.0 (.weighty gbcs))))))
 
 (defdescribe arbitrary-widget-test
@@ -567,13 +559,13 @@
       (do (text! (border-panel) "no") false)
       (catch IllegalArgumentException e true)))
   (it "should set the text of the document in a document event"
-    (let [doc (javax.swing.text.PlainDocument.)
-          evt (javax.swing.text.AbstractDocument$DefaultDocumentEvent. doc 0 0
-                                                 javax.swing.event.DocumentEvent$EventType/CHANGE)]
+    (let [doc (PlainDocument.)
+          evt (AbstractDocument$DefaultDocumentEvent. doc 0 0
+                                                 DocumentEvent$EventType/CHANGE)]
       (text! evt "Hello")
       (expect (= "Hello" (text evt)))))
   (it "should set the text of a text Document"
-    (let [d (javax.swing.text.PlainDocument.)
+    (let [d (PlainDocument.)
           _ (.insertString d 0 "HI" nil)
           r (text! d "BYE!")]
       (expect (= d r))
@@ -619,13 +611,13 @@
       (selection! cb "a")
       (expect (= "a" (text cb)))))
   (it "should return the text of a text Document argument"
-    (let [d (javax.swing.text.PlainDocument.)]
+    (let [d (PlainDocument.)]
       (.insertString d 0 "HI" nil)
       (expect (= "HI" (text d)))))
   (it "should return the text of the document in a document event"
-    (let [doc (javax.swing.text.PlainDocument.)
-          evt (javax.swing.text.AbstractDocument$DefaultDocumentEvent. doc 0 0
-                                                 javax.swing.event.DocumentEvent$EventType/CHANGE)]
+    (let [doc (PlainDocument.)
+          evt (AbstractDocument$DefaultDocumentEvent. doc 0 0
+                                                 DocumentEvent$EventType/CHANGE)]
       (.insertString doc 0 "Hello" nil)
       (expect (= "Hello" (text evt)))))
   (expect-it "should return the text of a button argument"
@@ -692,7 +684,7 @@
                     :styles [[:big :size 30]
                             [:small :size 3]])
           style (.getStyle t "big")]
-      (expect (instance? javax.swing.text.Style style))
+      (expect (instance? Style style))
       (expect (.containsAttribute style StyleConstants/FontSize (Integer. 30)))))
   (it "should set the FontFamily attr as a string from a keyword"
     (let [t (styled-text :styles [[:fonty :font :Arial]])
@@ -728,7 +720,7 @@
 
 (defdescribe password-test
   (expect-it "should create a JPasswordField"
-    (instance? javax.swing.JPasswordField (password)))
+    (instance? JPasswordField (password)))
   (expect-it "should set the initial text"
     (= "secret" (text (password :text "secret"))))
   (expect-it "should set the columns"
@@ -754,11 +746,11 @@
 
 (defdescribe editor-pane-test
   (expect-it "should create a JEditorPane"
-    (instance? javax.swing.JEditorPane (editor-pane))))
+    (instance? JEditorPane (editor-pane))))
 
 (defdescribe button-group-test
   (expect-it "should create a ButtonGroup"
-    (instance? javax.swing.ButtonGroup (button-group)))
+    (instance? ButtonGroup (button-group)))
   (it "should create a button group with a list of buttons"
     (let [[a b c] [(radio) (checkbox) (toggle)]
           bg (button-group :buttons [a b c])]
@@ -835,11 +827,11 @@
   (verify-config (listbox :layout-orientation :horizontal-wrap) :layout-orientation :horizontal-wrap)
   (verify-config (listbox :layout-orientation :vertical-wrap) :layout-orientation :vertical-wrap)
   (expect-it "should create a JList"
-    (instance? javax.swing.JList (listbox)))
+    (instance? JList (listbox)))
   (expect-it "should create a JList with :fixed-cell-height set"
     (= 98 (.getFixedCellHeight (listbox :fixed-cell-height 98))))
   (expect-it "should create a JList and set the selection mode"
-    (= javax.swing.ListSelectionModel/SINGLE_SELECTION (.getSelectionMode (listbox :selection-mode :single))))
+    (= ListSelectionModel/SINGLE_SELECTION (.getSelectionMode (listbox :selection-mode :single))))
   (it "should create a JList using a seq as its model"
     (let [lb (listbox :model [1 2 3 4])
           model (.getModel lb)]
@@ -854,7 +846,7 @@
 (defdescribe combobox-test
   (it "should create a JComboBox"
     (let [lb (combobox)]
-      (instance? javax.swing.JComboBox lb)))
+      (instance? JComboBox lb)))
   (describe "the :editable? property"
     (expect-it "should create a non-editable JComboBox when false"
       (not (.isEditable (combobox :editable? false))))
@@ -875,43 +867,43 @@
 (defdescribe spinner-model-test
   (it "should create a number spinner model"
     (let [m (spinner-model 3.5 :from 1.5 :to 4.5 :by 0.5)]
-      (expect (instance? javax.swing.SpinnerNumberModel m))
+      (expect (instance? SpinnerNumberModel m))
       (expect (= 3.5 (.getValue m)))
       (expect (= 0.5 (.getStepSize m)))
       (expect (= 4.5 (.getMaximum m)))
       (expect (= 1.5 (.getMinimum m)))))
   (it "should create a date spinner model"
-      (let [s (java.util.Date. (long 0))
-            v (java.util.Date. (long (* 10 24 3600)))
-            e (java.util.Date. (long (* 20 24 3600)))
+      (let [s (Date. (long 0))
+            v (Date. (long (* 10 24 3600)))
+            e (Date. (long (* 20 24 3600)))
             m (spinner-model v :from s :to e :by :day-of-month)]
-        (expect (instance? javax.swing.SpinnerDateModel m))
-        (expect (= java.util.Calendar/DAY_OF_MONTH (.getCalendarField m)))
+        (expect (instance? SpinnerDateModel m))
+        (expect (= Calendar/DAY_OF_MONTH (.getCalendarField m)))
         (expect (= v (.getValue m)))
         (expect (= s (.getStart m)))
         (expect (= e (.getEnd m))))))
 
 (defdescribe spinner-test
   (expect-it "should create a JSpinner"
-    (instance? javax.swing.JSpinner (spinner)))
+    (instance? JSpinner (spinner)))
   (it "should set the model with the :model option"
-    (let [model (javax.swing.SpinnerListModel.)
+    (let [model (SpinnerListModel.)
           s     (spinner :model model)]
       (expect (= model (.getModel s)))))
   (it "creates a list model from a sequence"
     (let [s (spinner :model [1 2 3])
           m (config s :model)]
-      (expect (instance? javax.swing.SpinnerListModel m))))
+      (expect (instance? SpinnerListModel m))))
   (it "creates a date model from a java.util.Date"
-    (let [d (java.util.Date.)
+    (let [d (Date.)
           s (spinner :model d)
           m (config s :model)]
-      (expect (instance? javax.swing.SpinnerDateModel m))
+      (expect (instance? SpinnerDateModel m))
       (expect (= d (.getValue m)))))
   (it "creates a numeric model from a number"
     (let [s (spinner :model 3.3)
           m (config s :model)]
-      (expect (instance? javax.swing.SpinnerNumberModel m))
+      (expect (instance? SpinnerNumberModel m))
       (expect (= 3.3 (.getValue m)))))
   (it "supports the :selection event"
     (let [s (spinner :model [1 2 3])
@@ -924,15 +916,15 @@
 
 (defdescribe table-test
   (expect-it "should create a JTable"
-    (instance? javax.swing.JTable (table)))
+    (instance? JTable (table)))
   (expect-it "should create a JTable with :single selection-mode set"
-    (= javax.swing.ListSelectionModel/SINGLE_SELECTION (.. (table :selection-mode :single) getSelectionModel getSelectionMode)))
+    (= ListSelectionModel/SINGLE_SELECTION (.. (table :selection-mode :single) getSelectionModel getSelectionMode)))
   (expect-it "should create a JTable with :multi-interval selection-mode set"
-    (= javax.swing.ListSelectionModel/MULTIPLE_INTERVAL_SELECTION (.. (table :selection-mode :multi-interval) getSelectionModel getSelectionMode)))
+    (= ListSelectionModel/MULTIPLE_INTERVAL_SELECTION (.. (table :selection-mode :multi-interval) getSelectionModel getSelectionMode)))
   (expect-it "should fill viewport height by default"
     (.getFillsViewportHeight (table)))
   (it "should set the table's model from a TableModel"
-    (let [m (javax.swing.table.DefaultTableModel.)
+    (let [m (DefaultTableModel.)
           t (table :model m)]
       (= m (.getModel t))))
   (it "should set the table's model using seesaw.table/table-model"
@@ -949,19 +941,19 @@
   (verify-config (table :show-horizontal-lines? true) :show-horizontal-lines? true)
   (verify-config (table :show-horizontal-lines? false) :show-horizontal-lines? false)
   (expect-it "should honor :auto-resize :off"
-    (= javax.swing.JTable/AUTO_RESIZE_OFF (.getAutoResizeMode (table :auto-resize :off))))
+    (= JTable/AUTO_RESIZE_OFF (.getAutoResizeMode (table :auto-resize :off))))
   (expect-it "should honor :auto-resize :next-column"
-    (= javax.swing.JTable/AUTO_RESIZE_NEXT_COLUMN (.getAutoResizeMode (table :auto-resize :next-column))))
+    (= JTable/AUTO_RESIZE_NEXT_COLUMN (.getAutoResizeMode (table :auto-resize :next-column))))
   (expect-it "should honor :auto-resize :subsequent-columns"
-    (= javax.swing.JTable/AUTO_RESIZE_SUBSEQUENT_COLUMNS (.getAutoResizeMode (table :auto-resize :subsequent-columns))))
+    (= JTable/AUTO_RESIZE_SUBSEQUENT_COLUMNS (.getAutoResizeMode (table :auto-resize :subsequent-columns))))
   (expect-it "should honor :auto-resize :last-column"
-    (= javax.swing.JTable/AUTO_RESIZE_LAST_COLUMN (.getAutoResizeMode (table :auto-resize :last-column))))
+    (= JTable/AUTO_RESIZE_LAST_COLUMN (.getAutoResizeMode (table :auto-resize :last-column))))
   (expect-it "should honor :auto-resize :all-columns"
-    (= javax.swing.JTable/AUTO_RESIZE_ALL_COLUMNS (.getAutoResizeMode (table :auto-resize :all-columns)))))
+    (= JTable/AUTO_RESIZE_ALL_COLUMNS (.getAutoResizeMode (table :auto-resize :all-columns)))))
 
 (defdescribe tree-test
   (expect-it "should create a JTree"
-    (instance? javax.swing.JTree (tree)))
+    (instance? JTree (tree)))
   (verify-config (tree :expands-selected-paths? true) :expands-selected-paths? true)
   (verify-config (tree :expands-selected-paths? false) :expands-selected-paths? false)
   (verify-config (tree :scrolls-on-expand? true) :scrolls-on-expand? true)
@@ -981,13 +973,13 @@
   (expect-it "should create a JTree with :shows-root-handles? false"
     (not (.getShowsRootHandles (tree :shows-root-handles? false))))
   (expect-it "should create a JTree with :single selection-mode set"
-    (= javax.swing.tree.TreeSelectionModel/SINGLE_TREE_SELECTION (.. (tree :selection-mode :single) getSelectionModel getSelectionMode)))
+    (= TreeSelectionModel/SINGLE_TREE_SELECTION (.. (tree :selection-mode :single) getSelectionModel getSelectionMode)))
   (expect-it "should create a JTree with :discontiguous selection-mode set"
-    (= javax.swing.tree.TreeSelectionModel/DISCONTIGUOUS_TREE_SELECTION (.. (tree :selection-mode :discontiguous) getSelectionModel getSelectionMode)))
+    (= TreeSelectionModel/DISCONTIGUOUS_TREE_SELECTION (.. (tree :selection-mode :discontiguous) getSelectionModel getSelectionMode)))
   (expect-it "should create a JTree with :contiguous selection-mode set"
-    (= javax.swing.tree.TreeSelectionModel/CONTIGUOUS_TREE_SELECTION (.. (tree :selection-mode :contiguous) getSelectionModel getSelectionMode)))
+    (= TreeSelectionModel/CONTIGUOUS_TREE_SELECTION (.. (tree :selection-mode :contiguous) getSelectionModel getSelectionMode)))
   (it "should set the tree's model from a TreeModel"
-    (let [m (javax.swing.tree.DefaultTreeModel. nil)
+    (let [m (DefaultTreeModel. nil)
           t (tree :model m)]
       (= m (.getModel t)))))
 
@@ -1026,7 +1018,7 @@
     (let [left (label :text "Left")
           right (label :text "Right")
           s (splitter :left-right left right)]
-      (expect (instance? javax.swing.JSplitPane s))
+      (expect (instance? JSplitPane s))
       (expect (= left (.getLeftComponent s)))
       (expect (= right (.getRightComponent s)))))
   (verify-config (splitter :top-bottom "top" "bottom" :divider-location 99) :divider-location 99)
@@ -1054,7 +1046,7 @@
 
 (defdescribe menu-item-test
   (expect-it "should create a JMenuItem"
-      (instance? javax.swing.JMenuItem (menu-item)))
+      (instance? JMenuItem (menu-item)))
   (it "should create a menu item with an accelerator key"
     (let [ks (seesaw.keystroke/keystroke "ctrl S")
           mi (menu-item :key ks)]
@@ -1066,7 +1058,7 @@
 
 (defdescribe menu-test
   (expect-it "should create a JMenu"
-    (instance? javax.swing.JMenu (menu)))
+    (instance? JMenu (menu)))
   (it "should create a JMenu with the given items"
     (let [a (action)
           b :separator
@@ -1075,13 +1067,13 @@
           m (menu :items [a b c d])
           [ia ib ic id] (.getMenuComponents m)]
       (expect (= a (.getAction ia)))
-      (expect (instance? javax.swing.JPopupMenu$Separator ib))
+      (expect (instance? JPopupMenu$Separator ib))
       (expect (= c ic))
       (expect (= "Just a string" (.getText id))))))
 
 (defdescribe popup-test
   (expect-it "should create a JPopupMenu"
-    (instance? javax.swing.JPopupMenu (popup)))
+    (instance? JPopupMenu (popup)))
   (it "should create a JPopupMenu with the given items"
     (let [a (action)
           b :separator
@@ -1096,7 +1088,7 @@
 
 (defdescribe menubar-test
   (expect-it "should create a JMenuBar"
-    (instance? javax.swing.JMenuBar (menubar)))
+    (instance? JMenuBar (menubar)))
   (it "should create a JMenuBar with the given items"
     (let [a (menu)
           b (menu)
@@ -1107,7 +1099,7 @@
   (it "should create a JToolBar with the given items"
     (let [tb (toolbar :items ["a" "b" "c"])
           items (.getComponents tb)]
-      (expect (instance? javax.swing.JToolBar tb))
+      (expect (instance? JToolBar tb))
       (expect (= ["a" "b" "c"] (map #(.getText %) items)))))
   (it "should set the floatable? property"
     (let [tb (toolbar :floatable? true)]
@@ -1120,20 +1112,20 @@
       (expect (= SwingConstants/VERTICAL (.getOrientation tb)))))
   (it "can create a toolbar separator with the :separator keyword"
     (let [tb (toolbar :items [:separator])]
-      (expect (instance? javax.swing.JToolBar$Separator (.getComponent tb 0))))))
+      (expect (instance? JToolBar$Separator (.getComponent tb 0))))))
 
 (defdescribe separator-test
   (it "should create a horizontal JSeparator by default"
     (let [s (separator)]
-      (expect (instance? javax.swing.JSeparator s))
+      (expect (instance? JSeparator s))
       (expect (= SwingConstants/HORIZONTAL (.getOrientation s)))))
   (it "should create a horizontal JSeparator when :orientation is specified"
     (let [s (separator :orientation :horizontal)]
-      (expect (instance? javax.swing.JSeparator s))
+      (expect (instance? JSeparator s))
       (expect (= SwingConstants/HORIZONTAL (.getOrientation s)))))
   (it "should create a vertical JSeparator when :orientation is specified"
     (let [s (separator :orientation :vertical)]
-      (expect (instance? javax.swing.JSeparator s))
+      (expect (instance? JSeparator s))
       (expect (= SwingConstants/VERTICAL (.getOrientation s))))))
 
 (defdescribe tabbed-panel-test
@@ -1172,11 +1164,11 @@
 
 (defdescribe window-test
   (expect-it "should create a jwindow"
-    (instance? javax.swing.JWindow (window)))
+    (instance? JWindow (window)))
   (expect-it "should create a window with an id"
     (= :my-frame (id-of (window :id :my-frame))))
   (expect-it "should create a window with 0 width and height"
-    (= (java.awt.Dimension. 0 0) (.getSize (window))))
+    (= (Dimension. 0 0) (.getSize (window))))
   (it "should create a window and set its title, width, and height"
     (let [f (window :width 99 :height 88)]
       (expect (= 99 (.getWidth f)))
@@ -1194,22 +1186,22 @@
   (expect-it "should create a frame with an id"
     (= :my-frame (id-of (frame :id :my-frame))))
   (expect-it "should create a frame with 0 width and height"
-    (= (java.awt.Dimension. 0 0) (.getSize (frame))))
+    (= (Dimension. 0 0) (.getSize (frame))))
   (it "should create a JFrame and set its title, width, and height"
     (let [f (frame :title "Hello" :width 99 :height 88)]
-      (expect (instance? javax.swing.JFrame f))
+      (expect (instance? JFrame f))
       (expect (= "Hello" (.getTitle f)))
       (expect (= 99 (.getWidth f)))
       (expect (= 88 (.getHeight f)))))
   (it "should set the frame's size with the :size option"
     (let [f (frame :title "Hello" :size [123 :by 456])]
-      (expect (instance? javax.swing.JFrame f))
+      (expect (instance? JFrame f))
       (expect (= "Hello" (.getTitle f)))
       (expect (= 123 (.getWidth f)))
       (expect (= 456 (.getHeight f)))))
   (it "should set the frame's default close operation"
     (let [f (frame :on-close :dispose)]
-      (= javax.swing.JFrame/DISPOSE_ON_CLOSE (.getDefaultCloseOperation f))))
+      (= JFrame/DISPOSE_ON_CLOSE (.getDefaultCloseOperation f))))
   (it "should create a JFrame and make is not resizable"
     (let [f (frame :title "Hello" :resizable? false)]
       (expect (not (.isResizable f)))))
@@ -1265,11 +1257,11 @@
        (= :my-dialog (id-of (custom-dialog :id :my-dialog))))
      (it "should create a JDialog and set its title, width, and height"
        (let [f (custom-dialog :title "Hello" :width 99 :height 88)]
-         (expect (instance? javax.swing.JDialog f))
+         (expect (instance? JDialog f))
          (expect (= "Hello" (.getTitle f)))))
      (it "should set the dialog's default close operation"
        (let [f (custom-dialog :on-close :dispose)]
-         (= javax.swing.JDialog/DISPOSE_ON_CLOSE (.getDefaultCloseOperation f))))
+         (= JDialog/DISPOSE_ON_CLOSE (.getDefaultCloseOperation f))))
      (it "should create a JDialog and make is not resizable"
        (let [f (custom-dialog :title "Hello" :resizable? false)]
          (expect (not (.isResizable f)))))
@@ -1334,7 +1326,7 @@
 (defdescribe slider-test
   (it "should create a slider with a min, max, and value"
     (let [s (slider :min 40 :max 99 :value 55)]
-      (expect (instance? javax.swing.JSlider s))
+      (expect (instance? JSlider s))
       (expect (= 40 (.getMinimum s)))
       (expect (= 99 (.getMaximum s)))
       (expect (= 55 (.getValue s)))))
@@ -1357,7 +1349,7 @@
 
 (defdescribe progress-bar-test
   (expect-it "should create a JProgressBar"
-    (instance? javax.swing.JProgressBar (progress-bar)))
+    (instance? JProgressBar (progress-bar)))
   (it "should set the progress bars min, max and initial value"
     (let [pb (progress-bar :value 5 :min 1 :max 6)]
       (expect (= 5 (.getValue pb)))
@@ -1541,22 +1533,22 @@
             point [101 102]
             result (move! lbl :to point)
             new-loc (.getLocation lbl)]
-        (expect (= (java.awt.Point. 101 102) new-loc))))
+        (expect (= (Point. 101 102) new-loc))))
   (it "should set the absolute location of a widget with a vector, where :* means to keep the old value"
       (let [lbl (label :location [5 6])
             point [:* 102]
             result (move! lbl :to point)
             new-loc (.getLocation lbl)]
-        (expect (= (java.awt.Point. 5 102) new-loc))))
+        (expect (= (Point. 5 102) new-loc))))
   (it "should set the absolute location of a widget with a Point"
     (let [lbl (label)
-          point (java.awt.Point. 99 100)
+          point (Point. 99 100)
           result (move! lbl :to point)
           new-loc (.getLocation lbl)]
       (expect (= point new-loc))))
   (it "should set the absolute location of a widget with the upper left corner of a Rectangle"
     (let [lbl (label)
-          point (java.awt.Rectangle. 99 100 123 456)
+          point (Rectangle. 99 100 123 456)
           result (move! lbl :to point)
           new-loc (.getLocation lbl)]
       (expect (= (.getLocation point) new-loc))))
@@ -1566,14 +1558,14 @@
             _ (move! lbl :to [5 40])
             result (move! lbl :by point)
             new-loc (.getLocation lbl)]
-        (expect (= (java.awt.Point. 106 142) new-loc))))
+        (expect (= (Point. 106 142) new-loc))))
   (it "should set the relative location of a widget with a Point"
     (let [lbl (label)
-          point (java.awt.Point. 99 100)
+          point (Point. 99 100)
           _ (move! lbl :to [5 40])
           result (move! lbl :by point)
           new-loc (.getLocation lbl)]
-      (expect (= (java.awt.Point. 104 140) new-loc)))))
+      (expect (= (Point. 104 140) new-loc)))))
 
 (defmacro test-paintable [func expected-class]
   `(it ~(str "creates a paintable " expected-class " for (paintable " func " :paint nil)")
@@ -1584,40 +1576,40 @@
 
 (defdescribe paintable-test
   ; exercise paintable on all the widget types
-  (test-paintable flow-panel   javax.swing.JPanel)
-  (test-paintable label        javax.swing.JLabel)
-  (test-paintable button       javax.swing.JButton)
-  (test-paintable toggle       javax.swing.JToggleButton)
-  (test-paintable checkbox     javax.swing.JCheckBox)
-  (test-paintable radio        javax.swing.JRadioButton)
-  (test-paintable text         javax.swing.JTextField)
-  (test-paintable password     javax.swing.JPasswordField)
-  (test-paintable editor-pane  javax.swing.JEditorPane)
-  (test-paintable listbox      javax.swing.JList)
-  (test-paintable table        javax.swing.JTable)
-  (test-paintable tree         javax.swing.JTree)
-  (test-paintable combobox     javax.swing.JComboBox)
-  (test-paintable separator    javax.swing.JSeparator)
-  (test-paintable menu         javax.swing.JMenu)
-  (test-paintable popup        javax.swing.JPopupMenu)
-  (test-paintable menubar      javax.swing.JMenuBar)
-  (test-paintable toolbar      javax.swing.JToolBar)
-  (test-paintable tabbed-panel javax.swing.JTabbedPane)
-  (test-paintable slider       javax.swing.JSlider)
-  (test-paintable progress-bar javax.swing.JProgressBar)
+  (test-paintable flow-panel   JPanel)
+  (test-paintable label        JLabel)
+  (test-paintable button       JButton)
+  (test-paintable toggle       JToggleButton)
+  (test-paintable checkbox     JCheckBox)
+  (test-paintable radio        JRadioButton)
+  (test-paintable text         JTextField)
+  (test-paintable password     JPasswordField)
+  (test-paintable editor-pane  JEditorPane)
+  (test-paintable listbox      JList)
+  (test-paintable table        JTable)
+  (test-paintable tree         JTree)
+  (test-paintable combobox     JComboBox)
+  (test-paintable separator    JSeparator)
+  (test-paintable menu         JMenu)
+  (test-paintable popup        JPopupMenu)
+  (test-paintable menubar      JMenuBar)
+  (test-paintable toolbar      JToolBar)
+  (test-paintable tabbed-panel JTabbedPane)
+  (test-paintable slider       JSlider)
+  (test-paintable progress-bar JProgressBar)
 
   (it "creates a paintable subclass given a class name"
-    (let [lbl (paintable javax.swing.JLabel :paint nil :id :foo)]
-      (expect (instance? javax.swing.JLabel lbl))
+    (let [lbl (paintable JLabel :paint nil :id :foo)]
+      (expect (instance? JLabel lbl))
       (expect (= :foo (id-of lbl)))))
 
   (it "creates a label subclass given the label function and args."
-    (let [lbl (paintable javax.swing.JLabel :paint nil :id :foo)]
-      (expect (instance? javax.swing.JLabel lbl))
+    (let [lbl (paintable JLabel :paint nil :id :foo)]
+      (expect (instance? JLabel lbl))
       (expect (= :foo (id-of lbl)))))
 
   (expect-it "creates a button subclass"
-    (instance? javax.swing.JButton (paintable javax.swing.JButton :paint nil))))
+    (instance? JButton (paintable JButton :paint nil))))
 
 (defdescribe width-test
   (expect-it "returns the width of a widget"
@@ -1630,8 +1622,8 @@
 (defdescribe card-panel-test
   (it "creates a panel with a CardLayout"
     (let [p (card-panel :hgap 4 :vgap 3 :items [["Label" :first] [(button) :second]])]
-      (expect (instance? javax.swing.JPanel p))
-      (expect (instance? java.awt.CardLayout (.getLayout p)))
+      (expect (instance? JPanel p))
+      (expect (instance? CardLayout (.getLayout p)))
       (expect (= 4 (.. p getLayout getHgap)))
       (expect (= 3 (.. p getLayout getVgap)))
       (expect (= 2 (count (.getComponents p))))))
@@ -1672,7 +1664,7 @@
     (let [t (text :style-class [:h1 :muted] :outline :error)]
       (expect (= "h1 muted" (.getClientProperty t "FlatLaf.styleClass")))
       (expect (= "error" (.getClientProperty t "JComponent.outline"))))
-    (expect (= java.awt.Color/RED (.getClientProperty (text :outline :red) "JComponent.outline"))))
+    (expect (= Color/RED (.getClientProperty (text :outline :red) "JComponent.outline"))))
   (it "sets text field FlatLaf options"
     (let [lead (label "L")
           t (text :placeholder "Search" :clear-button? true :leading-component lead
@@ -1697,7 +1689,7 @@
       (restore! f)
       (expect (not (maximized? f)))
       (minimize! f)
-      (expect (pos? (bit-and java.awt.Frame/ICONIFIED (.getExtendedState f))))
+      (expect (pos? (bit-and Frame/ICONIFIED (.getExtendedState f))))
       (.dispose f)))
   (it "close! runs :window-closing listeners and the close operation"
     (let [closing (atom 0)
@@ -1752,7 +1744,7 @@
       (expect (= 16 (.getUnitIncrement (.getHorizontalScrollBar s))))
       (expect (= 40 (.getBlockIncrement (.getHorizontalScrollBar s))))
       (expect (= 80 (config s :block-increment)))
-      (expect (= java.awt.Color/RED (.getBackground (.getViewport s))))))
+      (expect (= Color/RED (.getBackground (.getViewport s))))))
   (it "makes the view follow the viewport width with :fit-width?"
     (let [content (text :multi-line? true :wrap-lines? true :text (apply str (repeat 100 "word ")))
           s (scrollable content :fit-width? true)]
@@ -1772,18 +1764,18 @@
           d (.getStyledDocument t)]
       (style-text! t :quote 0 3)
       (style-paragraph! t :quote 4 3)
-      (expect (javax.swing.text.StyleConstants/isStrikeThrough (.getAttributes (.getCharacterElement d 1))))
+      (expect (StyleConstants/isStrikeThrough (.getAttributes (.getCharacterElement d 1))))
       (let [p (.getAttributes (.getParagraphElement d 5))]
-        (expect (= (float 20) (javax.swing.text.StyleConstants/getLeftIndent p)))
-        (expect (= (float 0.5) (javax.swing.text.StyleConstants/getLineSpacing p)))
-        (expect (= javax.swing.text.StyleConstants/ALIGN_CENTER (javax.swing.text.StyleConstants/getAlignment p))))))
+        (expect (= (float 20) (StyleConstants/getLeftIndent p)))
+        (expect (= (float 0.5) (StyleConstants/getLineSpacing p)))
+        (expect (= StyleConstants/ALIGN_CENTER (StyleConstants/getAlignment p))))))
   (it "applies :default-style to every paragraph"
     (let [t (styled-text :text "a\nb\nc" :default-style [:line-spacing 0.3 :size 15])
           d (.getStyledDocument t)]
-      (expect (every? #(= (float 0.3) (javax.swing.text.StyleConstants/getLineSpacing
+      (expect (every? #(= (float 0.3) (StyleConstants/getLineSpacing
                                          (.getAttributes (.getParagraphElement d %))))
                       [0 2 4]))
-      (expect (= 15 (javax.swing.text.StyleConstants/getFontSize (.getAttributes (.getCharacterElement d 2)))))))
+      (expect (= 15 (StyleConstants/getFontSize (.getAttributes (.getCharacterElement d 2)))))))
   (it "rejects unknown style options"
     (expect (try (styled-text :styles [[:x :nope 1]]) false
                  (catch IllegalArgumentException _ true)))))

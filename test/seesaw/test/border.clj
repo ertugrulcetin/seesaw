@@ -12,13 +12,11 @@
   (:require
    [lazytest.core :refer [defdescribe expect it expect-it]]
    [seesaw.border :refer :all])
-  (:import
-   (java.awt Color Insets)
-   (javax.swing.border
-    EmptyBorder
-    LineBorder
-    MatteBorder
-    TitledBorder)))
+  (:import (java.awt Color Insets)
+           (java.awt.image BufferedImage)
+           (javax.swing JLabel)
+           (javax.swing.border EmptyBorder LineBorder MatteBorder TitledBorder
+                               Border)))
 
 (defdescribe empty-border-test
   (it "creates a 1 pixel border by default"
@@ -99,7 +97,7 @@
 
 (defdescribe custom-border-test
   (expect-it "creates a custom border implementation"
-    (instance? javax.swing.border.Border (custom-border)))
+    (instance? Border (custom-border)))
   (it "returns integer insets"
     (let [b (custom-border :insets 3)]
       (expect (= (Insets. 3 3 3 3) (.getBorderInsets b nil)))))
@@ -124,13 +122,13 @@
 (defdescribe rounded-border-test
   (it "has insets of thickness plus padding"
     (let [b (rounded-border :thickness 2 :padding 3 :color :red)
-          i (.getBorderInsets b (javax.swing.JLabel.))]
+          i (.getBorderInsets b (JLabel.))]
       (expect (= (Insets. 5 5 5 5) i))))
   (it "paints a line"
     (let [b (rounded-border :thickness 1 :radius 4 :color :red)
-          img (java.awt.image.BufferedImage. 20 20 java.awt.image.BufferedImage/TYPE_INT_ARGB)
+          img (BufferedImage. 20 20 BufferedImage/TYPE_INT_ARGB)
           g (.createGraphics img)]
-      (.paintBorder b (javax.swing.JLabel.) g 0 0 20 20)
+      (.paintBorder b (JLabel.) g 0 0 20 20)
       (.dispose g)
       (expect (pos? (bit-and 0xff (bit-shift-right (.getRGB img 10 0) 16))))
       (expect (= 0 (.getRGB img 10 10))))))

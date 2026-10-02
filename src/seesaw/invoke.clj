@@ -9,7 +9,8 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.invoke
-  (:import (javax.swing SwingUtilities)))
+  (:import (java.lang.reflect InvocationTargetException)
+           (javax.swing SwingUtilities)))
 
 (defn invoke-later* [f & args]
   (let [f (bound-fn* f)]
@@ -18,22 +19,22 @@
 (defn invoke-now* [f & args]
   (if (SwingUtilities/isEventDispatchThread)
     (apply f args)
-    (let [f      (bound-fn* f)
+    (let [f (bound-fn* f)
           result (volatile! nil)]
       (try
         (SwingUtilities/invokeAndWait #(vreset! result (apply f args)))
         ; rethrow what body threw, rather than invokeAndWait's wrapper
-        (catch java.lang.reflect.InvocationTargetException e
+        (catch InvocationTargetException e
           (throw (or (.getCause e) e))))
       @result)))
 
-(defn invoke-soon* 
+(defn invoke-soon*
   [f & args]
   (if (SwingUtilities/isEventDispatchThread)
     (apply f args)
     (apply invoke-later* f args)))
 
-(defmacro invoke-later 
+(defmacro invoke-later
   "Equivalent to SwingUtilities/invokeLater. Executes the given body sometime
   in the future on the Swing UI thread. For example,
 
@@ -69,7 +70,7 @@
   See:
     http://download.oracle.com/javase/6/docs/api/javax/swing/SwingUtilities.html#invokeAndWait(java.lang.Runnable) 
   "
-  [& body] `(invoke-now*   (fn [] ~@body)))
+  [& body] `(invoke-now* (fn [] ~@body)))
 
 (defmacro invoke-soon
   "Execute code on the swing event thread (EDT) as soon as possible. That is:
@@ -87,7 +88,7 @@
   "
   [& body] `(invoke-soon* (fn [] ~@body)))
 
-(defn signaller* 
+(defn signaller*
   "Returns a function that conditionally queues the given function (+ args) on 
   the UI thread. The call is only queued if there is not already a pending call
   queued. 
@@ -133,12 +134,12 @@
     (fn [& args]
       (let [do-it (compare-and-set! active? false true)]
         (when do-it
-          (invoke-later 
-            (apply f args) 
+          (invoke-later
+            (apply f args)
             (reset! active? false)))
         do-it))))
 
-(defmacro signaller 
+(defmacro signaller
   "Convenience form of (seesaw.invoke/signaller*).
   
   A use of signaller* like this:

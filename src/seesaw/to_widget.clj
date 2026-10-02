@@ -10,23 +10,23 @@
 
 (ns seesaw.to-widget
   (:require [seesaw.util :refer [try-cast]])
-  (:import (java.awt Dimension)
-           (javax.swing Box JLabel JButton)))
+  (:import (java.awt Component)
+           (java.util EventObject)))
 
-(defprotocol ToWidget 
+(defprotocol ToWidget
   (to-widget* [v]))
 
 (defmacro ^{:private true} def-to-widget [t b & forms]
-  `(extend-type 
+  `(extend-type
      ~t
-     ToWidget 
-      (~'to-widget*   ~b ~@forms)))
+     ToWidget
+     (~'to-widget* ~b ~@forms)))
 
 (def-to-widget Object [c] nil)
 
-(def-to-widget java.awt.Component [c] c)
+(def-to-widget Component [c] c)
 
-(def-to-widget java.util.EventObject 
-  [v] 
-  (try-cast java.awt.Component (.getSource v)))
+(def-to-widget EventObject
+               [v]
+               (try-cast Component (.getSource v)))
 

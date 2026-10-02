@@ -8,13 +8,17 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc    "Functions for dealing with options."
+(ns ^{:doc "Functions for dealing with options."
       :author "Dave Ray"}
-seesaw.options
+  seesaw.options
   (:require [seesaw.meta :refer [get-meta put-meta!]]
             [seesaw.ratom :as ratom]
-            [seesaw.util :refer [camelize illegal-argument check-args resource
-                                 resource-key?]]))
+            [seesaw.util :refer [camelize check-args illegal-argument resource
+                                 resource-key?]])
+  (:import (java.awt Color Cursor Dimension Font Insets)
+           (java.beans Introspector PropertyDescriptor)
+           (javax.swing Icon)
+           (javax.swing.border Border)))
 
 (defprotocol OptionProvider
   (get-option-maps* [this]))
@@ -47,7 +51,7 @@ seesaw.options
 
 (defn- getter-name [property]
   (let [property (name property)
-        prefix   (if (.endsWith property "?") "is-" "get-")]
+        prefix (if (.endsWith property "?") "is-" "get-")]
     (->> property
          name
          strip-question-mark
@@ -129,8 +133,8 @@ seesaw.options
 
 (defn- property-descriptors [^Class c]
   (into {}
-        (for [^java.beans.PropertyDescriptor pd
-              (.getPropertyDescriptors (java.beans.Introspector/getBeanInfo c))]
+        (for [^PropertyDescriptor pd
+              (.getPropertyDescriptors (Introspector/getBeanInfo c))]
           [(.getName pd) pd])))
 
 (def ^{:private true} class-properties (memoize property-descriptors))
@@ -143,24 +147,24 @@ seesaw.options
 (defn- converter [^Class t]
   (let [conv (fn [sym] (let [f (requiring-resolve sym)] #(f %)))]
     (cond
-      (= t Boolean/TYPE)                     boolean
-      (= t Integer/TYPE)                     int
-      (= t Long/TYPE)                        long
-      (= t Float/TYPE)                       float
-      (= t Double/TYPE)                      double
-      (= t Character/TYPE)                   char
-      (.isAssignableFrom java.awt.Color t)   (conv 'seesaw.color/to-color)
-      (.isAssignableFrom java.awt.Font t)    (conv 'seesaw.font/to-font)
-      (.isAssignableFrom javax.swing.border.Border t) (conv 'seesaw.border/to-border)
-      (.isAssignableFrom javax.swing.Icon t) (conv 'seesaw.icon/icon)
-      (.isAssignableFrom java.awt.Dimension t) (conv 'seesaw.util/to-dimension)
-      (.isAssignableFrom java.awt.Insets t)  (conv 'seesaw.util/to-insets)
-      (.isAssignableFrom java.awt.Cursor t)  (conv 'seesaw.cursor/cursor)
-      (= String t)                           #(some-> % str)
-      :else                                  identity)))
+      (= t Boolean/TYPE) boolean
+      (= t Integer/TYPE) int
+      (= t Long/TYPE) long
+      (= t Float/TYPE) float
+      (= t Double/TYPE) double
+      (= t Character/TYPE) char
+      (.isAssignableFrom Color t) (conv 'seesaw.color/to-color)
+      (.isAssignableFrom Font t) (conv 'seesaw.font/to-font)
+      (.isAssignableFrom Border t) (conv 'seesaw.border/to-border)
+      (.isAssignableFrom Icon t) (conv 'seesaw.icon/icon)
+      (.isAssignableFrom Dimension t) (conv 'seesaw.util/to-dimension)
+      (.isAssignableFrom Insets t) (conv 'seesaw.util/to-insets)
+      (.isAssignableFrom Cursor t) (conv 'seesaw.cursor/cursor)
+      (= String t) #(some-> % str)
+      :else identity)))
 
 (defn- bean-property-option [target name]
-  (when-let [^java.beans.PropertyDescriptor pd (get (class-properties (class target)) (property-name name))]
+  (when-let [^PropertyDescriptor pd (get (class-properties (class target)) (property-name name))]
     (let [setter (.getWriteMethod pd)
           getter (.getReadMethod pd)]
       (when (or setter getter)
@@ -221,7 +225,7 @@ seesaw.options
   ([target name] (get-option-value target name (get-option-maps* target)))
   ([target name handlers]
    (let [^Option option (lookup-option target handlers name)
-         getter         (:getter option)]
+         getter (:getter option)]
      (if getter
        (getter target)
        (illegal-argument "Option %s cannot be read from %s" name (class target))))))
@@ -230,7 +234,7 @@ seesaw.options
   ([target name value] (set-option-value target name (get-option-maps* target)))
   ([target name value handlers]
    (let [^Option option (lookup-option target handlers name)
-         setter         (:setter option)]
+         setter (:setter option)]
      (if setter
        (setter target value)
        (illegal-argument "Option %s cannot be set on %s" name (class target))))))

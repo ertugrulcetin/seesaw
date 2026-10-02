@@ -12,7 +12,10 @@
   (:require [seesaw.core :refer [canvas timer repaint! frame]]
         [seesaw.graphics :refer [path move-to line-to style stroke translate scale push rotate draw circle line]]
         [seesaw.color :refer [color]]
-        [seesaw.test.examples.example :refer [defexample]]))
+        [seesaw.test.examples.example :refer [defexample]])
+  (:import (java.awt Color Graphics2D)
+           (java.util Calendar)
+           (javax.swing JComponent)))
 
 ; A very rudimentary example of (canvas) that draws an analog clock
 
@@ -35,18 +38,18 @@
                          :stroke (stroke :width 3 :cap :round)))
 
 ; Style for the ticks around the edge of the clock
-(def tick-style (style :foreground java.awt.Color/DARK_GRAY
+(def tick-style (style :foreground Color/DARK_GRAY
                        :stroke (stroke :width 3 :cap :round)))
 
 (defn second-so-far []
 
-  (let [c (java.util.Calendar/getInstance)]
+  (let [c (Calendar/getInstance)]
     (+
-      (* (.get c java.util.Calendar/HOUR_OF_DAY) 60 60)
-      (* (.get c java.util.Calendar/MINUTE) 60)
-      (.get c java.util.Calendar/SECOND))))
+      (* (.get c Calendar/HOUR_OF_DAY) 60 60)
+      (* (.get c Calendar/MINUTE) 60)
+      (.get c Calendar/SECOND))))
 
-(defn paint-clock [^javax.swing.JComponent c ^java.awt.Graphics2D g]
+(defn paint-clock [^JComponent c ^Graphics2D g]
   (let [width       (.getWidth c)
         height  (.getHeight c)
         m       (- (min width height) 15)

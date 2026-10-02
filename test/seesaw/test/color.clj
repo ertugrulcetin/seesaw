@@ -12,8 +12,8 @@
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.color :refer :all]) 
-  (:import
-   (java.awt Color)))
+  (:import (java.awt Color)
+           (javax.swing UIManager)))
 
 (defdescribe get-rgba-test
   (expect-it "returns vector [r g b a] as integers"
@@ -58,7 +58,7 @@
   (it "retrieve a default color from the UIManager"
     (let [name "Label.foreground"
           c (default-color name)
-          expected (.getColor (javax.swing.UIManager/getDefaults) name)]
+          expected (.getColor (UIManager/getDefaults) name)]
       (expect (not (nil? c)))
       (expect (= c expected)))))
 

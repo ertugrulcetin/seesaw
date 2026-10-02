@@ -12,11 +12,13 @@
       :author "Dave Ray"}
   seesaw.chooser
   (:require [seesaw.color :refer [to-color]]
-            [seesaw.options :refer [default-option bean-option apply-options
+            [seesaw.options :refer [apply-options bean-option default-option
                                     option-map option-provider]]
             [seesaw.util :refer [illegal-argument]])
-  (:import (javax.swing.filechooser FileFilter FileNameExtensionFilter)
-           (javax.swing JFileChooser)))
+  (:import (java.awt Dialog FileDialog Frame Window)
+           (java.io File FilenameFilter)
+           (javax.swing JColorChooser JFileChooser SwingUtilities)
+           (javax.swing.filechooser FileFilter FileNameExtensionFilter)))
 
 (defn file-filter
   "Create a FileFilter.
@@ -39,52 +41,52 @@
       description)))
 
 (def ^{:private true} file-chooser-types {
-  :open   JFileChooser/OPEN_DIALOG
-  :save   JFileChooser/SAVE_DIALOG
-  :custom JFileChooser/CUSTOM_DIALOG
-})
+                                          :open JFileChooser/OPEN_DIALOG
+                                          :save JFileChooser/SAVE_DIALOG
+                                          :custom JFileChooser/CUSTOM_DIALOG
+                                          })
 
 (def ^{:private true} file-selection-modes {
-  :files-only     JFileChooser/FILES_ONLY
-  :dirs-only      JFileChooser/DIRECTORIES_ONLY
-  :files-and-dirs JFileChooser/FILES_AND_DIRECTORIES
-})
+                                            :files-only JFileChooser/FILES_ONLY
+                                            :dirs-only JFileChooser/DIRECTORIES_ONLY
+                                            :files-and-dirs JFileChooser/FILES_AND_DIRECTORIES
+                                            })
 
 (defn set-file-filters [^JFileChooser chooser filters]
   (.resetChoosableFileFilters chooser)
   (doseq [f filters]
     (.addChoosableFileFilter chooser
-      (cond
-        (instance? FileFilter f) 
-          f
+                             (cond
+                               (instance? FileFilter f)
+                               f
 
-        (and (sequential? f) (sequential? (second f)))
-          (FileNameExtensionFilter. (first f) (into-array (second f)))
+                               (and (sequential? f) (sequential? (second f)))
+                               (FileNameExtensionFilter. (first f) (into-array (second f)))
 
-        (and (sequential? f) (fn? (second f)))
-          (apply file-filter f)
+                               (and (sequential? f) (fn? (second f)))
+                               (apply file-filter f)
 
-        :else
-        (illegal-argument "not a valid filter: %s" f)))))
+                               :else
+                               (illegal-argument "not a valid filter: %s" f)))))
 
 (defn- set-suggested-name [^JFileChooser chooser suggested-name]
-  (.setSelectedFile chooser (if (instance? java.io.File suggested-name)
-                              suggested-name (java.io.File. (str suggested-name)))))
+  (.setSelectedFile chooser (if (instance? File suggested-name)
+                              suggested-name (File. (str suggested-name)))))
 
-(def ^{:private true} file-chooser-options 
+(def ^{:private true} file-chooser-options
   (option-map
     (default-option :dir
-      (fn [^JFileChooser chooser dir] 
-        (.setCurrentDirectory chooser (if (instance? java.io.File dir) dir 
-                                          (java.io.File. (str dir))))))
+                    (fn [^JFileChooser chooser dir]
+                      (.setCurrentDirectory chooser (if (instance? File dir) dir
+                                                                             (File. (str dir))))))
     (default-option :multi?
-      #(.setMultiSelectionEnabled ^JFileChooser %1 (boolean %2))
-      #(.isMultiSelectionEnabled ^JFileChooser %1))
+                    #(.setMultiSelectionEnabled ^JFileChooser %1 (boolean %2))
+                    #(.isMultiSelectionEnabled ^JFileChooser %1))
     (bean-option [:selection-mode :file-selection-mode] JFileChooser file-selection-modes)
     (default-option :filters set-file-filters)
     (default-option :all-files?
-      #(.setAcceptAllFileFilterUsed ^JFileChooser %1 (boolean %2))
-      #(.isAcceptAllFileFilterUsed ^JFileChooser %1))
+                    #(.setAcceptAllFileFilterUsed ^JFileChooser %1 (boolean %2))
+                    #(.isAcceptAllFileFilterUsed ^JFileChooser %1))
     (default-option :suggested-name set-suggested-name)))
 
 (option-provider JFileChooser file-chooser-options)
@@ -93,9 +95,9 @@
 
 (defn- show-file-chooser [^JFileChooser chooser parent type]
   (case type
-    :open (.showOpenDialog chooser parent) 
+    :open (.showOpenDialog chooser parent)
     :save (.showSaveDialog chooser parent)
-          (.showDialog chooser parent (str type))))
+    (.showDialog chooser parent (str type))))
 
 (defn- configure-file-chooser [^JFileChooser chooser opts]
   (apply-options chooser opts)
@@ -183,7 +185,7 @@
                         success-fn (fn [fc files] files)
                         cancel-fn (fn [fc])}
                    :as opts}] (if (keyword? (first args)) (cons nil args) args)
-        parent  (if (keyword? parent) nil parent)
+        parent (if (keyword? parent) nil parent)
         ^JFileChooser chooser (configure-file-chooser
                                 (JFileChooser.)
                                 (dissoc
@@ -198,23 +200,23 @@
           multi? (.isMultiSelectionEnabled chooser)]
       (cond
         (= result JFileChooser/APPROVE_OPTION)
-          (do
-            (when remember-directory?
-              (remember-chooser-dir chooser))
-            (success-fn
-              chooser
-              (if multi?
-                (.getSelectedFiles chooser)
-                (.getSelectedFile chooser))))
+        (do
+          (when remember-directory?
+            (remember-chooser-dir chooser))
+          (success-fn
+            chooser
+            (if multi?
+              (.getSelectedFiles chooser)
+              (.getSelectedFile chooser))))
         :else (cancel-fn chooser)))))
 
 (defn- dialog-owner [parent]
   (when parent
-    (let [w (if (instance? java.awt.Window parent)
+    (let [w (if (instance? Window parent)
               parent
-              (javax.swing.SwingUtilities/getWindowAncestor
+              (SwingUtilities/getWindowAncestor
                 ((requiring-resolve 'seesaw.core/to-widget) parent)))]
-      (when (or (instance? java.awt.Frame w) (instance? java.awt.Dialog w)) w))))
+      (when (or (instance? Frame w) (instance? Dialog w)) w))))
 
 (defn choose-native-file
   "Choose a file with the platform's native file dialog (java.awt.FileDialog),
@@ -239,11 +241,11 @@
   (let [[parent & {:keys [type title dir file multi? extensions dirs?] :or {type :open}}]
         (if (keyword? (first args)) (cons nil args) args)
         owner (dialog-owner parent)
-        mode  (case type :open java.awt.FileDialog/LOAD :save java.awt.FileDialog/SAVE)
+        mode (case type :open FileDialog/LOAD :save FileDialog/SAVE)
         title (str (or title ""))
-        ^java.awt.FileDialog d (cond
-                                 (instance? java.awt.Dialog owner) (java.awt.FileDialog. ^java.awt.Dialog owner title (int mode))
-                                 :else (java.awt.FileDialog. ^java.awt.Frame owner title (int mode)))
+        ^FileDialog d (cond
+                        (instance? Dialog owner) (FileDialog. ^Dialog owner title (int mode))
+                        :else (FileDialog. ^Frame owner title (int mode)))
         exts (set (map #(.toLowerCase (str %)) extensions))
         dirs-prop "apple.awt.fileDialogForDirectories"
         old-dirs (System/getProperty dirs-prop)]
@@ -251,7 +253,7 @@
     (when file (.setFile d (str file)))
     (.setMultipleMode d (boolean multi?))
     (when (seq exts)
-      (.setFilenameFilter d (reify java.io.FilenameFilter
+      (.setFilenameFilter d (reify FilenameFilter
                               (accept [_ _ n]
                                 (let [i (.lastIndexOf ^String n ".")]
                                   (and (pos? i) (contains? exts (.toLowerCase (subs n (inc i))))))))))
@@ -280,7 +282,7 @@
   "
   [& args]
   (let [[parent & {:keys [color title]
-                   :or { title "Choose a color"}
+                   :or {title "Choose a color"}
                    :as opts}] (if (keyword? (first args)) (cons nil args) args)
         parent (if (keyword? parent) nil parent)]
-    (javax.swing.JColorChooser/showDialog parent title (to-color color))))
+    (JColorChooser/showDialog parent title (to-color color))))

@@ -11,34 +11,41 @@
 (ns ^{:doc "Basic graphics functions to simplify use of Graphics2D."
       :author "Dave Ray"}
   seesaw.graphics
-  (:require clojure.java.io
+  (:require [clojure.java.io]
             [seesaw.color :refer [to-color]]
             [seesaw.font :refer [to-font]]
             [seesaw.util :refer [illegal-argument]])
-  (:import (java.awt Graphics2D RenderingHints)
-           (java.awt.image BufferedImage)))
+  (:import (java.awt BasicStroke Color Component Font Graphics2D Image
+                     LinearGradientPaint MultipleGradientPaint$CycleMethod
+                     Paint Polygon RadialGradientPaint RenderingHints Shape Stroke)
+           (java.awt.geom Arc2D Arc2D$Double
+                          Ellipse2D$Double Line2D$Double Path2D$Double Point2D$Float
+                          Rectangle2D$Double RoundRectangle2D$Double)
+           (java.awt.image BufferedImage RenderedImage)
+           (javax.imageio ImageIO)
+           (javax.swing ImageIcon)))
 
 (defn anti-alias
   "Enable anti-aliasing on the given Graphics2D object.
 
   Returns g2d."
-  [^java.awt.Graphics2D g2d]
+  [^Graphics2D g2d]
   (doto g2d
     (.setRenderingHint RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)))
 
 (defn buffered-image
-  (^BufferedImage [width height]   (buffered-image width height BufferedImage/TYPE_INT_ARGB))
+  (^BufferedImage [width height] (buffered-image width height BufferedImage/TYPE_INT_ARGB))
   (^BufferedImage [width height t] (BufferedImage. width height t)))
 
 (defn snapshot
   "Render a widget (or window) into a new java.awt.image.BufferedImage, as
   it currently looks. The widget must have a size, i.e. be laid out (packed
   or shown). With :scale, renders at that factor, e.g. 2 for HiDPI."
-  ^java.awt.image.BufferedImage [^java.awt.Component c & {:keys [scale] :or {scale 1}}]
-  (let [w   (max 1 (int (Math/ceil (* scale (.getWidth c)))))
-        h   (max 1 (int (Math/ceil (* scale (.getHeight c)))))
+  ^BufferedImage [^Component c & {:keys [scale] :or {scale 1}}]
+  (let [w (max 1 (int (Math/ceil (* scale (.getWidth c)))))
+        h (max 1 (int (Math/ceil (* scale (.getHeight c)))))
         img (buffered-image w h)
-        g   (.createGraphics img)]
+        g (.createGraphics img)]
     (try
       (.scale g (double scale) (double scale))
       (.printAll c g)
@@ -48,17 +55,17 @@
 (defn write-png!
   "Write a java.awt.image.RenderedImage (e.g. from (snapshot) or
   (buffered-image)) to a PNG file. Returns the file."
-  [^java.awt.image.RenderedImage image file]
+  [^RenderedImage image file]
   (let [f (clojure.java.io/file file)]
     (when-let [d (.getParentFile f)] (.mkdirs d))
-    (javax.imageio.ImageIO/write image "png" f)
+    (ImageIO/write image "png" f)
     f))
 
 (defn- to-image [v]
   (cond
     (nil? v) nil
-    (instance? java.awt.Image v) v
-    (instance? javax.swing.ImageIcon v) (.getImage ^javax.swing.ImageIcon v)
+    (instance? Image v) v
+    (instance? ImageIcon v) (.getImage ^ImageIcon v)
     :else (illegal-argument "Don't know how to make image from %s" v)))
 
 ;*******************************************************************************
@@ -87,19 +94,19 @@
 ;*******************************************************************************
 ; Basic shapes
 
-(defn line [x1 y1 x2 y2] (java.awt.geom.Line2D$Double. x1 y1 x2 y2))
+(defn line [x1 y1 x2 y2] (Line2D$Double. x1 y1 x2 y2))
 
 (defn rect
   "
   Create a rectangular shape with the given upper-left corner, width and
   height.
   "
-  ([x y w h] (java.awt.geom.Rectangle2D$Double.
-                (if (> w 0) x (+ x w))
-                (if (> h 0) y (+ y h))
-                (Math/abs (double w))
-                (Math/abs (double h))
-                                        ))
+  ([x y w h] (Rectangle2D$Double.
+               (if (> w 0) x (+ x w))
+               (if (> h 0) y (+ y h))
+               (Math/abs (double w))
+               (Math/abs (double h))
+               ))
   ([x y w] (rect x y w w)))
 
 
@@ -108,23 +115,23 @@
   Create a rectangular shape with the given upper-left corner, width,
   height and corner radii.
   "
-  ([x y w h rx ry] (java.awt.geom.RoundRectangle2D$Double.
-                      (if (> w 0) x (+ x w))
-                      (if (> h 0) y (+ y h))
-                      (Math/abs (double w))
-                      (Math/abs (double h))
-                      rx ry))
+  ([x y w h rx ry] (RoundRectangle2D$Double.
+                     (if (> w 0) x (+ x w))
+                     (if (> h 0) y (+ y h))
+                     (Math/abs (double w))
+                     (Math/abs (double h))
+                     rx ry))
   ([x y w h rx] (rounded-rect x y w h rx rx))
   ([x y w h] (rounded-rect x y w h 5)))
 
 (defn ellipse
   "Create an ellipse that occupies the given rectangular region"
-  ([x y w h]  (java.awt.geom.Ellipse2D$Double.
-                      (if (> w 0) x (+ x w))
-                      (if (> h 0) y (+ y h))
-                      (Math/abs (double w))
-                      (Math/abs (double h))))
-  ([x y w]  (ellipse x y w w)))
+  ([x y w h] (Ellipse2D$Double.
+               (if (> w 0) x (+ x w))
+               (if (> h 0) y (+ y h))
+               (Math/abs (double w))
+               (Math/abs (double h))))
+  ([x y w] (ellipse x y w w)))
 
 (defn circle
   "Create a circle with the given center and radius"
@@ -133,22 +140,22 @@
 
 (defn arc
   ([x y w h start extent arc-type]
-    (java.awt.geom.Arc2D$Double.
-      (if (> w 0) x (+ x w))
-      (if (> h 0) y (+ y h))
-      (Math/abs (double w))
-      (Math/abs (double h))
-      start extent arc-type))
+   (Arc2D$Double.
+     (if (> w 0) x (+ x w))
+     (if (> h 0) y (+ y h))
+     (Math/abs (double w))
+     (Math/abs (double h))
+     start extent arc-type))
   ([x y w h start extent]
-    (arc x y w h start extent java.awt.geom.Arc2D/OPEN)))
+   (arc x y w h start extent Arc2D/OPEN)))
 
 (defn chord
   [x y w h start extent]
-  (arc x y w h start extent java.awt.geom.Arc2D/CHORD))
+  (arc x y w h start extent Arc2D/CHORD))
 
 (defn pie
   [x y w h start extent]
-  (arc x y w h start extent java.awt.geom.Arc2D/PIE))
+  (arc x y w h start extent Arc2D/PIE))
 
 (defn polygon
   "Create a polygonal shape with the given set of vertices.
@@ -157,7 +164,7 @@
     (polygon [1 2] [3 4] [5 6])
   "
   [& points]
-  (let [p (java.awt.Polygon.)]
+  (let [p (Polygon.)]
     (doseq [[x y] points]
       (.addPoint p x y))
     p))
@@ -165,16 +172,16 @@
 (declare line-to move-to curve-to quad-to)
 
 (def ^{:private true} path-ops {
-  'line-to '.lineTo
-  'move-to '.moveTo
-  'curve-to '.curveTo
-  'quad-to '.quadTo
-})
+                                'line-to '.lineTo
+                                'move-to '.moveTo
+                                'curve-to '.curveTo
+                                'quad-to '.quadTo
+                                })
 
 (defmacro path [opts & forms]
   (when (not (vector? opts)) (illegal-argument "path must start with vector of (possibly empty) options"))
   (let [p (gensym "path")]
-    `(let [~p (java.awt.geom.Path2D$Double.)]
+    `(let [~p (Path2D$Double.)]
        ; Insert an initial moveTo to avoid needless exceptions
        (.moveTo ~p 0 0)
        ~@(for [f forms]
@@ -196,34 +203,34 @@
   "Apply a rotation to the graphics context by degrees
 
   Returns g2d"
-  [^java.awt.Graphics2D g2d degrees]
+  [^Graphics2D g2d degrees]
   (.rotate g2d (Math/toRadians degrees)) g2d)
 
 (defn translate
   "Apply a translation to the graphics context
 
   Returns g2d"
-  [^java.awt.Graphics2D g2d dx dy] (.translate g2d (double dx) (double dy)) g2d)
+  [^Graphics2D g2d dx dy] (.translate g2d (double dx) (double dy)) g2d)
 
 (defn scale
   "Apply a scale factor to the graphics context
 
   Returns g2d"
-  ([^java.awt.Graphics2D g2d sx sy] (.scale g2d sx sy) g2d)
-  ([^java.awt.Graphics2D g2d s]     (.scale g2d s s) g2d))
+  ([^Graphics2D g2d sx sy] (.scale g2d sx sy) g2d)
+  ([^Graphics2D g2d s] (.scale g2d s s) g2d))
 
 ;*******************************************************************************
 ; Gradients
 
-(defn- ^java.awt.geom.Point2D$Float to-point2d-f [[x y]] (java.awt.geom.Point2D$Float. (float x) (float y)))
+(defn- ^Point2D$Float to-point2d-f [[x y]] (Point2D$Float. (float x) (float y)))
 (def ^{:private true} default-start [0 0])
 (def ^{:private true} default-end [1 0])
 (def ^{:private true} default-fractions [0.0 1.0])
-(def ^{:private true} default-colors [java.awt.Color/WHITE java.awt.Color/BLACK])
+(def ^{:private true} default-colors [Color/WHITE Color/BLACK])
 (def ^{:private true} cycle-map
-  {:none    java.awt.MultipleGradientPaint$CycleMethod/NO_CYCLE
-   :repeat  java.awt.MultipleGradientPaint$CycleMethod/REPEAT
-   :reflect java.awt.MultipleGradientPaint$CycleMethod/REFLECT })
+  {:none MultipleGradientPaint$CycleMethod/NO_CYCLE
+   :repeat MultipleGradientPaint$CycleMethod/REPEAT
+   :reflect MultipleGradientPaint$CycleMethod/REFLECT})
 
 (defn linear-gradient
   "Creates a linear gradient suitable for use on the :foreground and
@@ -249,18 +256,18 @@
     http://docs.oracle.com/javase/6/docs/api/java/awt/LinearGradientPaint.html
   "
   [& {:keys [start end fractions colors cycle]
-      :or {start     default-start
-           end       default-end
+      :or {start default-start
+           end default-end
            fractions default-fractions
-           colors    default-colors
-           cycle     :none }
+           colors default-colors
+           cycle :none}
       :as opts}]
-    (java.awt.LinearGradientPaint.
-      (to-point2d-f start)
-      (to-point2d-f end)
-      (float-array fractions)
-      (into-array java.awt.Color (map to-color colors))
-      (cycle-map cycle)))
+  (LinearGradientPaint.
+    (to-point2d-f start)
+    (to-point2d-f end)
+    (float-array fractions)
+    (into-array Color (map to-color colors))
+    (cycle-map cycle)))
 
 (def ^{:private true} default-center [0 0])
 (def ^{:private true} default-radius 1.0)
@@ -290,34 +297,34 @@
     http://docs.oracle.com/javase/6/docs/api/java/awt/RadialGradientPaint.html
   "
   [& {:keys [center focus radius fractions colors cycle]
-      :or {center    default-center
-           radius    default-radius
+      :or {center default-center
+           radius default-radius
            fractions default-fractions
-           colors    default-colors
-           cycle     :none }
+           colors default-colors
+           cycle :none}
       :as opts}]
-    (java.awt.RadialGradientPaint.
-      (to-point2d-f center)
-      (float radius)
-      (to-point2d-f (or focus center))
-      (float-array fractions)
-      ^{:tag "[Ljava.awt.Color;"} (into-array java.awt.Color (map to-color colors))
-      ^java.awt.MultipleGradientPaint$CycleMethod (cycle-map cycle)))
+  (RadialGradientPaint.
+    (to-point2d-f center)
+    (float radius)
+    (to-point2d-f (or focus center))
+    (float-array fractions)
+    ^{:tag "[Ljava.awt.Color;"} (into-array Color (map to-color colors))
+    ^MultipleGradientPaint$CycleMethod (cycle-map cycle)))
 
 ;*******************************************************************************
 ; Strokes
 
 (def ^{:private true} stroke-caps {
-  :square java.awt.BasicStroke/CAP_SQUARE
-  :butt   java.awt.BasicStroke/CAP_BUTT
-  :round  java.awt.BasicStroke/CAP_ROUND
-})
+                                   :square BasicStroke/CAP_SQUARE
+                                   :butt BasicStroke/CAP_BUTT
+                                   :round BasicStroke/CAP_ROUND
+                                   })
 
 (def ^{:private true} stroke-joins {
-  :bevel java.awt.BasicStroke/JOIN_BEVEL
-  :miter java.awt.BasicStroke/JOIN_MITER
-  :round java.awt.BasicStroke/JOIN_ROUND
-})
+                                    :bevel BasicStroke/JOIN_BEVEL
+                                    :miter BasicStroke/JOIN_MITER
+                                    :round BasicStroke/JOIN_ROUND
+                                    })
 
 (defn stroke
   "Create a new stroke with the given properties:
@@ -326,12 +333,12 @@
   "
   [& {:keys [width cap join miter-limit dashes dash-phase]
       :or {width 1 cap :square join :miter miter-limit 10.0 dashes nil dash-phase 0.0}}]
-  (java.awt.BasicStroke. width
-                         (stroke-caps cap)
-                         (stroke-joins join)
-                         miter-limit
-                         (when (seq dashes) (float-array dashes))
-                         dash-phase))
+  (BasicStroke. width
+                (stroke-caps cap)
+                (stroke-joins join)
+                miter-limit
+                (when (seq dashes) (float-array dashes))
+                dash-phase))
 
 (defn to-stroke
   "Convert v to a stroke. As follows depending on v:
@@ -343,9 +350,9 @@
    "
   [v]
   (cond
-    (nil? v)    nil
+    (nil? v) nil
     (number? v) (stroke :width v)
-    (instance? java.awt.Stroke v) v
+    (instance? Stroke v) v
     :else (illegal-argument "Don't know how to make a stroke from %s" v)))
 
 (def ^{:private true} default-stroke (stroke))
@@ -358,14 +365,14 @@
   color at drawing time, e.g. a component's foreground in a (paint-icon)."
   [v]
   (cond
-    (instance? java.awt.Paint v) v
+    (instance? Paint v) v
     (= :current v) :current
     :else (to-color v)))
 
-(defrecord Style [^java.awt.Paint  foreground
-                  ^java.awt.Paint  background
-                  ^java.awt.Stroke stroke
-                  ^java.awt.Font   font])
+(defrecord Style [^Paint foreground
+                  ^Paint background
+                  ^Stroke stroke
+                  ^Font font])
 
 (defn style
   "Create a new style object for use with (seesaw.graphics/draw). Takes a list
@@ -421,10 +428,10 @@
     (seesaw.graphics/draw)
   "
   [s & {:keys [foreground background stroke font]
-        :or { foreground (:foreground s) ; Preserve original value and watch out for nil
-              background (:background s)
-              stroke (:stroke s)
-              font (:font s) }}]
+        :or {foreground (:foreground s)                     ; Preserve original value and watch out for nil
+             background (:background s)
+             stroke (:stroke s)
+             font (:font s)}}]
   (Style.
     (to-paint foreground)
     (to-paint background)
@@ -435,14 +442,14 @@
 ; Shape drawing protocol
 
 (defprotocol Draw
-  (draw* [shape ^java.awt.Graphics2D g2d style]))
+  (draw* [shape ^Graphics2D g2d style]))
 
-(extend-type java.awt.Shape Draw
-  (draw* [shape ^java.awt.Graphics2D g2d style]
+(extend-type Shape Draw
+  (draw* [shape ^Graphics2D g2d style]
     (let [current (.getColor g2d)
           fg (let [fg (:foreground style)] (if (= :current fg) current fg))
           bg (let [bg (:background style)] (if (= :current bg) current bg))
-          s  (or (:stroke style) default-stroke)]
+          s (or (:stroke style) default-stroke)]
       (when bg
         (do
           (.setPaint g2d bg)
@@ -454,17 +461,17 @@
           (.draw g2d shape))))))
 
 (extend-type StringShape Draw
-  (draw* [shape ^java.awt.Graphics2D g2d style]
+  (draw* [shape ^Graphics2D g2d style]
     (let [fg (:foreground style)
-          f  (:font style)]
+          f (:font style)]
       (when f (.setFont g2d f))
       (when-not (= :current fg)
-        (.setPaint g2d (or fg java.awt.Color/BLACK)))
+        (.setPaint g2d (or fg Color/BLACK)))
       (.drawString g2d ^String (:value shape) (float (:x shape)) (float (:y shape))))))
 
 (extend-type ImageShape Draw
-  (draw* [shape ^java.awt.Graphics2D g2d style]
-    (.drawImage g2d ^java.awt.Image (:image shape) ^Integer (:x shape) ^Integer (:y shape) nil)))
+  (draw* [shape ^Graphics2D g2d style]
+    (.drawImage g2d ^Image (:image shape) ^Integer (:x shape) ^Integer (:y shape) nil)))
 
 (defn draw
   "Draw a one or more shape/style pairs to the given graphics context.
@@ -480,8 +487,8 @@
   "
   ([g2d] g2d)
   ([g2d shape style]
-      (draw* shape g2d style)
-      g2d)
+   (draw* shape g2d style)
+   g2d)
   ([g2d shape style & more]
    (let [ret (draw g2d shape style)]
      (if more

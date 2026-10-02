@@ -15,19 +15,22 @@
             [seesaw.layout :refer [LayoutManipulation add-widget
                                    handle-structure-change]]
             [seesaw.options :refer [default-option option-map option-provider]]
-            [seesaw.util :refer [cond-doto]]))
+            [seesaw.util :refer [cond-doto]])
+  (:import (java.awt Container)
+           (javax.swing JPanel)
+           (net.miginfocom.swing MigLayout)))
 
 ;*******************************************************************************
 ; MigLayout
-(defn- apply-mig-constraints [^java.awt.Container widget constraints]
-  (let [^net.miginfocom.swing.MigLayout layout (.getLayout widget)
+(defn- apply-mig-constraints [^Container widget constraints]
+  (let [^MigLayout layout (.getLayout widget)
         [lc cc rc] constraints]
     (cond-doto layout
-      lc (.setLayoutConstraints lc)
-      cc (.setColumnConstraints cc)
-      rc (.setRowConstraints rc))))
+               lc (.setLayoutConstraints lc)
+               cc (.setColumnConstraints cc)
+               rc (.setRowConstraints rc))))
 
-(defn- add-mig-items [^java.awt.Container parent items]
+(defn- add-mig-items [^Container parent items]
   (.removeAll parent)
   (doseq [[widget constraint] items]
     (add-widget parent widget constraint))
@@ -38,7 +41,7 @@
     (default-option :constraints apply-mig-constraints)
     (default-option :items add-mig-items)))
 
-(option-provider net.miginfocom.swing.MigLayout mig-layout-options)
+(option-provider MigLayout mig-layout-options)
 
 (def mig-panel-options default-options)
 
@@ -59,14 +62,14 @@
     http://www.miglayout.com
     (seesaw.core/default-options)
   "
-  { :seesaw {:class 'javax.swing.JPanel }}
-  ^javax.swing.JPanel [& opts]
-  (abstract-panel (net.miginfocom.swing.MigLayout.) opts))
+  {:seesaw {:class `JPanel}}
+  ^JPanel [& opts]
+  (abstract-panel (MigLayout.) opts))
 
 (extend-protocol LayoutManipulation
-  net.miginfocom.swing.MigLayout
-    (add!* [layout target widget constraint]
-      (add-widget target widget constraint))
-    (get-constraint* [layout container widget]
-      (.getComponentConstraints layout widget)))
+  MigLayout
+  (add!* [layout target widget constraint]
+    (add-widget target widget constraint))
+  (get-constraint* [layout container widget]
+    (.getComponentConstraints layout widget)))
 

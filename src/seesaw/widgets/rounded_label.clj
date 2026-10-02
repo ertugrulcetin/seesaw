@@ -11,13 +11,15 @@
 (ns ^{:doc "Function to create a label with a rounded border and background."
       :author "Dave Ray"}
   seesaw.widgets.rounded-label
-  (:require [seesaw.core :refer [label label-options]]
-            [seesaw.options :refer [apply-options option-map default-option]]
-            [seesaw.widget-options :refer [WidgetOptionProvider]]
-            [seesaw.graphics :refer [anti-alias]]))
+  (:require [seesaw.core]
+            [seesaw.graphics :refer [anti-alias]]
+            [seesaw.options :refer [apply-options]])
+  (:import (clojure.lang Reflector)
+           (java.awt Graphics)
+           (javax.swing JLabel)))
 
 (defn- rounded-label-proxy [paint]
-  (proxy [javax.swing.JLabel] []
+  (proxy [JLabel] []
     (isOpaque [] false)
     (setOpaque [v])
     (paintComponent [g]
@@ -26,7 +28,7 @@
       ; paintComponent is protected, so this is (proxy-super paintComponent g)
       ; with explicit reflection
       (proxy-call-with-super
-        #(clojure.lang.Reflector/invokeInstanceMethod this "paintComponent" (object-array [g]))
+        #(Reflector/invokeInstanceMethod this "paintComponent" (object-array [g]))
         this "paintComponent"))))
 
 (def ^{:private true} RoundedLabel (class (rounded-label-proxy nil)))
@@ -39,9 +41,9 @@
   See:
     (seesaw.core/label)
   "
-  ^javax.swing.JLabel [& opts]
+  ^JLabel [& opts]
   (let [radius 15
-        paint (fn [^javax.swing.JLabel c ^java.awt.Graphics g]
+        paint (fn [^JLabel c ^Graphics g]
                 (doto g
                   (.setColor (.getBackground c))
                   (.fillRoundRect
@@ -56,5 +58,5 @@
   (-> (frame :content (rounded-label :border 5
                                      :background :darkgrey
                                      :text "I'm a rounded label"))
-    pack! show!))
+      pack! show!))
 

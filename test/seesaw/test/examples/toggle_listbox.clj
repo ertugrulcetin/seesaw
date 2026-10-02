@@ -12,10 +12,9 @@
   (:require
    [seesaw.core :refer :all]
    [seesaw.test.examples.example :refer [defexample]])
-  (:import
-   (java.awt Dimension)
-   (java.awt.image BufferedImage)
-   (javax.swing ImageIcon)))
+  (:import (java.awt Dimension)
+           (java.awt.image BufferedImage)
+           (javax.swing ImageIcon)))
 
 
 ;; I learned about the trick of first calling setSize on a Swing

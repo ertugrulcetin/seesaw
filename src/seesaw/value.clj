@@ -11,10 +11,13 @@
 (ns ^{:doc "Functions for dealing with widget value. Prefer (seesaw.core/value)."
       :author "Dave Ray"}
   seesaw.value
-  (:require [seesaw.selection :as sel]
-            [seesaw.selector :as sor]
-            [seesaw.config :as cfg]
-            [seesaw.util :as util]))
+  (:require [seesaw.config :as cfg]
+            [seesaw.selection :as sel]
+            [seesaw.selector :as sor])
+  (:import (java.awt Container)
+           (javax.swing AbstractButton ButtonGroup JComboBox JLabel JList
+                        JProgressBar JSlider JSpinner)
+           (javax.swing.text JTextComponent)))
 
 (defprotocol Value
   (container?* [this])
@@ -22,67 +25,67 @@
   (value!* [this v]))
 
 (extend-protocol Value
-  java.awt.Container
-    (container?* [this] true)
-    (value* [this]
-      (into {} (->> (sor/select this [:*])
-                 (remove container?*)            ; don't recurse
-                 (filter #(satisfies? Value %))  ; skip unhandled
-                 (map (fn [c]
-                        (if-let [id (sor/id-of c)] ; only things with :id
-                          [id (value* c)])))
-                 (filter identity))))
-    (value!* [this value-map]
-      (doseq [w (sor/select this [:*])]
-        (let [id (sor/id-of w)]
-          (if (contains? value-map id) ; nil values are allowed
-            (value!* w (value-map id)))))
-      this)
+  Container
+  (container?* [this] true)
+  (value* [this]
+    (into {} (->> (sor/select this [:*])
+                  (remove container?*)                      ; don't recurse
+                  (filter #(satisfies? Value %))            ; skip unhandled
+                  (map (fn [c]
+                         (if-let [id (sor/id-of c)]         ; only things with :id
+                           [id (value* c)])))
+                  (filter identity))))
+  (value!* [this value-map]
+    (doseq [w (sor/select this [:*])]
+      (let [id (sor/id-of w)]
+        (if (contains? value-map id)                        ; nil values are allowed
+          (value!* w (value-map id)))))
+    this)
 
-  javax.swing.JLabel
-    (container?* [this] false)
-    (value* [this] (.getText this))
-    (value!* [this v] (cfg/config!* this [:text v]))
+  JLabel
+  (container?* [this] false)
+  (value* [this] (.getText this))
+  (value!* [this v] (cfg/config!* this [:text v]))
 
-  javax.swing.text.JTextComponent
-    (container?* [this] false)
-    (value* [this] (.getText this))
-    (value!* [this v] (cfg/config!* this [:text v]))
+  JTextComponent
+  (container?* [this] false)
+  (value* [this] (.getText this))
+  (value!* [this v] (cfg/config!* this [:text v]))
 
-  javax.swing.JComboBox
-    (container?* [this] false)
-    (value* [this] (sel/selection this))
-    (value!* [this v] (sel/selection! this v))
+  JComboBox
+  (container?* [this] false)
+  (value* [this] (sel/selection this))
+  (value!* [this v] (sel/selection! this v))
 
-  javax.swing.JList
-    (container?* [this] false)
-    (value* [this] (sel/selection this))
-    (value!* [this v] (sel/selection! this v))
+  JList
+  (container?* [this] false)
+  (value* [this] (sel/selection this))
+  (value!* [this v] (sel/selection! this v))
 
-  javax.swing.AbstractButton
-    (container?* [this] false)
-    (value* [this] (.isSelected this))
-    (value!* [this v] (doto this (.setSelected (boolean v))))
+  AbstractButton
+  (container?* [this] false)
+  (value* [this] (.isSelected this))
+  (value!* [this v] (doto this (.setSelected (boolean v))))
 
-  javax.swing.ButtonGroup
-    (container?* [this] false)
-    (value* [this] (sel/selection this))
-    (value!* [this v] (sel/selection! this v))
+  ButtonGroup
+  (container?* [this] false)
+  (value* [this] (sel/selection this))
+  (value!* [this v] (sel/selection! this v))
 
-  javax.swing.JSpinner
-    (container?* [this] false)
-    (value* [this] (sel/selection this))
-    (value!* [this v] (sel/selection! this v))
+  JSpinner
+  (container?* [this] false)
+  (value* [this] (sel/selection this))
+  (value!* [this v] (sel/selection! this v))
 
-  javax.swing.JSlider
-    (container?* [this] false)
-    (value* [this] (.getValue this))
-    (value!* [this v] (doto this (.setValue v)))
+  JSlider
+  (container?* [this] false)
+  (value* [this] (.getValue this))
+  (value!* [this v] (doto this (.setValue v)))
 
-  javax.swing.JProgressBar
-    (container?* [this] false)
-    (value* [this] (.getValue this))
-    (value!* [this v] (doto this (.setValue v)))
+  JProgressBar
+  (container?* [this] false)
+  (value* [this] (.getValue this))
+  (value!* [this v] (doto this (.setValue v)))
 
   ; TODO Tree?
   ; TODO Table?

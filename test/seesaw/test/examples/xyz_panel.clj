@@ -13,12 +13,13 @@
             [seesaw.behave :refer [when-mouse-dragged]]
             [seesaw.graphics :refer [draw rounded-rect style]]
             [seesaw.border :refer [line-border]]
-            [seesaw.test.examples.example :refer [defexample]]))
+            [seesaw.test.examples.example :refer [defexample]])
+  (:import (java.awt Point)))
 
 
 ; Put in some basic support for moving w around using behave/when-mouse-dragged.
 (defn movable [w]
-  (let [start-point (java.awt.Point.)]
+  (let [start-point (Point.)]
     (when-mouse-dragged w
       ; When the mouse is pressed, move the widget to the front of the z order
       :start (fn [e]

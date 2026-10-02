@@ -9,17 +9,18 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.keystroke
-  (:import (javax.swing KeyStroke)
-           (java.awt Toolkit)
-           (java.awt.event InputEvent))
   (:require [clojure.string :only [join split]]
-            [seesaw.util :refer [illegal-argument resource resource-key?]]))
+            [seesaw.util :refer [illegal-argument resource resource-key?]])
+  (:import (java.awt Toolkit)
+ (java.awt.event InputEvent KeyEvent)
+ (java.lang.reflect Field)
+ (javax.swing KeyStroke)))
 
 (def ^{:private true} modifier-masks {
-  InputEvent/CTRL_DOWN_MASK "ctrl"
-  InputEvent/META_DOWN_MASK "meta"
-  InputEvent/ALT_DOWN_MASK  "alt"
-})
+                                      InputEvent/CTRL_DOWN_MASK "ctrl"
+                                      InputEvent/META_DOWN_MASK "meta"
+                                      InputEvent/ALT_DOWN_MASK "alt"
+                                      })
 
 (defn- menu-modifier []
   (modifier-masks (.getMenuShortcutKeyMaskEx (Toolkit/getDefaultToolkit)) "ctrl"))
@@ -46,11 +47,11 @@
 
   See http://download.oracle.com/javase/6/docs/api/javax/swing/KeyStroke.html#getKeyStroke(java.lang.String)"
   ^KeyStroke [arg]
-  (cond 
-    (nil? arg)                nil
+  (cond
+    (nil? arg) nil
     (instance? KeyStroke arg) arg
-    (char? arg)               (KeyStroke/getKeyStroke ^Character arg)
-    (resource-key? arg)       (keystroke (resource arg))
+    (char? arg) (KeyStroke/getKeyStroke ^Character arg)
+    (resource-key? arg) (keystroke (resource arg))
     :else (if-let [ks (KeyStroke/getKeyStroke ^String (preprocess-descriptor (str arg)))]
             ks
             (illegal-argument "Invalid keystroke descriptor: %s" arg))))
@@ -60,22 +61,22 @@
   (.startsWith (.toLowerCase (System/getProperty "os.name" "")) "mac"))
 
 (def ^{:private true} mac-modifier-symbols
-  [[InputEvent/CTRL_DOWN_MASK  "\u2303"]
-   [InputEvent/ALT_DOWN_MASK   "\u2325"]
+  [[InputEvent/CTRL_DOWN_MASK "\u2303"]
+   [InputEvent/ALT_DOWN_MASK "\u2325"]
    [InputEvent/SHIFT_DOWN_MASK "\u21E7"]
-   [InputEvent/META_DOWN_MASK  "\u2318"]])
+   [InputEvent/META_DOWN_MASK "\u2318"]])
 
 (def ^{:private true} modifier-names
-  [[InputEvent/CTRL_DOWN_MASK  "Ctrl"]
-   [InputEvent/META_DOWN_MASK  "Meta"]
-   [InputEvent/ALT_DOWN_MASK   "Alt"]
+  [[InputEvent/CTRL_DOWN_MASK "Ctrl"]
+   [InputEvent/META_DOWN_MASK "Meta"]
+   [InputEvent/ALT_DOWN_MASK "Alt"]
    [InputEvent/SHIFT_DOWN_MASK "Shift"]])
 
 (def ^{:private true} vk-names
   ; KeyEvent/VK_ENTER -> "ENTER", ...
   (delay
     (into {}
-          (for [^java.lang.reflect.Field f (.getFields java.awt.event.KeyEvent)
+          (for [^Field f (.getFields KeyEvent)
                 :let [n (.getName f)]
                 :when (and (.startsWith n "VK_")
                            (= Integer/TYPE (.getType f)))]
@@ -98,7 +99,7 @@
                              (str (subs w 0 1) (.toLowerCase (subs w 1))))))
 
 (defn- key-name [^KeyStroke ks mac?]
-  (if (= java.awt.event.KeyEvent/VK_UNDEFINED (.getKeyCode ks))
+  (if (= KeyEvent/VK_UNDEFINED (.getKeyCode ks))
     (str (.getKeyChar ks))
     (let [n (get @vk-names (.getKeyCode ks) (str (.getKeyCode ks)))]
       (or (when mac? (mac-key-symbols n))

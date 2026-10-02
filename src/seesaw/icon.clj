@@ -13,13 +13,15 @@
   seesaw.icon
   (:require [clojure.java.io :as jio]
             [seesaw.util :refer [resource resource-key? to-url]])
-  (:import (javax.swing ImageIcon)
-           (java.awt Component Graphics2D RenderingHints)))
+  (:import (java.awt Color Component Graphics2D Image RenderingHints)
+           (java.io File)
+           (java.net URL)
+           (javax.swing Icon ImageIcon)))
 
 ;*******************************************************************************
 ; Icons
 
-(defn icon 
+(defn icon
   "Loads an icon. The parameter p can be any of the following:
   
     nil              - returns nil
@@ -34,19 +36,19 @@
   This is the function used to process the :icon property on most widgets
   and windows. Thus, any of these values may be used for the :icon property.
   "
-  ^javax.swing.ImageIcon [p]
+  ^ImageIcon [p]
   (cond
-    (nil? p) nil 
-    (instance? javax.swing.Icon p) p
-    (instance? java.awt.Image p)   (ImageIcon. ^java.awt.Image p)
-    (instance? java.net.URL p)     (ImageIcon. ^java.net.URL p)
-    (instance? java.io.File p)     (ImageIcon. (.getAbsolutePath ^java.io.File p))
-    (resource-key? p)              (icon (resource p))
+    (nil? p) nil
+    (instance? Icon p) p
+    (instance? Image p) (ImageIcon. ^Image p)
+    (instance? URL p) (ImageIcon. ^URL p)
+    (instance? File p) (ImageIcon. (.getAbsolutePath ^File p))
+    (resource-key? p) (icon (resource p))
     :else
-      (if-let [url (jio/resource (str p))]
-        (icon url)
-        (if-let [url (to-url p)] 
-          (ImageIcon. url)))))
+    (if-let [url (jio/resource (str p))]
+      (icon url)
+      (if-let [url (to-url p)]
+        (ImageIcon. url)))))
 
 
 (defn paint-icon
@@ -73,24 +75,24 @@
   (let [[height paint & {:keys [color disabled-color]}] (if (fn? (first args))
                                                           (cons width args)
                                                           args)]
-   (let [color (some-> color ((requiring-resolve 'seesaw.color/to-color)))
-         disabled-color (some-> disabled-color ((requiring-resolve 'seesaw.color/to-color)))]
-     (reify javax.swing.Icon
-       (getIconWidth [_] width)
-       (getIconHeight [_] height)
-       (paintIcon [_ c g x y]
-         (let [^Graphics2D g2 (.create g)
-               ^Component c c
-               fg (or (when c (.getForeground c)) java.awt.Color/BLACK)
-               ^java.awt.Color fg (if (and c (not (.isEnabled c)))
-                                    (or disabled-color
-                                        (java.awt.Color. (.getRed fg) (.getGreen fg) (.getBlue fg)
-                                                         (int (/ (.getAlpha fg) 2.5))))
-                                    (or color fg))]
-           (try
-             (.translate g2 (int x) (int y))
-             (.setRenderingHint g2 RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
-             (.setRenderingHint g2 RenderingHints/KEY_STROKE_CONTROL RenderingHints/VALUE_STROKE_PURE)
-             (.setColor g2 fg)
-             (paint c g2)
-             (finally (.dispose g2)))))))))
+    (let [color (some-> color ((requiring-resolve 'seesaw.color/to-color)))
+          disabled-color (some-> disabled-color ((requiring-resolve 'seesaw.color/to-color)))]
+      (reify Icon
+        (getIconWidth [_] width)
+        (getIconHeight [_] height)
+        (paintIcon [_ c g x y]
+          (let [^Graphics2D g2 (.create g)
+                ^Component c c
+                fg (or (when c (.getForeground c)) Color/BLACK)
+                ^Color fg (if (and c (not (.isEnabled c)))
+                            (or disabled-color
+                                (Color. (.getRed fg) (.getGreen fg) (.getBlue fg)
+                                        (int (/ (.getAlpha fg) 2.5))))
+                            (or color fg))]
+            (try
+              (.translate g2 (int x) (int y))
+              (.setRenderingHint g2 RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON)
+              (.setRenderingHint g2 RenderingHints/KEY_STROKE_CONTROL RenderingHints/VALUE_STROKE_PURE)
+              (.setColor g2 fg)
+              (paint c g2)
+              (finally (.dispose g2)))))))))

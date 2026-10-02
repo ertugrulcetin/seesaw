@@ -3,7 +3,8 @@
   (:require
    [lazytest.core :refer [defdescribe describe expect it]]
    [seesaw.bind :refer :all]
-   [seesaw.core :as ssc]))
+   [seesaw.core :as ssc])
+  (:import (javax.swing DefaultBoundedRangeModel SwingUtilities)))
 
 (defdescribe bind-test
   (it "returns a composite bindable"
@@ -66,13 +67,13 @@
   (describe "with a BoundedRangeModel"
     (it "Updates an atom when the model changes"
       (let [a (atom -1)
-            m (javax.swing.DefaultBoundedRangeModel. 50 0 2 100)]
+            m (DefaultBoundedRangeModel. 50 0 2 100)]
         (bind m a)
         (.setValue m 51)
         (expect (= 51 @a))))
     (it "Updates the model when the atom changes"
       (let [a (atom -1)
-            m (javax.swing.DefaultBoundedRangeModel. 50 0 2 100)]
+            m (DefaultBoundedRangeModel. 50 0 2 100)]
         (bind a m)
         (reset! a 99)
         (expect (= 99 (.getValue m))))))
@@ -338,7 +339,7 @@
           p     (promise)]
       (bind start
             (notify-later)
-            (transform (fn [v] {:value v :edt? (javax.swing.SwingUtilities/isEventDispatchThread)}))
+            (transform (fn [v] {:value v :edt? (SwingUtilities/isEventDispatchThread)}))
             end)
       (subscribe end (fn [v] (deliver p :got-it)))
       (reset! start 99)
@@ -351,7 +352,7 @@
           end   (atom nil)]
       (bind start
             (notify-soon)
-            (transform (fn [v] {:value v :edt? (javax.swing.SwingUtilities/isEventDispatchThread)}))
+            (transform (fn [v] {:value v :edt? (SwingUtilities/isEventDispatchThread)}))
             end)
       (ssc/invoke-now (reset! start 99))
       (expect (= {:value 99 :edt? true} @end)))))
@@ -362,7 +363,7 @@
           end   (atom nil)]
       (bind start
             (notify-now)
-            (transform (fn [v] {:value v :edt? (javax.swing.SwingUtilities/isEventDispatchThread)}))
+            (transform (fn [v] {:value v :edt? (SwingUtilities/isEventDispatchThread)}))
             end)
       (reset! start 99)
       (expect (= {:value 99 :edt? true} @end)))))
@@ -404,7 +405,7 @@
   (describe "on a javax.swing.BoundedRangeModel"
     (it "should return a function that unsubscribes"
       (let [calls (atom 0)
-            target (javax.swing.DefaultBoundedRangeModel. 50 0 2 100)
+            target (DefaultBoundedRangeModel. 50 0 2 100)
             unsub  (subscribe target (fn [_] (swap! calls inc)))]
         (.setValue target 1)
         (expect (= 1 @calls))

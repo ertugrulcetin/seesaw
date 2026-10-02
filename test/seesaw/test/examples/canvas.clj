@@ -12,7 +12,8 @@
   (:require [seesaw.core :refer [action to-frame config! frame border-panel canvas horizontal-panel select]]
         [seesaw.graphics :refer [draw polygon style stroke path move-to line-to ellipse push rotate string-shape translate]]
         [seesaw.color :refer [color]]
-        [seesaw.test.examples.example :refer [defexample]]))
+        [seesaw.test.examples.example :refer [defexample]])
+  (:import (java.awt Color)))
 
 ; A very rudimentary example of (canvas).
 
@@ -30,7 +31,7 @@
         h (.getHeight c)]
     (doto g
       (draw (polygon [0 h] [(/ w 4) 0] [(/ w 2) (/ h 2)] [w (/ h 2)] [0 h])
-                     (style :foreground java.awt.Color/BLACK
+                     (style :foreground Color/BLACK
                        :background (color 128 128 128 128)
                        :stroke     (stroke :width 4)))
       (.setColor (color 224 224 0 128))
@@ -68,7 +69,7 @@
       (draw g (string-shape 20 20  "Hello. This is a canvas example") text-style))
     (push g
       (translate g w2 h2)
-      (draw g star (style :foreground java.awt.Color/BLACK :background java.awt.Color/YELLOW)))))
+      (draw g star (style :foreground Color/BLACK :background Color/YELLOW)))))
 
 ; Create an action that swaps the paint handler for the canvas.
 ; Note that we can use (config!) to set the :paint handler just like

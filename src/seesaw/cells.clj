@@ -13,50 +13,53 @@
             can be given directly to the :renderer option."
       :author "Dave Ray"}
   seesaw.cells
-  (:require [seesaw.util :refer [illegal-argument]]))
+  (:require [seesaw.util :refer [illegal-argument]])
+  (:import (javax.swing DefaultListCellRenderer JComboBox JList JTree
+                        ListCellRenderer)
+           (javax.swing.tree DefaultTreeCellRenderer TreeCellRenderer)))
 
 (def ^{:private true} nil-fn (constantly nil))
 
-(defn default-list-cell-renderer 
+(defn default-list-cell-renderer
   [render-fn]
-  (if (instance? javax.swing.ListCellRenderer render-fn)
+  (if (instance? ListCellRenderer render-fn)
     render-fn
-    (proxy [javax.swing.DefaultListCellRenderer] []
+    (proxy [DefaultListCellRenderer] []
       (getListCellRendererComponent [component value index selected? focus?]
-        (let [^javax.swing.DefaultListCellRenderer this this]
+        (let [^DefaultListCellRenderer this this]
           (proxy-super getListCellRendererComponent component value index selected? focus?)
-          (render-fn this { :this      this 
-                            :component component 
-                            :value     value 
-                            :index     index 
-                            :selected? selected? 
-                            :focus?    focus? })        
+          (render-fn this {:this this
+                           :component component
+                           :value value
+                           :index index
+                           :selected? selected?
+                           :focus? focus?})
           this)))))
 
-(defn default-tree-cell-renderer 
+(defn default-tree-cell-renderer
   [render-fn]
-  (if (instance? javax.swing.tree.TreeCellRenderer render-fn)
+  (if (instance? TreeCellRenderer render-fn)
     render-fn
-    (proxy [javax.swing.tree.DefaultTreeCellRenderer] []
+    (proxy [DefaultTreeCellRenderer] []
       (getTreeCellRendererComponent [component value selected? expanded? leaf? row focus?]
-        (let [^javax.swing.tree.DefaultTreeCellRenderer this this]
+        (let [^DefaultTreeCellRenderer this this]
           (proxy-super getTreeCellRendererComponent component value selected? expanded? leaf? row focus?)
-          (render-fn this { :this      this 
-                            :component component 
-                            :value     value 
-                            :selected? selected? 
-                            :expaned?  expanded? 
-                            :leaf?     leaf?
-                            :row       row
-                            :focus?    focus? })
-        this)))))
+          (render-fn this {:this this
+                           :component component
+                           :value value
+                           :selected? selected?
+                           :expaned? expanded?
+                           :leaf? leaf?
+                           :row row
+                           :focus? focus?})
+          this)))))
 
 (defn to-cell-renderer
   [target arg]
   (cond
-    (or (instance? javax.swing.JList target) 
-        (instance? javax.swing.JComboBox target)) (default-list-cell-renderer arg)
-    (instance? javax.swing.JTree target) (default-tree-cell-renderer arg)
+    (or (instance? JList target)
+        (instance? JComboBox target)) (default-list-cell-renderer arg)
+    (instance? JTree target) (default-tree-cell-renderer arg)
     :else (illegal-argument "Don't know how to make cell renderer for %s" (class arg))))
       
 

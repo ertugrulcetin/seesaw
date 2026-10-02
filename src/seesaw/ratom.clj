@@ -19,8 +19,10 @@
              (swap! app-db assoc :title \"new title\") ; frame title updates"}
   seesaw.ratom
   (:require [seesaw.invoke :refer [invoke-soon*]])
-  (:import (clojure.lang IAtom IAtom2 IDeref IMeta IRef)
+  (:import (clojure.lang Atom IAtom IAtom2 IDeref IMeta IRef)
+           (java.io Writer)
            (java.lang.ref WeakReference)
+           (java.util Collections Set WeakHashMap)
            (java.util.concurrent ConcurrentHashMap)
            (java.util.function BiFunction)))
 
@@ -36,7 +38,7 @@
 ; ratom
 
 ; subs caches this ratom's subscriptions, see (subscribe)
-(deftype RAtom [^clojure.lang.Atom state ^ConcurrentHashMap subs]
+(deftype RAtom [^Atom state ^ConcurrentHashMap subs]
   Reactive
 
   IAtom
@@ -140,7 +142,7 @@
         (remove-watch source this)))
     this))
 
-(defmethod print-method Reaction [r ^java.io.Writer w]
+(defmethod print-method Reaction [r ^Writer w]
   (.write w (str "#<Reaction " (pr-str @r) ">")))
 
 (defn reaction
@@ -156,7 +158,7 @@
 ; re-frame style subscriptions
 
 (defonce ^{:doc "The default app state used by (subscribe query-v)."}
-  app-db (ratom {}))
+         app-db (ratom {}))
 
 (defonce ^{:private true} subscriptions (atom {}))
 
@@ -165,17 +167,17 @@
 (defonce ^{:private true} live-subscriptions (atom {}))
 
 (defn- weak-set []
-  (java.util.Collections/synchronizedSet
-    (java.util.Collections/newSetFromMap (java.util.WeakHashMap.))))
+  (Collections/synchronizedSet
+    (Collections/newSetFromMap (WeakHashMap.))))
 
 (defn- track-subscription! [query-id r]
   (let [subs (or (get @live-subscriptions query-id)
                  (get (swap! live-subscriptions update query-id #(or % (weak-set))) query-id))]
-    (.add ^java.util.Set subs r)
+    (.add ^Set subs r)
     r))
 
 (defn- live-subscriptions-for [query-id]
-  (when-let [^java.util.Set subs (get @live-subscriptions query-id)]
+  (when-let [^Set subs (get @live-subscriptions query-id)]
     (locking subs (vec subs))))
 
 (defn reg-sub
@@ -198,7 +200,7 @@
   weak, so a reaction lives only while something (e.g. a bound widget) uses it."
   [^RAtom db key make]
   (let [^ConcurrentHashMap cache (.-subs db)
-        result  (volatile! nil)
+        result (volatile! nil)
         created (volatile! false)]
     (.compute cache key
               (reify BiFunction
@@ -236,11 +238,11 @@
    (let [query-id (first query-v)
          ; look the handler up on every computation so a re-registered one
          ; takes effect
-         compute  (fn [v]
-                    (if-let [handler (get @subscriptions query-id)]
-                      (handler v query-v)
-                      (get-in v query-v)))
-         make     #(track-subscription! query-id (reaction db compute))]
+         compute (fn [v]
+                   (if-let [handler (get @subscriptions query-id)]
+                     (handler v query-v)
+                     (get-in v query-v)))
+         make #(track-subscription! query-id (reaction db compute))]
      (if (instance? RAtom db)
        (cached-subscription db query-v make)
        (make)))))
@@ -260,16 +262,16 @@
   (Swing forbids changing a document while notifying its listeners)."
   ([target setter source] (bind! target setter source nil))
   ([target setter source getter]
-   (let [k       (gensym "seesaw-ratom-binding")
-         target  (WeakReference. target)
-         unbind  #(remove-watch source k)
+   (let [k (gensym "seesaw-ratom-binding")
+         target (WeakReference. target)
+         unbind #(remove-watch source k)
          current (fn [t]
                    (if getter
                      (try (getter t) (catch Exception _ ::unknown))
                      ::unknown))
-         set!    (fn [t v]
-                   (when-not (= v (current t))
-                     (setter t v)))]
+         set! (fn [t v]
+                (when-not (= v (current t))
+                  (setter t v)))]
      (add-watch source k
                 (fn [_ _ o n]
                   (if-let [t (.get target)]

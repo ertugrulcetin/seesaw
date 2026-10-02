@@ -17,27 +17,29 @@
   seesaw.desktop
   (:require [clojure.java.io :as io]
             [seesaw.util :refer [illegal-argument]])
-  (:import (java.awt Desktop Desktop$Action Taskbar Taskbar$Feature)
-           (java.awt.desktop AboutHandler PreferencesHandler QuitHandler
-                             QuitStrategy OpenFilesHandler AppReopenedListener)
-           (java.net URI)))
+  (:import (java.awt Desktop Desktop$Action GraphicsEnvironment Image
+                     Taskbar Taskbar$Feature)
+           (java.awt.desktop AboutHandler AppReopenedListener OpenFilesHandler
+                             PreferencesHandler QuitHandler QuitStrategy)
+           (java.net URI)
+           (javax.swing ImageIcon)))
 
 (def ^{:private true} actions
-  {:browse            Desktop$Action/BROWSE
-   :open              Desktop$Action/OPEN
-   :edit              Desktop$Action/EDIT
-   :mail              Desktop$Action/MAIL
-   :print             Desktop$Action/PRINT
-   :reveal            Desktop$Action/BROWSE_FILE_DIR
-   :about             Desktop$Action/APP_ABOUT
-   :preferences       Desktop$Action/APP_PREFERENCES
-   :quit              Desktop$Action/APP_QUIT_HANDLER
-   :quit-strategy     Desktop$Action/APP_QUIT_STRATEGY
-   :open-files        Desktop$Action/APP_OPEN_FILE
-   :app-events        Desktop$Action/APP_EVENT_REOPENED})
+  {:browse Desktop$Action/BROWSE
+   :open Desktop$Action/OPEN
+   :edit Desktop$Action/EDIT
+   :mail Desktop$Action/MAIL
+   :print Desktop$Action/PRINT
+   :reveal Desktop$Action/BROWSE_FILE_DIR
+   :about Desktop$Action/APP_ABOUT
+   :preferences Desktop$Action/APP_PREFERENCES
+   :quit Desktop$Action/APP_QUIT_HANDLER
+   :quit-strategy Desktop$Action/APP_QUIT_STRATEGY
+   :open-files Desktop$Action/APP_OPEN_FILE
+   :app-events Desktop$Action/APP_EVENT_REOPENED})
 
 (defn- desktop ^Desktop []
-  (when (and (not (java.awt.GraphicsEnvironment/isHeadless)) (Desktop/isDesktopSupported))
+  (when (and (not (GraphicsEnvironment/isHeadless)) (Desktop/isDesktopSupported))
     (Desktop/getDesktop)))
 
 (defn supported?
@@ -103,26 +105,26 @@
   (into {}
         (for [[k f] handlers]
           [k (case k
-               :about       (when-supported :about
-                              (.setAboutHandler (desktop)
-                                (when f (reify AboutHandler (handleAbout [_ e] (f e))))))
+               :about (when-supported :about
+                                      (.setAboutHandler (desktop)
+                                                        (when f (reify AboutHandler (handleAbout [_ e] (f e))))))
                :preferences (when-supported :preferences
-                              (.setPreferencesHandler (desktop)
-                                (when f (reify PreferencesHandler (handlePreferences [_ e] (f e))))))
-               :quit        (when-supported :quit
-                              (.setQuitHandler (desktop)
-                                (when f
-                                  (reify QuitHandler
-                                    (handleQuitRequestWith [_ e response]
-                                      (if (f e) (.performQuit response) (.cancelQuit response)))))))
-               :open-files  (when-supported :open-files
-                              (.setOpenFileHandler (desktop)
-                                (when f (reify OpenFilesHandler
-                                          (openFiles [_ e] (f (seq (.getFiles e))))))))
-               :reopen      (when-supported :app-events
-                              (when f
-                                (.addAppEventListener (desktop)
-                                  (reify AppReopenedListener (appReopened [_ e] (f e))))))
+                                            (.setPreferencesHandler (desktop)
+                                                                    (when f (reify PreferencesHandler (handlePreferences [_ e] (f e))))))
+               :quit (when-supported :quit
+                                     (.setQuitHandler (desktop)
+                                                      (when f
+                                                        (reify QuitHandler
+                                                          (handleQuitRequestWith [_ e response]
+                                                            (if (f e) (.performQuit response) (.cancelQuit response)))))))
+               :open-files (when-supported :open-files
+                                           (.setOpenFileHandler (desktop)
+                                                                (when f (reify OpenFilesHandler
+                                                                          (openFiles [_ e] (f (seq (.getFiles e))))))))
+               :reopen (when-supported :app-events
+                                       (when f
+                                         (.addAppEventListener (desktop)
+                                                               (reify AppReopenedListener (appReopened [_ e] (f e))))))
                (illegal-argument "Unknown app handler %s" k))])))
 
 (defn quit-strategy!
@@ -131,15 +133,15 @@
   their :window-closing listeners run)."
   [strategy]
   (when-supported :quit-strategy
-    (.setQuitStrategy (desktop) (case strategy
-                                  :normal-exit       QuitStrategy/NORMAL_EXIT
-                                  :close-all-windows QuitStrategy/CLOSE_ALL_WINDOWS))))
+                  (.setQuitStrategy (desktop) (case strategy
+                                                :normal-exit QuitStrategy/NORMAL_EXIT
+                                                :close-all-windows QuitStrategy/CLOSE_ALL_WINDOWS))))
 
 ;*******************************************************************************
 ; Taskbar / dock
 
 (defn- taskbar ^Taskbar []
-  (when (and (not (java.awt.GraphicsEnvironment/isHeadless)) (Taskbar/isTaskbarSupported))
+  (when (and (not (GraphicsEnvironment/isHeadless)) (Taskbar/isTaskbarSupported))
     (Taskbar/getTaskbar)))
 
 (defn- taskbar-supports? [^Taskbar$Feature feature]
@@ -150,9 +152,9 @@
   anything (seesaw.icon/icon) accepts."
   [image]
   (if (taskbar-supports? Taskbar$Feature/ICON_IMAGE)
-    (let [img (if (instance? java.awt.Image image)
+    (let [img (if (instance? Image image)
                 image
-                (.getImage ^javax.swing.ImageIcon ((requiring-resolve 'seesaw.icon/icon) image)))]
+                (.getImage ^ImageIcon ((requiring-resolve 'seesaw.icon/icon) image)))]
       (.setIconImage (taskbar) img)
       true)
     false))
@@ -196,6 +198,6 @@
     (System/setProperty "apple.awt.application.appearance"
                         (case appearance
                           :system "system"
-                          :light  "NSAppearanceNameAqua"
-                          :dark   "NSAppearanceNameDarkAqua")))
+                          :light "NSAppearanceNameAqua"
+                          :dark "NSAppearanceNameDarkAqua")))
   nil)

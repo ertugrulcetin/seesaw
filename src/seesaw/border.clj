@@ -12,17 +12,19 @@
       :author "Dave Ray"}
   seesaw.border
   (:require [seesaw.color :refer [to-color]]
-            [seesaw.util :refer [to-insets resource resource-key?]])
-  (:import (javax.swing BorderFactory)
-           (javax.swing.border Border)
-           (java.awt Color)))
+            [seesaw.util :refer [resource resource-key? to-insets]])
+  (:import (java.awt BasicStroke Color Component Graphics Graphics2D Insets
+                     RenderingHints)
+           (java.awt.geom RoundRectangle2D$Double)
+           (javax.swing BorderFactory)
+           (javax.swing.border AbstractBorder Border)))
 
 ;*******************************************************************************
 ; Borders
 
 (declare to-border)
 
-(defn empty-border 
+(defn empty-border
   "Create an empty border. The following properties are supported:
   
     :thickness The thickness of the border (all sides) in pixels. This property
@@ -47,7 +49,7 @@
     (let [t (or thickness 1)]
       (BorderFactory/createEmptyBorder t t t t))))
 
-(defn line-border 
+(defn line-border
   "Create a colored border with following properties:
   
     :color The color, passed through (seesaw.color/to-color). Defaults to black.
@@ -65,8 +67,8 @@
   "
   [& {:keys [color thickness top left bottom right] :or {thickness 1 color Color/BLACK}}]
   (if (or top left bottom right)
-    (BorderFactory/createMatteBorder 
-      (int (or top 0)) (int (or left 0)) (int (or bottom 0)) (int (or right 0)) 
+    (BorderFactory/createMatteBorder
+      (int (or top 0)) (int (or left 0)) (int (or bottom 0)) (int (or right 0))
       ^Color (to-color color))
     (BorderFactory/createLineBorder (to-color color) thickness)))
 
@@ -86,7 +88,7 @@
   ([b0 b1] (BorderFactory/createCompoundBorder (to-border b1) (to-border b0)))
   ([b0 b1 & more] (reduce #(compound-border %1 %2) (compound-border b0 b1) more)))
 
-(defn custom-border 
+(defn custom-border
   "Define a custom border with the following properties:
   
     :paint A function that takes the same arguments as Border.paintBorder:
@@ -110,13 +112,13 @@
   "
   [& args]
   (let [{:keys [insets opaque? paint]} args
-        insets (cond 
+        insets (cond
                  (fn? insets) insets
                  :else (constantly insets))
         opaque? (cond
                   (fn? opaque?) opaque?
-                  :else (constantly opaque?))] 
-    (reify javax.swing.border.Border
+                  :else (constantly opaque?))]
+    (reify Border
       (getBorderInsets [this c]
         (to-insets (insets c)))
       (isBorderOpaque [this]
@@ -139,27 +141,27 @@
   "
   [& {:keys [color thickness radius padding] :or {thickness 1 radius 6 padding 0}}]
   (let [color (some-> color to-color)
-        ^java.awt.Insets pad (to-insets padding)
+        ^Insets pad (to-insets padding)
         t (int thickness)]
-    (proxy [javax.swing.border.AbstractBorder] []
+    (proxy [AbstractBorder] []
       (getBorderInsets
-        ([c] (java.awt.Insets. (+ t (.top pad)) (+ t (.left pad)) (+ t (.bottom pad)) (+ t (.right pad))))
-        ([c ^java.awt.Insets i]
+        ([c] (Insets. (+ t (.top pad)) (+ t (.left pad)) (+ t (.bottom pad)) (+ t (.right pad))))
+        ([c ^Insets i]
          (set! (.top i) (+ t (.top pad)))
          (set! (.left i) (+ t (.left pad)))
          (set! (.bottom i) (+ t (.bottom pad)))
          (set! (.right i) (+ t (.right pad)))
          i))
       (isBorderOpaque [] false)
-      (paintBorder [^java.awt.Component c ^java.awt.Graphics g x y w h]
-        (let [^java.awt.Graphics2D g2 (.create g)
+      (paintBorder [^Component c ^Graphics g x y w h]
+        (let [^Graphics2D g2 (.create g)
               half (/ t 2.0)]
           (try
-            (.setRenderingHint g2 java.awt.RenderingHints/KEY_ANTIALIASING
-                               java.awt.RenderingHints/VALUE_ANTIALIAS_ON)
+            (.setRenderingHint g2 RenderingHints/KEY_ANTIALIASING
+                               RenderingHints/VALUE_ANTIALIAS_ON)
             (.setColor g2 (or color (.getForeground c)))
-            (.setStroke g2 (java.awt.BasicStroke. (float t)))
-            (.draw g2 (java.awt.geom.RoundRectangle2D$Double.
+            (.setStroke g2 (BasicStroke. (float t)))
+            (.draw g2 (RoundRectangle2D$Double.
                         (+ x half) (+ y half) (- w t) (- h t) (* 2 radius) (* 2 radius)))
             (finally (.dispose g2))))))))
 
@@ -183,14 +185,14 @@
   to-border is used implicitly by the :border option supported by all widgets
   to it is rarely necessary to call directly.
   "
-  ([b] 
-    (cond
-      (nil? b)             nil
-      (instance? Border b) b
-      (integer? b)         (empty-border :thickness b)
-      (coll? b)            (apply to-border b)
-      (resource-key? b)    (to-border (resource b))
-      :else                (BorderFactory/createTitledBorder (str b))))
+  ([b]
+   (cond
+     (nil? b) nil
+     (instance? Border b) b
+     (integer? b) (empty-border :thickness b)
+     (coll? b) (apply to-border b)
+     (resource-key? b) (to-border (resource b))
+     :else (BorderFactory/createTitledBorder (str b))))
   ([b & args]
-    (apply compound-border b args)))
+   (apply compound-border b args)))
 

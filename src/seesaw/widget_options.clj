@@ -11,28 +11,30 @@
 (ns ^{:doc "Functions and protocol for dealing with widget options."
       :author "Dave Ray"}
   seesaw.widget-options
-  (:require [seesaw.options :refer [OptionProvider get-option-maps*]]))
+  (:require [seesaw.options :refer [OptionProvider get-option-maps*]])
+  (:import (java.awt LayoutManager)
+           (javax.swing JComponent)))
 
 (defprotocol WidgetOptionProvider
   (get-widget-option-map* [this])
   (get-layout-option-map* [this]))
 
 (extend-protocol OptionProvider
-  javax.swing.JComponent 
-    (get-option-maps* [this]
-      (concat
-        (get-widget-option-map* this)
-        (get-layout-option-map* this)))
+  JComponent
+  (get-option-maps* [this]
+    (concat
+      (get-widget-option-map* this)
+      (get-layout-option-map* this)))
 
-  java.awt.LayoutManager
-    (get-option-maps* [this] nil))
+  LayoutManager
+  (get-option-maps* [this] nil))
 
 (defmacro widget-option-provider [class options & [nil-layout-options]]
-  `(extend-protocol WidgetOptionProvider 
+  `(extend-protocol WidgetOptionProvider
      ~class
      (~'get-widget-option-map* [this#] [~options])
      (~'get-layout-option-map* [this#]
-      (if-let [layout# (.getLayout this#)]
-        (get-option-maps* layout#)
-        [~nil-layout-options]))))
+       (if-let [layout# (.getLayout this#)]
+         (get-option-maps* layout#)
+         [~nil-layout-options]))))
 

@@ -13,8 +13,14 @@
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.color :refer [to-color]]
    [seesaw.graphics :refer :all])
-  (:import
-   (java.awt RenderingHints)))
+  (:import (java.awt RenderingHints Color BasicStroke
+                     MultipleGradientPaint$CycleMethod)
+           (java.awt.geom Line2D$Double Rectangle2D$Double
+                          RoundRectangle2D$Double Ellipse2D$Double Arc2D$Double Arc2D
+                          Point2D$Float Path2D Point2D$Double)
+           (java.io File)
+           (javax.imageio ImageIO)
+           (javax.swing JPanel)))
 
 (defdescribe anti-alias-test
   (it "turns on anti-aliasing on a graphics object"
@@ -25,106 +31,106 @@
 
 (defdescribe to-paint-test
   (expect-it "returns its input if it's a java.awt.Paint"
-    (= java.awt.Color/BLACK (to-paint java.awt.Color/BLACK)))
+    (= Color/BLACK (to-paint Color/BLACK)))
   (expect-it "falls back to to-color otherwise"
     (= (to-color :black) (to-paint :black))))
 
 (defdescribe line-test
   (it "creates a line shape with given end points"
     (let [l (line 1 2 3 4)]
-      (expect (= java.awt.geom.Line2D$Double (class l)))
+      (expect (= Line2D$Double (class l)))
       (expect (= [1.0 2.0 3.0 4.0] [(.x1 l) (.y1 l) (.x2 l) (.y2 l)])))))
 
 (defdescribe rect-test
   (it "creates a rectangle shape with give corner, width and height"
     (let [r (rect 1 2 3 4)]
-      (expect (= java.awt.geom.Rectangle2D$Double (class r)))
+      (expect (= Rectangle2D$Double (class r)))
       (expect (= [1.0 2.0 3.0 4.0] [(.x r) (.y r) (.width r) (.height r)]))))
   (it "creates a rectangle shape with give corner, adjusting for negative width and height"
     (let [r (rect 10 20 -3 -4)]
-      (expect (= java.awt.geom.Rectangle2D$Double (class r)))
+      (expect (= Rectangle2D$Double (class r)))
       (expect (= [7.0 16.0 3.0 4.0] [(.x r) (.y r) (.width r) (.height r)]))))
   (it "creates a square with give corner, and side length"
     (let [r (rect 1 2 3)]
-      (expect (= java.awt.geom.Rectangle2D$Double (class r)))
+      (expect (= Rectangle2D$Double (class r)))
       (expect (= [1.0 2.0 3.0 3.0] [(.x r) (.y r) (.width r) (.height r)])))))
 
 (defdescribe rounded-rect-test
   (it "creates a rounded rectangle shape with give corner, width and height and radii"
     (let [r (rounded-rect 1 2 3 4 5 6)]
-      (expect (= java.awt.geom.RoundRectangle2D$Double (class r)))
+      (expect (= RoundRectangle2D$Double (class r)))
       (expect (= [1.0 2.0 3.0 4.0] [(.x r) (.y r) (.width r) (.height r)]))
       (expect (= [5.0 6.0] [(.arcwidth r) (.archeight r)]))))
   (it "creates a rounded rectangle shape with give corner, negative width and height and radii"
     (let [r (rounded-rect 10 20 -3 -4 5 6)]
-      (expect (= java.awt.geom.RoundRectangle2D$Double (class r)))
+      (expect (= RoundRectangle2D$Double (class r)))
       (expect (= [7.0 16.0 3.0 4.0] [(.x r) (.y r) (.width r) (.height r)]))
       (expect (= [5.0 6.0] [(.arcwidth r) (.archeight r)]))))
   (it "creates a rounded rectangle shape with give corner, width and height and radius"
     (let [r (rounded-rect 1 2 3 4 5)]
-      (expect (= java.awt.geom.RoundRectangle2D$Double (class r)))
+      (expect (= RoundRectangle2D$Double (class r)))
       (expect (= [1.0 2.0 3.0 4.0] [(.x r) (.y r) (.width r) (.height r)]))
       (expect (= [5.0 5.0] [(.arcwidth r) (.archeight r)])))))
 
 (defdescribe ellipse-test
   (it "creates an elliptical shape with give corner, width and height"
     (let [r (ellipse 1 2 3 4)]
-      (expect (= java.awt.geom.Ellipse2D$Double (class r)))
+      (expect (= Ellipse2D$Double (class r)))
       (expect (= [1.0 2.0 3.0 4.0] [(.x r) (.y r) (.width r) (.height r)]))))
   (it "creates an elliptical shape with give corner, negative width and height"
     (let [r (ellipse 11 12 -3 -4)]
-      (expect (= java.awt.geom.Ellipse2D$Double (class r)))
+      (expect (= Ellipse2D$Double (class r)))
       (expect (= [8.0 8.0 3.0 4.0] [(.x r) (.y r) (.width r) (.height r)]))))
   (it "creates a square with give corner, and side length"
     (let [r (ellipse 1 2 3)]
-      (expect (= java.awt.geom.Ellipse2D$Double (class r)))
+      (expect (= Ellipse2D$Double (class r)))
       (expect (= [1.0 2.0 3.0 3.0] [(.x r) (.y r) (.width r) (.height r)])))))
 
 (defdescribe circle-test
   (it "creates a circle with center and radius"
     (let [r (circle 4 5 6)]
-      (expect (= java.awt.geom.Ellipse2D$Double (class r)))
+      (expect (= Ellipse2D$Double (class r)))
       (expect (= [-2.0 -1.0 12.0 12.0] [(.x r) (.y r) (.width r) (.height r)])))))
 
 (defdescribe arc-test
   (it "creates an arc shape with corner, width, height and angle"
     (let [s (arc 1 2 3 4 0 360)]
-      (expect (= java.awt.geom.Arc2D$Double (class s)))
-      (expect (= java.awt.geom.Arc2D/OPEN (.getArcType s)))
+      (expect (= Arc2D$Double (class s)))
+      (expect (= Arc2D/OPEN (.getArcType s)))
       (expect (= [1.0 2.0 3.0 4.0 0.0 360.0]
                  [(.x s) (.y s) (.width s) (.height s) (.start s) (.extent s)]))))
   (it "creates an arc shape with corner, negative width, negative height and angle"
     (let [s (arc 12 22 -3 -4 0 360)]
-      (expect (= java.awt.geom.Arc2D$Double (class s)))
-      (expect (= java.awt.geom.Arc2D/OPEN (.getArcType s)))
+      (expect (= Arc2D$Double (class s)))
+      (expect (= Arc2D/OPEN (.getArcType s)))
       (expect (= [9.0 18.0 3.0 4.0 0.0 360.0]
                  [(.x s) (.y s) (.width s) (.height s) (.start s) (.extent s)])))))
 
 (defdescribe chord-test
   (it "creates an chord shape with corner, width, height and angle"
     (let [s (chord 1 2 3 4 0 360)]
-      (expect (= java.awt.geom.Arc2D$Double (class s)))
-      (expect (= java.awt.geom.Arc2D/CHORD (.getArcType s)))
+      (expect (= Arc2D$Double (class s)))
+      (expect (= Arc2D/CHORD (.getArcType s)))
       (expect (= [1.0 2.0 3.0 4.0 0.0 360.0]
                  [(.x s) (.y s) (.width s) (.height s) (.start s) (.extent s)]))))
   (it "creates an chord shape with corner, negative width, negative height and angle"
     (let [s (chord 10 21 -3 -4 0 360)]
-      (expect (= java.awt.geom.Arc2D$Double (class s)))
-      (expect (= java.awt.geom.Arc2D/CHORD (.getArcType s)))
+      (expect (= Arc2D$Double (class s)))
+      (expect (= Arc2D/CHORD (.getArcType s)))
       (expect (= [7.0 17.0 3.0 4.0 0.0 360.0]
                  [(.x s) (.y s) (.width s) (.height s) (.start s) (.extent s)])))))
 
 (defdescribe pie-test
   (it "creates an pie shape with corner, width, height and angle"
     (let [s (pie 1 2 3 4 0 360)]
-      (expect (= java.awt.geom.Arc2D$Double (class s)))
-      (expect (= java.awt.geom.Arc2D/PIE (.getArcType s)))
+      (expect (= Arc2D$Double (class s)))
+      (expect (= Arc2D/PIE (.getArcType s)))
       (expect (= [1.0 2.0 3.0 4.0 0.0 360.0]
                  [(.x s) (.y s) (.width s) (.height s) (.start s) (.extent s)]))))
   (it "creates an pie shape with corner, negative width, negative height and angle"
     (let [s (pie 11 20 -3 -4 0 360)]
-      (expect (= java.awt.geom.Arc2D$Double (class s)))
-      (expect (= java.awt.geom.Arc2D/PIE (.getArcType s)))
+      (expect (= Arc2D$Double (class s)))
+      (expect (= Arc2D/PIE (.getArcType s)))
       (expect (= [8.0 16.0 3.0 4.0 0.0 360.0]
                  [(.x s) (.y s) (.width s) (.height s) (.start s) (.extent s)])))))
 
@@ -135,19 +141,19 @@
 (defdescribe stroke-test
   (it "creates a default stroke of width 1 with no args"
     (let [s (stroke)]
-      (expect (= java.awt.BasicStroke (class s)))
+      (expect (= BasicStroke (class s)))
       (expect (= 1.0 (.getLineWidth s)))))
   (it "creates a stroke with the given properties"
     (let [s (stroke :width 10, :cap :butt, :join :bevel, :miter-limit 15.0,
                     :dashes [10.0 5.0],
                     :dash-phase 2.0)]
-      (expect (= java.awt.BasicStroke (class s)))
+      (expect (= BasicStroke (class s)))
       (expect (= 10. (.getLineWidth s)))
-      (expect (= java.awt.BasicStroke/CAP_BUTT (.getEndCap s)))
+      (expect (= BasicStroke/CAP_BUTT (.getEndCap s)))
       (expect (= 15.0 (.getMiterLimit s)))
       (expect (= [10.0 5.0] (seq (.getDashArray s))))
       (expect (= 2.0 (.getDashPhase s)))
-      (expect (= java.awt.BasicStroke/JOIN_BEVEL (.getLineJoin s))))))
+      (expect (= BasicStroke/JOIN_BEVEL (.getLineJoin s))))))
 
 (defdescribe to-stroke-test
   (expect-it "throws IllegalArgumentException if it doesn't know what to do"
@@ -192,8 +198,8 @@
   (it "creates a new style object"
     (let [strk (stroke :width 5)
           s (style :foreground :black :background :white :stroke strk :font :monospace)]
-      (expect (= java.awt.Color/BLACK (:foreground s)))
-      (expect (= java.awt.Color/WHITE (:background s)))
+      (expect (= Color/BLACK (:foreground s)))
+      (expect (= Color/WHITE (:background s)))
       (expect (= strk (:stroke s)))
       (expect (not (nil? (:font s)))))))
 
@@ -202,8 +208,8 @@
     (let [strk (stroke :width 5)
           s (update-style (style :foreground :black :stroke strk) :foreground :white :background :black)]
       (expect (instance? seesaw.graphics.Style s))
-      (expect (= java.awt.Color/WHITE (:foreground s)))
-      (expect (= java.awt.Color/BLACK (:background s)))
+      (expect (= Color/WHITE (:foreground s)))
+      (expect (= Color/BLACK (:background s)))
       (expect (= strk (:stroke s)))))
   (it "constructs a new style and can clear property values"
     (let [s (update-style (style :foreground :black) :foreground nil)]
@@ -213,86 +219,86 @@
 (defdescribe linear-gradient-test
   (it "creates a default linear gradient"
     (let [g (linear-gradient)]
-      (expect (= (java.awt.geom.Point2D$Float. 0.0 0.0)
+      (expect (= (Point2D$Float. 0.0 0.0)
                  (.getStartPoint g)))
-      (expect (= (java.awt.geom.Point2D$Float. 1.0 0.0)
+      (expect (= (Point2D$Float. 1.0 0.0)
                  (.getEndPoint g)))
       (expect (= [(float 0.0) (float 1.0)]
                  (vec (.getFractions g))))
-      (expect (= [java.awt.Color/WHITE java.awt.Color/BLACK]
+      (expect (= [Color/WHITE Color/BLACK]
                  (vec (.getColors g))))
-      (expect (= java.awt.MultipleGradientPaint$CycleMethod/NO_CYCLE
+      (expect (= MultipleGradientPaint$CycleMethod/NO_CYCLE
                  (.getCycleMethod g)))))
   (it "creates a linear gradient"
     (let [g (linear-gradient 
               :start [1 2] 
               :end [3.5 4.6]
               :fractions [0.0 0.8 1.0]
-              :colors [:black :blue java.awt.Color/ORANGE]
+              :colors [:black :blue Color/ORANGE]
               :cycle :repeat)]
-      (expect (= (java.awt.geom.Point2D$Float. 1.0 2.0)
+      (expect (= (Point2D$Float. 1.0 2.0)
                  (.getStartPoint g)))
-      (expect (= (java.awt.geom.Point2D$Float. 3.5 4.6)
+      (expect (= (Point2D$Float. 3.5 4.6)
                  (.getEndPoint g)))
       (expect (= [(float 0.0) (float 0.8) (float 1.0)]
                  (vec (.getFractions g))))
-      (expect (= [java.awt.Color/BLACK java.awt.Color/BLUE java.awt.Color/ORANGE]
+      (expect (= [Color/BLACK Color/BLUE Color/ORANGE]
                  (vec (.getColors g))))
-      (expect (= java.awt.MultipleGradientPaint$CycleMethod/REPEAT
+      (expect (= MultipleGradientPaint$CycleMethod/REPEAT
                  (.getCycleMethod g))))))
 
 (defdescribe radial-gradient-test
   (it "creates a default radial gradient"
     (let [g (radial-gradient)]
-      (expect (= (java.awt.geom.Point2D$Float. 0.0 0.0)
+      (expect (= (Point2D$Float. 0.0 0.0)
                  (.getCenterPoint g)))
-      (expect (= (java.awt.geom.Point2D$Float. 0.0 0.0)
+      (expect (= (Point2D$Float. 0.0 0.0)
                  (.getFocusPoint g)))
       (expect (= (float 1.0) (.getRadius g)))
       (expect (= [(float 0.0) (float 1.0)]
                  (vec (.getFractions g))))
-      (expect (= [java.awt.Color/WHITE java.awt.Color/BLACK]
+      (expect (= [Color/WHITE Color/BLACK]
                  (vec (.getColors g))))
-      (expect (= java.awt.MultipleGradientPaint$CycleMethod/NO_CYCLE
+      (expect (= MultipleGradientPaint$CycleMethod/NO_CYCLE
                  (.getCycleMethod g)))))
   (it "creates a radial gradient"
     (let [g (radial-gradient 
               :center [1 2] 
               :focus [3.5 4.6]
               :fractions [0.0 0.8 1.0]
-              :colors [:black :blue java.awt.Color/ORANGE]
+              :colors [:black :blue Color/ORANGE]
               :cycle :reflect)]
-      (expect (= (java.awt.geom.Point2D$Float. 1.0 2.0)
+      (expect (= (Point2D$Float. 1.0 2.0)
                  (.getCenterPoint g)))
-      (expect (= (java.awt.geom.Point2D$Float. 3.5 4.6)
+      (expect (= (Point2D$Float. 3.5 4.6)
                  (.getFocusPoint g)))
       (expect (= [(float 0.0) (float 0.8) (float 1.0)]
                  (vec (.getFractions g))))
-      (expect (= [java.awt.Color/BLACK java.awt.Color/BLUE java.awt.Color/ORANGE]
+      (expect (= [Color/BLACK Color/BLUE Color/ORANGE]
                  (vec (.getColors g))))
-      (expect (= java.awt.MultipleGradientPaint$CycleMethod/REFLECT
+      (expect (= MultipleGradientPaint$CycleMethod/REFLECT
                  (.getCycleMethod g))))))
 
 
 (defdescribe path-test
   (it "creates a Path2D from line-to, move-to, curve-to and quad-to ops"
     (let [p (path [] (move-to 1 1) (line-to 10 10) (curve-to 1 2 3 4 5 6) (quad-to 7 8 9 10))]
-      (expect (instance? java.awt.geom.Path2D p))
-      (expect (= (java.awt.geom.Point2D$Double. 9 10) (.getCurrentPoint p))))))
+      (expect (instance? Path2D p))
+      (expect (= (Point2D$Double. 9 10) (.getCurrentPoint p))))))
 
 (defdescribe snapshot-test
   (it "renders a widget to an image, optionally scaled"
-    (let [p (doto (javax.swing.JPanel.) (.setBackground java.awt.Color/RED) (.setSize 10 8))
+    (let [p (doto (JPanel.) (.setBackground Color/RED) (.setSize 10 8))
           img (snapshot p)
           img2 (snapshot p :scale 2)]
       (expect (= [10 8] [(.getWidth img) (.getHeight img)]))
       (expect (= [20 16] [(.getWidth img2) (.getHeight img2)]))
-      (expect (= (.getRGB java.awt.Color/RED) (.getRGB img 5 5))))))
+      (expect (= (.getRGB Color/RED) (.getRGB img 5 5))))))
 
 (defdescribe write-png!-test
   (it "writes a PNG that reads back"
-    (let [f (java.io.File/createTempFile "seesaw" ".png")
+    (let [f (File/createTempFile "seesaw" ".png")
           img (buffered-image 3 2)]
       (write-png! img f)
-      (expect (= 3 (.getWidth (javax.imageio.ImageIO/read f))))
+      (expect (= 3 (.getWidth (ImageIO/read f))))
       (.delete f))))

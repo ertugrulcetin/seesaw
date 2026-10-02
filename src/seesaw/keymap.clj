@@ -11,35 +11,39 @@
 (ns ^{:doc "Functions for mapping key strokes to actions."
       :author "Dave Ray"}
   seesaw.keymap
-  (:require [seesaw.util :refer [illegal-argument]]
+  (:require [seesaw.action :refer [action]]
             [seesaw.keystroke :refer [keystroke]]
-            [seesaw.action :refer [action]]
-            [seesaw.to-widget :refer [to-widget*]]))
+            [seesaw.to-widget :refer [to-widget*]]
+            [seesaw.util :refer [illegal-argument]])
+  (:import (java.awt Component Container)
+           (java.awt.event ActionEvent)
+           (javax.swing AbstractButton Action JComponent JMenu RootPaneContainer
+                        SwingUtilities)))
 
-(defn- ^javax.swing.Action to-action [act]
+(defn- ^Action to-action [act]
   (cond
     (nil? act) nil
 
-    (instance? javax.swing.Action act) act
+    (instance? Action act) act
 
-    (instance? javax.swing.AbstractButton act)
-      (let [^javax.swing.AbstractButton b act]
-        (action :handler (fn [_] (.doClick b))))
+    (instance? AbstractButton act)
+    (let [^AbstractButton b act]
+      (action :handler (fn [_] (.doClick b))))
 
-    (fn? act) 
-      (action :handler act)
+    (fn? act)
+    (action :handler act)
     :else (illegal-argument "Don't know how to make key-map action from '%s'" act)))
 
-(defn- ^javax.swing.JComponent to-target [target]
+(defn- ^JComponent to-target [target]
   (cond
-    (instance? javax.swing.JComponent target) target
-    (instance? javax.swing.RootPaneContainer target) (.getRootPane ^javax.swing.RootPaneContainer target)
+    (instance? JComponent target) target
+    (instance? RootPaneContainer target) (.getRootPane ^RootPaneContainer target)
     :else (illegal-argument "Don't know how to map keys on '%s'" target)))
 
 (def ^{:private true} scope-table
-  { :descendants javax.swing.JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
-    :self        javax.swing.JComponent/WHEN_FOCUSED
-    :global      javax.swing.JComponent/WHEN_IN_FOCUSED_WINDOW })
+  {:descendants JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
+   :self JComponent/WHEN_FOCUSED
+   :global JComponent/WHEN_IN_FOCUSED_WINDOW})
 
 (def ^{:private true} default-scope (:descendants scope-table))
 
@@ -103,16 +107,16 @@
   "
   [target key act & {:keys [scope id] :as opts}]
   (let [target (to-target (to-widget* target))
-        scope  (scope-table scope default-scope)
-        im     (.getInputMap target scope)
-        am     (.getActionMap target)
-        ks     (keystroke key)]
+        scope (scope-table scope default-scope)
+        im (.getInputMap target scope)
+        am (.getActionMap target)
+        ks (keystroke key)]
     (if (= :none act)
       (do
         (.put im ks "none")
         (fn [] (.remove im ks)))
       (let [act (to-action act)
-            id  (or id act)]
+            id (or id act)]
         (.put im ks id)
         (.put am id act)
         (fn []
@@ -121,23 +125,23 @@
 
 (defn- binding-action
   "The enabled action bound to ks in c's input map for the given condition"
-  [^javax.swing.JComponent c condition ks]
+  [^JComponent c condition ks]
   (when-let [id (.get (.getInputMap c condition) ks)]
     (when-not (= "none" id)
-      (when-let [^javax.swing.Action a (.get (.getActionMap c) id)]
+      (when-let [^Action a (.get (.getActionMap c) id)]
         (when (.isEnabled a) a)))))
 
 (defn- window-components
   "All JComponents in w, including menu items that live in closed menus"
-  [^java.awt.Container w]
-  (letfn [(walk [^java.awt.Component c]
+  [^Container w]
+  (letfn [(walk [^Component c]
             (cons c (mapcat walk
                             (cond
-                              (instance? javax.swing.JMenu c)
-                                (.getMenuComponents ^javax.swing.JMenu c)
-                              (instance? java.awt.Container c)
-                                (.getComponents ^java.awt.Container c)))))]
-    (filter #(instance? javax.swing.JComponent %) (walk w))))
+                              (instance? JMenu c)
+                              (.getMenuComponents ^JMenu c)
+                              (instance? Container c)
+                              (.getComponents ^Container c)))))]
+    (filter #(instance? JComponent %) (walk w))))
 
 (defn trigger!
   "Perform the action that pressing key would trigger in target, following
@@ -155,25 +159,25 @@
   "
   [target key]
   (let [target (to-target (to-widget* target))
-        ks     (keystroke key)
-        ancestors (take-while some? (iterate #(.getParent ^java.awt.Component %) target))
-        window (javax.swing.SwingUtilities/getWindowAncestor target)
-        found  (or (binding-action target javax.swing.JComponent/WHEN_FOCUSED ks)
-                   (some (fn [c]
-                           (when (instance? javax.swing.JComponent c)
-                             (when-let [a (binding-action c javax.swing.JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT ks)]
-                               [c a])))
-                         ancestors)
-                   (some (fn [c]
-                           (when-let [a (binding-action c javax.swing.JComponent/WHEN_IN_FOCUSED_WINDOW ks)]
-                             [c a]))
-                         (window-components (or window (last ancestors)))))
-        [source ^javax.swing.Action a] (if (vector? found) found [target found])]
+        ks (keystroke key)
+        ancestors (take-while some? (iterate #(.getParent ^Component %) target))
+        window (SwingUtilities/getWindowAncestor target)
+        found (or (binding-action target JComponent/WHEN_FOCUSED ks)
+                  (some (fn [c]
+                          (when (instance? JComponent c)
+                            (when-let [a (binding-action c JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT ks)]
+                              [c a])))
+                        ancestors)
+                  (some (fn [c]
+                          (when-let [a (binding-action c JComponent/WHEN_IN_FOCUSED_WINDOW ks)]
+                            [c a]))
+                        (window-components (or window (last ancestors)))))
+        [source ^Action a] (if (vector? found) found [target found])]
     (if a
       (do
-        (.actionPerformed a (java.awt.event.ActionEvent.
-                              source java.awt.event.ActionEvent/ACTION_PERFORMED
-                              (str (.getValue a javax.swing.Action/ACTION_COMMAND_KEY))))
+        (.actionPerformed a (ActionEvent.
+                              source ActionEvent/ACTION_PERFORMED
+                              (str (.getValue a Action/ACTION_COMMAND_KEY))))
         true)
       false)))
 

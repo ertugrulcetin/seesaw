@@ -14,8 +14,7 @@
    [seesaw.action :refer [action]]
    [seesaw.core :refer [config]]
    [seesaw.keystroke :refer [keystroke]])
-  (:import
-   (javax.swing Action)))
+  (:import (javax.swing Action KeyStroke Icon)))
 
 (defdescribe action-test
   (it "sets the name, tooltip, and command"
@@ -29,17 +28,17 @@
   (it "sets the mnemonic of the action given an integer key code"
     (let [m (.getValue (action :mnemonic 99) Action/MNEMONIC_KEY)] 
       ; For Clojure 1.3, ensure that it's an Integer in there and not a Long
-      (expect (instance? java.lang.Integer m))
+      (expect (instance? Integer m))
       (expect (= 99 m))))
   (it "sets the mnemonic of the action given a character"
     (let [m (.getValue (action :mnemonic \T) Action/MNEMONIC_KEY)]
       ; For Clojure 1.3, ensure that it's an Integer in there and not a Long
-      (expect (instance? java.lang.Integer m))
+      (expect (instance? Integer m))
       (expect (= (int \T) m))))
   (it "sets the mnemonic of the action given a lower-case character"
     (let [m (.getValue (action :mnemonic \t) Action/MNEMONIC_KEY)] 
       ; For Clojure 1.3, ensure that it's an Integer in there and not a Long
-      (expect (instance? java.lang.Integer m))
+      (expect (instance? Integer m))
       (expect (= (int \T) m))))
   (it "calls the handler when actionPerformed is called"
     (let [called (atom false)
@@ -56,7 +55,7 @@
     (let [a (action :key "menu T")
           ks (.getValue a Action/ACCELERATOR_KEY)]
       (expect (not (nil? ks)))
-      (expect (instance? javax.swing.KeyStroke ks))))
+      (expect (instance? KeyStroke ks))))
   (it "handles the :enabled? option"
     (not (.isEnabled (action :enabled? false))))
   (it "handles the :selected? option"
@@ -64,7 +63,7 @@
 
   (it "loads resources by convention with :resource option"
     (let [a (action :resource ::my-action)]
-      (expect (instance? javax.swing.Icon (config a :icon)))
+      (expect (instance? Icon (config a :icon)))
       (expect (= (int \X) (config a :mnemonic)))
       (expect (= "A command" (config a :command)))
       (expect (= "A name" (config a :name)))
@@ -72,7 +71,7 @@
       (expect (= (keystroke "ctrl C") (config a :key)))))
 
   (expect-it "loads :icon from a resource"
-    (instance? javax.swing.Icon (config (action :icon ::my-action.icon) :icon)))
+    (instance? Icon (config (action :icon ::my-action.icon) :icon)))
   (expect-it "loads :mnemonic from a resource"
     (= (int \X) (config (action :mnemonic ::my-action.mnemonic) :mnemonic)))
   (expect-it "loads :command from a resource"

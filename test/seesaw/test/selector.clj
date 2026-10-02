@@ -12,7 +12,8 @@
   (:require
    [lazytest.core :refer [defdescribe expect it]]
    [seesaw.core :as sc]
-   [seesaw.selector :refer :all]))
+   [seesaw.selector :refer :all])
+  (:import (javax.swing JLabel)))
 
 (defdescribe select-test
   (it "should find a widget by type, loosely allowing for sub-classing"
@@ -25,8 +26,8 @@
       (expect (= [b] (select f ["<javax.swing.AbstractButton>"])))))
 
   (it "should find a widget by type, strictly"
-    (let [c (proxy [javax.swing.JLabel] []) ; should be ignored
-          d (javax.swing.JLabel.) ; not ignored
+    (let [c (proxy [JLabel] []) ; should be ignored
+          d (JLabel.) ; not ignored
           b (sc/toggle) ; should be ignored
           p (sc/flow-panel :items [c d b])
           f (sc/frame :title "select by type" :content p)]
@@ -34,7 +35,7 @@
       (expect (= nil (seq (select f ["<javax.swing.AbstractButton!>"]))))))
 
   (it "should find a widget by Java class name"
-    (let [c (proxy [javax.swing.JLabel] [])
+    (let [c (proxy [JLabel] [])
           d (sc/label)
           b (sc/toggle)
           p (sc/flow-panel :items [c d b])
@@ -43,7 +44,7 @@
       (expect (= nil (seq (select f ["JRadioButton"]))))))
 
   (it "should find a widget by class name"
-    (let [c (proxy [javax.swing.JLabel] [])
+    (let [c (proxy [JLabel] [])
           d (sc/label :class :foo)
           b (sc/toggle :class #{:foo :bar})
           p (sc/flow-panel :items [c d b])
@@ -52,7 +53,7 @@
       (expect (= [b] (seq (select f [".bar"]))))))
 
   (it "should find all descendants of a widget"
-    (let [c (proxy [javax.swing.JLabel] [])
+    (let [c (proxy [JLabel] [])
           d (sc/label)
           b (sc/toggle)
           p2 (sc/flow-panel :items [c])
@@ -61,7 +62,7 @@
       (expect (= #{c d b p2} (apply hash-set (select f [:#p :*]))))))
 
   (it "should find direct children of a widget"
-    (let [c (proxy [javax.swing.JLabel] [])
+    (let [c (proxy [JLabel] [])
           d (sc/label)
           b (sc/toggle)
           p2 (sc/flow-panel :items [c])

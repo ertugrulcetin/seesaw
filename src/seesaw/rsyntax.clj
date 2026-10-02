@@ -11,13 +11,13 @@
 (ns ^{:doc "Support for RSyntaxTextArea: http://fifesoft.com/rsyntaxtextarea/index.php"
       :author "Dave Ray"}
   seesaw.rsyntax
-  (:require [seesaw.core :as core]
-            [seesaw.util :as util]
+  (:require [clojure.reflect]
+            [clojure.string]
+            [seesaw.core :as core]
             [seesaw.options :as options]
-            [seesaw.widget-options :as widget-options]
-            clojure.reflect
-            clojure.string)
-  (:import (org.fife.ui.rsyntaxtextarea AbstractTokenMakerFactory)))
+            [seesaw.widget-options :as widget-options])
+  (:import (org.fife.ui.rsyntaxtextarea AbstractTokenMakerFactory
+                                        RSyntaxTextArea)))
 
 ;;; Go through the available syntax highlighting modes,
 ;;; e.g. "text/clojure" and then for backwards compatibility map them to
@@ -32,13 +32,13 @@
     (options/option-map
       (options/bean-option
         [:syntax :syntax-editing-style]
-        org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
+        RSyntaxTextArea
         syntax-table
         nil
         (keys syntax-table)))))
 
 (widget-options/widget-option-provider
-  org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
+  RSyntaxTextArea
   text-area-options)
 
 (defn text-area
@@ -54,4 +54,4 @@
     http://javadoc.fifesoft.com/rsyntaxtextarea/
   "
   [& opts]
-  (apply core/config! (org.fife.ui.rsyntaxtextarea.RSyntaxTextArea.) opts))
+  (apply core/config! (RSyntaxTextArea.) opts))

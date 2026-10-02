@@ -17,9 +17,11 @@
         [seesaw.pref :refer [bind-preference-to-atom]]
         [seesaw.mig :refer [mig-panel]]
         [seesaw.font :refer [font default-font]]
-        [seesaw.color :refer [color]]))
+        [seesaw.color :refer [color]])
+  (:import (java.awt Color)
+           (javax.swing UIManager JColorChooser)))
 
-(defmethod print-dup java.awt.Color [x writer]
+(defmethod print-dup Color [x writer]
            (binding [*print-dup* false]
              (cl-format writer "#=(java.awt.Color. ~a ~a ~a)" (.getRed x) (.getGreen x) (.getBlue x))))
 
@@ -70,7 +72,7 @@
             :cancel-fn (fn [p] nil)
             :option-type :ok-cancel
             :content (mig-panel :items
-                                [[(label :font (font :from (.getFont (javax.swing.UIManager/getDefaults) "Label.font")
+                                [[(label :font (font :from (.getFont (UIManager/getDefaults) "Label.font")
                                                      :style :bold)
                                          :text "Display options for new geometry") "gaptop 10, wrap"]
                                  [:separator "growx, wrap, gaptop 10, spanx 2"]
@@ -89,7 +91,7 @@
                                  [(let [lbl (label :id :colorbtn :text "      " :background (color 255 255 0)
                                          :listen [:mouse-clicked
                                                   (fn [e]
-                                                    (if-let [clr (javax.swing.JColorChooser/showDialog nil "Choose a color" (.getBackground (.getSource e)))]
+                                                    (if-let [clr (JColorChooser/showDialog nil "Choose a color" (.getBackground (.getSource e)))]
                                                       (config! e :background clr)))])
                                         color-atom (atom (color 255 255 0))]
                                     (bind-preference-to-atom "LAST_BACKGROUND" color-atom)

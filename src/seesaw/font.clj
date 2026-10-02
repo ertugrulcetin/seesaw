@@ -14,7 +14,9 @@
   seesaw.font
   (:require [seesaw.util :refer [constant-map resource resource-key?]])
   (:import (java.awt Font GraphicsEnvironment)
-           (java.awt.font TextAttribute)))
+           (java.awt.font TextAttribute)
+           (java.util Map)
+           (javax.swing JLabel UIManager)))
 
 (defn font-families
   "Returns a seq of strings naming the font families on the system. These
@@ -26,9 +28,9 @@
   "
   ([] (font-families nil))
   ([locale]
-    (-> (GraphicsEnvironment/getLocalGraphicsEnvironment) 
-      (.getAvailableFontFamilyNames locale)
-      seq)))
+   (-> (GraphicsEnvironment/getLocalGraphicsEnvironment)
+       (.getAvailableFontFamilyNames locale)
+       seq)))
 
 (def ^{:private true} style-table (constant-map Font :bold :plain :italic))
 (defn- get-style-mask [v]
@@ -42,25 +44,25 @@
 
 (def ^{:private true} weight-table
   {:extra-light TextAttribute/WEIGHT_EXTRA_LIGHT
-   :light       TextAttribute/WEIGHT_LIGHT
-   :regular     TextAttribute/WEIGHT_REGULAR
-   :medium      TextAttribute/WEIGHT_MEDIUM
-   :semibold    TextAttribute/WEIGHT_SEMIBOLD
-   :bold        TextAttribute/WEIGHT_BOLD
-   :heavy       TextAttribute/WEIGHT_HEAVY
-   :extra-bold  TextAttribute/WEIGHT_EXTRABOLD
-   :ultra-bold  TextAttribute/WEIGHT_ULTRABOLD})
+   :light TextAttribute/WEIGHT_LIGHT
+   :regular TextAttribute/WEIGHT_REGULAR
+   :medium TextAttribute/WEIGHT_MEDIUM
+   :semibold TextAttribute/WEIGHT_SEMIBOLD
+   :bold TextAttribute/WEIGHT_BOLD
+   :heavy TextAttribute/WEIGHT_HEAVY
+   :extra-bold TextAttribute/WEIGHT_EXTRABOLD
+   :ultra-bold TextAttribute/WEIGHT_ULTRABOLD})
 
 (defn- text-attributes
   "TextAttribute map for the extra font options"
   [{:keys [weight tracking underline? strikethrough? kerning? ligatures?]}]
   (cond-> {}
-    weight         (assoc TextAttribute/WEIGHT (float (get weight-table weight weight)))
-    tracking       (assoc TextAttribute/TRACKING (float tracking))
-    (some? underline?)     (assoc TextAttribute/UNDERLINE (if underline? TextAttribute/UNDERLINE_ON (int -1)))
-    (some? strikethrough?) (assoc TextAttribute/STRIKETHROUGH (boolean strikethrough?))
-    (some? kerning?)       (assoc TextAttribute/KERNING (int (if kerning? TextAttribute/KERNING_ON 0)))
-    (some? ligatures?)     (assoc TextAttribute/LIGATURES (int (if ligatures? TextAttribute/LIGATURES_ON 0)))))
+          weight (assoc TextAttribute/WEIGHT (float (get weight-table weight weight)))
+          tracking (assoc TextAttribute/TRACKING (float tracking))
+          (some? underline?) (assoc TextAttribute/UNDERLINE (if underline? TextAttribute/UNDERLINE_ON (int -1)))
+          (some? strikethrough?) (assoc TextAttribute/STRIKETHROUGH (boolean strikethrough?))
+          (some? kerning?) (assoc TextAttribute/KERNING (int (if kerning? TextAttribute/KERNING_ON 0)))
+          (some? ligatures?) (assoc TextAttribute/LIGATURES (int (if ligatures? TextAttribute/LIGATURES_ON 0)))))
 
 (defn font
   "Create and return a Font.
@@ -115,7 +117,7 @@
                     (Font. (get name-table font-name font-name) font-style font-size))
           attrs (text-attributes opts)]
       (if (seq attrs)
-        (.deriveFont f ^java.util.Map attrs)
+        (.deriveFont f ^Map attrs)
         f))))
 
 (defn can-display?
@@ -133,7 +135,7 @@
 (defn line-height
   "The line height (ascent + descent + leading) of a font in pixels."
   [f]
-  (.getHeight (.getFontMetrics (javax.swing.JLabel.) ^Font (to-font f))))
+  (.getHeight (.getFontMetrics (JLabel.) ^Font (to-font f))))
 
 (defn default-font
   "Look up a default font from the UIManager.
@@ -148,7 +150,7 @@
     http://download.oracle.com/javase/6/docs/api/javax/swing/UIManager.html#getFont%28java.lang.Object%29
   "
   [name]
-  (.getFont (javax.swing.UIManager/getDefaults) name))
+  (.getFont (UIManager/getDefaults) name))
 
 (defn to-font
   [f]

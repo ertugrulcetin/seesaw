@@ -13,7 +13,8 @@
    [lazytest.core :refer [defdescribe describe expect it]]
    [seesaw.core :refer [action button frame menubar menu menu-item text vertical-panel]]
    [seesaw.keymap :refer [map-key trigger!]]
-   [seesaw.keystroke :refer [keystroke]]))
+   [seesaw.keystroke :refer [keystroke]])
+  (:import (javax.swing JComponent)))
 
 (defdescribe map-key-test
   (describe "a keystroke and action"
@@ -22,14 +23,14 @@
             k (keystroke "A")
             a (action)
             _ (map-key b k a)
-            id (.. b (getInputMap javax.swing.JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT) (get k))]
+            id (.. b (getInputMap JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT) (get k))]
         (expect (= a (.. b (getActionMap) (get id))))))
     (it "maps the key to the action in the given scope"
       (let [b (button)
             k (keystroke "A")
             a (action)
             _ (map-key b k a :scope :self)
-            id (.. b (getInputMap javax.swing.JComponent/WHEN_FOCUSED) (get k))]
+            id (.. b (getInputMap JComponent/WHEN_FOCUSED) (get k))]
         (expect (= a (.. b (getActionMap) (get id)))))))
 
   (describe "a keystroke and a function"
@@ -39,7 +40,7 @@
             called (atom nil)
             a (fn [e] (reset! called true))
             _ (map-key b k a)
-            id (.. b (getInputMap javax.swing.JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT) (get k))]
+            id (.. b (getInputMap JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT) (get k))]
         (.. b (getActionMap) (get id) (actionPerformed nil))
         (expect @called))))
 
@@ -49,7 +50,7 @@
               called (atom 0)
               a (fn [e] (swap! called inc))
               remove-fn (map-key b k a)
-              id (.. b (getInputMap javax.swing.JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT) (get k))]
+              id (.. b (getInputMap JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT) (get k))]
           (expect (.. b (getActionMap) (get id)))
           (remove-fn)
           (expect (nil? (.. b (getActionMap) (get id))))))
@@ -60,14 +61,14 @@
             called (atom nil)
             b (button :listen [:action (fn [_] (reset! called true))])
             _ (map-key b k b)
-            id (.. b (getInputMap javax.swing.JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT) (get k))]
+            id (.. b (getInputMap JComponent/WHEN_ANCESTOR_OF_FOCUSED_COMPONENT) (get k))]
         (.. b (getActionMap) (get id) (actionPerformed nil))
         (expect @called))))
   (it "can assign an :id to a mapping"
     (let [k (keystroke "A")
           b (button)
           _ (map-key b k b :id :foo :scope :global)
-          id (.. b (getInputMap javax.swing.JComponent/WHEN_IN_FOCUSED_WINDOW) (get k))]
+          id (.. b (getInputMap JComponent/WHEN_IN_FOCUSED_WINDOW) (get k))]
       (expect (= id :foo)))))
 
 (defdescribe trigger!-test

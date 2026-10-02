@@ -11,11 +11,12 @@
 (ns seesaw.test.table
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
-   [seesaw.table :refer :all]))
+   [seesaw.table :refer :all])
+  (:import (javax.swing.table TableModel DefaultTableModel)))
 
 (defdescribe table-model-test
   (expect-it "should create a table model"
-    (instance? javax.swing.table.TableModel (table-model)))
+    (instance? TableModel (table-model)))
 
   (it "should create columns from a list of keys"
     (let [t (table-model :columns [:key1 :key2])]
@@ -23,9 +24,9 @@
       (expect (= "key2" (.getColumnName t 1)))))
 
   (it "should create columns from a list of maps and keys"
-    (let [t (table-model :columns [{:key :key1 :text "KEY1" :class java.lang.Integer} :key2])]
+    (let [t (table-model :columns [{:key :key1 :text "KEY1" :class Integer} :key2])]
       (expect (= "KEY1" (.getColumnName t 0)))
-      (expect (= java.lang.Integer (.getColumnClass t 0)))
+      (expect (= Integer (.getColumnClass t 0)))
       (expect (= "key2" (.getColumnName t 1)))))
 
   (it "should create rows from a list of maps"
@@ -76,7 +77,7 @@
       (expect (= {:a 3 :b 4 :d 5} (value-at t 1)))))
   (expect-it "gets the value of a row as a map (indexed by column names) if model was not
       created with (table-model)"
-    (let [t (javax.swing.table.DefaultTableModel. 2 3)]
+    (let [t (DefaultTableModel. 2 3)]
       (expect (= {"A" nil "B" nil "C" nil } (value-at t 0)))))
   (it "gets the value of a sequence of row indices as a list of maps"
     (let [t (table-model :columns [:a :b] :rows [["a0" "b0"] ["a1" "b1"]])]
@@ -125,7 +126,7 @@
       (expect (= {:a "A0" :b "B0"} (value-at t 0)))
       (expect (= {:a "A1" :b "B1"} (value-at t 1)))))
   (it "supports `false` boolean values"
-    (let [t (table-model :columns [{:class java.lang.Boolean :key :a}]
+    (let [t (table-model :columns [{:class Boolean :key :a}]
                          :rows [[false] [true]])
           r (update-at! t 0 [true] 1 [false])]
       (expect (= t r))

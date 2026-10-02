@@ -16,31 +16,37 @@
       :author "Dave Ray"}
   seesaw.swingx
   (:require [seesaw.color]
-            [seesaw.util :refer [to-uri resource constant-map illegal-argument]]
-            [seesaw.icon :refer [icon]]
-            [seesaw.selection :refer [Selection ViewModelIndexConversion]]
+            [seesaw.core :refer [ConfigIcon abstract-panel button-options config
+                                 config! construct default-options
+                                 get-icon* label-options listbox-options
+                                 make-widget set-icon* table-options to-widget tree-options]]
             [seesaw.event :refer [listen-for-named-event listen-to-property]]
-            [seesaw.core :refer [construct to-widget make-widget abstract-panel
-                                 default-options button-options label-options
-                                 listbox-options tree-options table-options
-                                 ConfigIcon get-icon* set-icon* config config!]]
-            [seesaw.layout :refer [default-items-option box-layout grid-layout]]
-            [seesaw.options :refer [option-map bean-option apply-options
-                                    default-option resource-option around-option]]
+            [seesaw.icon :refer [icon]]
+            [seesaw.layout :refer [box-layout default-items-option grid-layout]]
+            [seesaw.options :refer [apply-options bean-option
+                                    default-option option-map resource-option]]
+            [seesaw.selection :refer [Selection ViewModelIndexConversion]]
+            [seesaw.util :refer [constant-map illegal-argument resource to-uri]]
             [seesaw.widget-options :refer [widget-option-provider]])
-  (:import (org.jdesktop.swingx.decorator
-              Highlighter
-              HighlighterFactory
-              HighlightPredicate
-              HighlightPredicate$AndHighlightPredicate
-              HighlightPredicate$OrHighlightPredicate
-              HighlightPredicate$NotHighlightPredicate
-              HighlightPredicate$EqualsHighlightPredicate
-              HighlightPredicate$IdentifierHighlightPredicate
-              HighlightPredicate$ColumnHighlightPredicate
-              HighlightPredicate$RowGroupHighlightPredicate
-              HighlightPredicate$DepthHighlightPredicate
-              HighlightPredicate$TypeHighlightPredicate)))
+  (:import (java.awt BorderLayout CardLayout Color FlowLayout)
+           (java.util Collection)
+           (java.util.regex Pattern)
+           (javax.swing Action SortOrder)
+           (org.jdesktop.swingx JXBusyLabel JXButton JXColorSelectionButton JXHeader
+                                JXHyperlink JXLabel JXList JXPanel JXTable
+                                JXTaskPane JXTaskPaneContainer JXTitledPanel JXTree)
+           (org.jdesktop.swingx.decorator ColorHighlighter ComponentAdapter
+                                          Highlighter HighlighterFactory
+                                          HighlightPredicate
+                                          HighlightPredicate$AndHighlightPredicate
+                                          HighlightPredicate$ColumnHighlightPredicate
+                                          HighlightPredicate$DepthHighlightPredicate
+                                          HighlightPredicate$EqualsHighlightPredicate
+                                          HighlightPredicate$IdentifierHighlightPredicate
+                                          HighlightPredicate$NotHighlightPredicate
+                                          HighlightPredicate$OrHighlightPredicate HighlightPredicate$RowGroupHighlightPredicate
+                                          HighlightPredicate$TypeHighlightPredicate IconHighlighter PatternPredicate
+                                          ShadingColorHighlighter)))
 
 ;*******************************************************************************
 ; Highlighter Predicates
@@ -65,7 +71,7 @@
 (defn- to-p ^HighlightPredicate [v]
   (cond
     (instance? HighlightPredicate v) v
-    (instance? java.util.regex.Pattern v) (p-pattern v)
+    (instance? Pattern v) (p-pattern v)
     (keyword? v) (p-built-in v)
     (fn? v) (p-fn v)
     :else (illegal-argument "Don't know how to make predicate from %s" v)))
@@ -80,16 +86,16 @@
   "A predicate that highlights rows whose value in column (a model index) passes
   (pred value)."
   [column pred]
-  (p-fn (fn [_ ^org.jdesktop.swingx.decorator.ComponentAdapter adapter]
+  (p-fn (fn [_ ^ComponentAdapter adapter]
           (pred (.getValue adapter (.convertColumnIndexToView adapter (int column)))))))
 
 (defn p-and [& args]
   (HighlightPredicate$AndHighlightPredicate.
-                      ^java.util.Collection (doall (map to-p args))))
+    ^Collection (doall (map to-p args))))
 
 (defn p-or [& args]
   (HighlightPredicate$OrHighlightPredicate.
-                      ^java.util.Collection (doall (map to-p args))))
+    ^Collection (doall (map to-p args))))
 
 (defn p-not [p]
   (HighlightPredicate$NotHighlightPredicate. (to-p p)))
@@ -113,8 +119,8 @@
   (HighlightPredicate$DepthHighlightPredicate. (int-array depths)))
 
 (defn p-pattern [pattern & {:keys [test-column highlight-column]}]
-  (org.jdesktop.swingx.decorator.PatternPredicate.
-    ^java.util.regex.Pattern (re-pattern pattern)
+  (PatternPredicate.
+    ^Pattern (re-pattern pattern)
     (int (or test-column -1))
     (int (or highlight-column -1))))
 
@@ -125,51 +131,51 @@
   [& {:keys [foreground background
              selected-background selected-foreground]}]
   (fn self
-    ([]  (self :always))
+    ([] (self :always))
     ([p]
-      (org.jdesktop.swingx.decorator.ColorHighlighter.
-        (to-p p)
-        (seesaw.color/to-color background)
-        (seesaw.color/to-color foreground)
-        (seesaw.color/to-color selected-background)
-        (seesaw.color/to-color selected-foreground)))))
+     (ColorHighlighter.
+       (to-p p)
+       (seesaw.color/to-color background)
+       (seesaw.color/to-color foreground)
+       (seesaw.color/to-color selected-background)
+       (seesaw.color/to-color selected-foreground)))))
 
 (defn hl-icon
   [i]
   (fn self
-    ([]  (self :always))
+    ([] (self :always))
     ([p]
-      (org.jdesktop.swingx.decorator.IconHighlighter.
-        (to-p p)
-        (icon i)))))
+     (IconHighlighter.
+       (to-p p)
+       (icon i)))))
 
 (defn hl-shade
   []
   (fn self
-    ([]  (self :always))
+    ([] (self :always))
     ([p]
-      (org.jdesktop.swingx.decorator.ShadingColorHighlighter.
-        (to-p p)))))
+     (ShadingColorHighlighter.
+       (to-p p)))))
 
 (defn hl-simple-striping
   [& {:keys [background lines-per-stripe]}]
   (cond
     (and background lines-per-stripe)
-      (HighlighterFactory/createSimpleStriping
-        (seesaw.color/to-color background) lines-per-stripe)
+    (HighlighterFactory/createSimpleStriping
+      (seesaw.color/to-color background) lines-per-stripe)
     background
-      (HighlighterFactory/createSimpleStriping ^java.awt.Color (seesaw.color/to-color background))
+    (HighlighterFactory/createSimpleStriping ^Color (seesaw.color/to-color background))
     lines-per-stripe
-      (HighlighterFactory/createSimpleStriping (int lines-per-stripe))
+    (HighlighterFactory/createSimpleStriping (int lines-per-stripe))
     :else
-      (HighlighterFactory/createSimpleStriping)))
+    (HighlighterFactory/createSimpleStriping)))
 
 (defn to-highlighter ^Highlighter [v]
   (cond
     (instance? Highlighter v) v
     (= :shade v) (hl-shade)
     (= :alternate-striping v) (HighlighterFactory/createAlternateStriping)
-    (= :simple-striping v)    (hl-simple-striping)
+    (= :simple-striping v) (hl-simple-striping)
     :else (illegal-argument "Don't know how to make highlighter from %s" v)))
 
 (defprotocol HighlighterHost
@@ -182,14 +188,14 @@
   [class]
   `(extend-protocol HighlighterHost
      ~class
-      (~'get-highlighters* [this#]
-         (. this# ~'getHighlighters))
-      (~'set-highlighters* [this# hs#]
-         (. this# ~'setHighlighters hs#))
-      (~'add-highlighter* [this# h#]
-         (. this# ~'addHighlighter h#))
-      (~'remove-highlighter* [this# h#]
-         (. this# ~'removeHighlighter h#))))
+     (~'get-highlighters* [this#]
+       (. this# ~'getHighlighters))
+     (~'set-highlighters* [this# hs#]
+       (. this# ~'setHighlighters hs#))
+     (~'add-highlighter* [this# h#]
+       (. this# ~'addHighlighter h#))
+     (~'remove-highlighter* [this# h#]
+       (. this# ~'removeHighlighter h#))))
 
 (defn get-highlighters [target]
   (seq (get-highlighters* (to-widget target))))
@@ -218,11 +224,11 @@
   (merge
     button-options
     (option-map
-      (bean-option :background-painter org.jdesktop.swingx.JXButton)
-      (bean-option :foreground-painter org.jdesktop.swingx.JXButton)
-      (bean-option :paint-border-insets? org.jdesktop.swingx.JXButton boolean))))
+      (bean-option :background-painter JXButton)
+      (bean-option :foreground-painter JXButton)
+      (bean-option :paint-border-insets? JXButton boolean))))
 
-(widget-option-provider org.jdesktop.swingx.JXButton button-x-options)
+(widget-option-provider JXButton button-x-options)
 
 (defn button-x
   "Creates a org.jdesktop.swingx.JXButton which is an improved (button) that
@@ -242,7 +248,7 @@
     (seesaw.swingx/button-x-options)
   "
   [& args]
-  (apply-options (construct org.jdesktop.swingx.JXButton) args))
+  (apply-options (construct JXButton) args))
 
 ;*******************************************************************************
 ; XLabel
@@ -252,12 +258,12 @@
     label-options
     (option-map
       ; TODO label-x text-alignment, painter, etc
-      (bean-option [:wrap-lines? :line-wrap?] org.jdesktop.swingx.JXLabel boolean)
-      (bean-option :text-rotation org.jdesktop.swingx.JXLabel)
-      (bean-option :background-painter org.jdesktop.swingx.JXLabel)
-      (bean-option :foreground-painter org.jdesktop.swingx.JXLabel))))
+      (bean-option [:wrap-lines? :line-wrap?] JXLabel boolean)
+      (bean-option :text-rotation JXLabel)
+      (bean-option :background-painter JXLabel)
+      (bean-option :foreground-painter JXLabel))))
 
-(widget-option-provider org.jdesktop.swingx.JXLabel label-x-options)
+(widget-option-provider JXLabel label-x-options)
 
 (defn label-x
   "Creates a org.jdesktop.swingx.JXLabel which is an improved (label) that
@@ -278,7 +284,7 @@
     (seesaw.swingx/label-x-options)
   "
   [& args]
-  (apply-options (construct org.jdesktop.swingx.JXLabel) args))
+  (apply-options (construct JXLabel) args))
 
 ;*******************************************************************************
 ; BusyLabel
@@ -288,9 +294,9 @@
     label-options
     (option-map
       ; TODO busy-label text-alignment, painter, etc
-      (bean-option :busy? org.jdesktop.swingx.JXBusyLabel boolean))))
+      (bean-option :busy? JXBusyLabel boolean))))
 
-(widget-option-provider org.jdesktop.swingx.JXBusyLabel busy-label-options)
+(widget-option-provider JXBusyLabel busy-label-options)
 
 (defn busy-label
   "Creates a org.jdesktop.swingx.JXBusyLabel which is a label that shows
@@ -310,7 +316,7 @@
     (seesaw.swingx/busy-label-options)
   "
   [& args]
-  (apply-options (construct org.jdesktop.swingx.JXBusyLabel) args))
+  (apply-options (construct JXBusyLabel) args))
 
 ;*******************************************************************************
 ; Hyperlink
@@ -319,9 +325,9 @@
     button-options
     (option-map
       ; JXHyperlink has setURI but no getURI
-      (default-option :uri #(.setURI ^org.jdesktop.swingx.JXHyperlink %1 (to-uri %2))))))
+      (default-option :uri #(.setURI ^JXHyperlink %1 (to-uri %2))))))
 
-(widget-option-provider org.jdesktop.swingx.JXHyperlink hyperlink-options)
+(widget-option-provider JXHyperlink hyperlink-options)
 
 (defn hyperlink
   "Constuct an org.jdesktop.swingx.JXHyperlink which is a button that looks like
@@ -339,16 +345,16 @@
     (seesaw.core/button-options)
   "
   [& args]
-  (apply-options (construct org.jdesktop.swingx.JXHyperlink) args))
+  (apply-options (construct JXHyperlink) args))
 
 ;*******************************************************************************
 ; TaskPane
 
 (extend-protocol ConfigIcon
-  org.jdesktop.swingx.JXTaskPane
-    (get-icon* [this] (.getIcon this))
-    (set-icon* [this v]
-      (.setIcon this (icon v))))
+  JXTaskPane
+  (get-icon* [this] (.getIcon this))
+  (set-icon* [this v]
+    (.setIcon this (icon v))))
 
 (def task-pane-options
   (merge
@@ -359,18 +365,18 @@
       ; fails with "No implementation of method: :set-icon* :(
       (default-option :icon set-icon* get-icon*)
       (resource-option :resource [:title :icon])
-      (bean-option :title org.jdesktop.swingx.JXTaskPane resource)
-      (bean-option :animated? org.jdesktop.swingx.JXTaskPane boolean)
-      (bean-option :collapsed? org.jdesktop.swingx.JXTaskPane boolean)
-      (bean-option :scroll-on-expand? org.jdesktop.swingx.JXTaskPane boolean)
-      (bean-option :special? org.jdesktop.swingx.JXTaskPane boolean)
+      (bean-option :title JXTaskPane resource)
+      (bean-option :animated? JXTaskPane boolean)
+      (bean-option :collapsed? JXTaskPane boolean)
+      (bean-option :scroll-on-expand? JXTaskPane boolean)
+      (bean-option :special? JXTaskPane boolean)
       (default-option :actions
-        (fn [^org.jdesktop.swingx.JXTaskPane c actions]
-          (doseq [^javax.swing.Action a actions]
-            (.add c a)))))))
+                      (fn [^JXTaskPane c actions]
+                        (doseq [^Action a actions]
+                          (.add c a)))))))
 
 (widget-option-provider
-  org.jdesktop.swingx.JXTaskPane
+  JXTaskPane
   task-pane-options)
 
 (defn task-pane
@@ -398,7 +404,7 @@
   "
   [& args]
   (apply-options
-    (construct org.jdesktop.swingx.JXTaskPane)
+    (construct JXTaskPane)
     args))
 
 (def task-pane-container-options
@@ -407,11 +413,11 @@
     (option-map
       (default-option
         :items
-        #(doseq [^org.jdesktop.swingx.JXTaskPane p %2]
-           (.add ^org.jdesktop.swingx.JXTaskPaneContainer %1 p))))))
+        #(doseq [^JXTaskPane p %2]
+           (.add ^JXTaskPaneContainer %1 p))))))
 
 (widget-option-provider
-  org.jdesktop.swingx.JXTaskPaneContainer
+  JXTaskPaneContainer
   task-pane-container-options)
 
 (defn task-pane-container
@@ -437,7 +443,7 @@
   "
   [& args]
   (apply-options
-    (construct org.jdesktop.swingx.JXTaskPaneContainer)
+    (construct JXTaskPaneContainer)
     args))
 
 ;*******************************************************************************
@@ -449,7 +455,7 @@
     {:selection (:background button-options)}))
 
 (widget-option-provider
-  org.jdesktop.swingx.JXColorSelectionButton
+  JXColorSelectionButton
   color-selection-button-options)
 
 (defn color-selection-button
@@ -476,18 +482,18 @@
   "
   [& args]
   (apply-options
-    (construct org.jdesktop.swingx.JXColorSelectionButton)
+    (construct JXColorSelectionButton)
     args))
 
 ; Extend selection and selection event stuff for color button.
 
 (extend-protocol Selection
-  org.jdesktop.swingx.JXColorSelectionButton
-    (get-selection [this] [(config this :selection)])
-    (set-selection [this [v]] (config! this :selection v)))
+  JXColorSelectionButton
+  (get-selection [this] [(config this :selection)])
+  (set-selection [this [v]] (config! this :selection v)))
 
 (defmethod listen-for-named-event
-  [org.jdesktop.swingx.JXColorSelectionButton :selection]
+  [JXColorSelectionButton :selection]
   [this event-name event-fn]
   (listen-to-property this "background" event-fn))
 
@@ -495,19 +501,19 @@
 ; Header
 
 (extend-protocol ConfigIcon
-  org.jdesktop.swingx.JXHeader
-    (get-icon* [this]   (.getIcon this))
-    (set-icon* [this v] (.setIcon this (icon v))))
+  JXHeader
+  (get-icon* [this] (.getIcon this))
+  (set-icon* [this v] (.setIcon this (icon v))))
 
 (def header-options
   (merge
     default-options
     (option-map
-      (bean-option :title org.jdesktop.swingx.JXHeader resource)
+      (bean-option :title JXHeader resource)
       (default-option :icon set-icon* get-icon*)
-      (bean-option :description org.jdesktop.swingx.JXHeader resource))))
+      (bean-option :description JXHeader resource))))
 
-(widget-option-provider org.jdesktop.swingx.JXHeader header-options)
+(widget-option-provider JXHeader header-options)
 
 (defn header
   "Creates a header which consists of a title, description (supports basic HTML)
@@ -529,24 +535,24 @@
   "
   [& args]
   (apply-options
-    (construct org.jdesktop.swingx.JXHeader)
+    (construct JXHeader)
     args))
 
 ;*******************************************************************************
 ; JXList
 
 (def ^:private sort-order-table
-  { :ascending javax.swing.SortOrder/ASCENDING
-    :descending javax.swing.SortOrder/DESCENDING})
+  {:ascending SortOrder/ASCENDING
+   :descending SortOrder/DESCENDING})
 
 ; Override view/model index conversion so that the default selection
 ; handler from JList will work.
 (extend-protocol ViewModelIndexConversion
-  org.jdesktop.swingx.JXList
-    (index-to-model [this index] (.convertIndexToModel this index))
-    (index-to-view [this index] (.convertIndexToView this index)))
+  JXList
+  (index-to-model [this index] (.convertIndexToModel this index))
+  (index-to-view [this index] (.convertIndexToView this index)))
 
-(default-highlighter-host org.jdesktop.swingx.JXList)
+(default-highlighter-host JXList)
 
 (def listbox-x-options
   (merge
@@ -556,23 +562,23 @@
       ; When the model is changed, make sure the sort order is preserved
       ; Otherwise, it doesn't look like :sort-with is working.
       (default-option :model
-        (fn [^org.jdesktop.swingx.JXList c v]
-          (let [old (.getSortOrder c)]
-            ((:setter (:model listbox-options)) c v)
-            (.setSortOrder c old)))
-        (:getter (:model listbox-options)))
+                      (fn [^JXList c v]
+                        (let [old (.getSortOrder c)]
+                          ((:setter (:model listbox-options)) c v)
+                          (.setSortOrder c old)))
+                      (:getter (:model listbox-options)))
 
-      (bean-option :sort-order org.jdesktop.swingx.JXList sort-order-table)
+      (bean-option :sort-order JXList sort-order-table)
 
       (default-option :sort-with
-        (fn [^org.jdesktop.swingx.JXList c v]
-          (doto c
-            (.setComparator v)
-            (.setSortOrder javax.swing.SortOrder/ASCENDING)))
-        (fn [^org.jdesktop.swingx.JXList c]
-          (.getComparator c))))))
+                      (fn [^JXList c v]
+                        (doto c
+                          (.setComparator v)
+                          (.setSortOrder SortOrder/ASCENDING)))
+                      (fn [^JXList c]
+                        (.getComparator c))))))
 
-(widget-option-provider org.jdesktop.swingx.JXList listbox-x-options)
+(widget-option-provider JXList listbox-x-options)
 
 (defn listbox-x
   "Create a JXList which is basically an improved (seesaw.core/listbox).
@@ -591,9 +597,9 @@
   See:
     (seesaw.core/listbox)
   "
-  ^org.jdesktop.swingx.JXList [& args]
+  ^JXList [& args]
   (apply-options
-    (doto (construct org.jdesktop.swingx.JXList)
+    (doto (construct JXList)
       (.setAutoCreateRowSorter true)
       (.setRolloverEnabled true))
     args))
@@ -607,15 +613,15 @@
     (option-map
       (resource-option :resource [:title :title-color])
       ; the title bar painter (there's no setPainter)
-      (bean-option [:painter :title-painter] org.jdesktop.swingx.JXTitledPanel)
-      (bean-option :title org.jdesktop.swingx.JXTitledPanel resource)
-      (bean-option [:title-color :title-foreground] org.jdesktop.swingx.JXTitledPanel seesaw.color/to-color)
-      (bean-option [:content :content-container] org.jdesktop.swingx.JXTitledPanel make-widget)
-      (bean-option :right-decoration org.jdesktop.swingx.JXTitledPanel make-widget)
-      (bean-option :left-decoration org.jdesktop.swingx.JXTitledPanel make-widget))))
+      (bean-option [:painter :title-painter] JXTitledPanel)
+      (bean-option :title JXTitledPanel resource)
+      (bean-option [:title-color :title-foreground] JXTitledPanel seesaw.color/to-color)
+      (bean-option [:content :content-container] JXTitledPanel make-widget)
+      (bean-option :right-decoration JXTitledPanel make-widget)
+      (bean-option :left-decoration JXTitledPanel make-widget))))
 
 (widget-option-provider
-  org.jdesktop.swingx.JXTitledPanel
+  JXTitledPanel
   titled-panel-options)
 
 (defn titled-panel
@@ -640,15 +646,15 @@
   See:
     (seesaw.core/listbox)
   "
-  ^org.jdesktop.swingx.JXTitledPanel [& args]
+  ^JXTitledPanel [& args]
   (apply-options
-    (construct org.jdesktop.swingx.JXTitledPanel)
+    (construct JXTitledPanel)
     args))
 
 ;*******************************************************************************
 ; JXTree
 
-(default-highlighter-host org.jdesktop.swingx.JXTree)
+(default-highlighter-host JXTree)
 
 (def tree-x-options
   (merge
@@ -656,7 +662,7 @@
     highlighter-host-options
     (option-map)))
 
-(widget-option-provider org.jdesktop.swingx.JXTree tree-x-options)
+(widget-option-provider JXTree tree-x-options)
 
 (defn tree-x
   "Create a JXTree which is basically an improved (seesaw.core/tree).
@@ -673,27 +679,27 @@
     (seesaw.core/tree-options)
     (seesaw.core/tree)
   "
-  ^org.jdesktop.swingx.JXTree [& args]
+  ^JXTree [& args]
   (apply-options
-    (doto (construct org.jdesktop.swingx.JXTree)
+    (doto (construct JXTree)
       (.setRolloverEnabled true))
     args))
 
 ;*******************************************************************************
 ; JXTable
 
-(default-highlighter-host org.jdesktop.swingx.JXTable)
+(default-highlighter-host JXTable)
 
 (def table-x-options
   (merge
     table-options
     highlighter-host-options
     (option-map
-      (bean-option :column-control-visible? org.jdesktop.swingx.JXTable boolean)
-      (bean-option :horizontal-scroll-enabled? org.jdesktop.swingx.JXTable boolean)
-      (bean-option :column-margin org.jdesktop.swingx.JXTable))))
+      (bean-option :column-control-visible? JXTable boolean)
+      (bean-option :horizontal-scroll-enabled? JXTable boolean)
+      (bean-option :column-margin JXTable))))
 
-(widget-option-provider org.jdesktop.swingx.JXTable table-x-options)
+(widget-option-provider JXTable table-x-options)
 
 (defn table-x
   "Create a JXTable which is basically an improved (seesaw.core/table).
@@ -714,9 +720,9 @@
     (seesaw.core/table-options)
     (seesaw.core/table)
   "
-  ^org.jdesktop.swingx.JXTable [& args]
+  ^JXTable [& args]
   (apply-options
-    (doto (construct org.jdesktop.swingx.JXTable)
+    (doto (construct JXTable)
       (.setRolloverEnabled true)
       (.setColumnControlVisible true))
     args))
@@ -729,34 +735,34 @@
   (merge
     default-options
     (option-map
-      (bean-option :alpha org.jdesktop.swingx.JXPanel))))
+      (bean-option :alpha JXPanel))))
 
 (widget-option-provider
-  org.jdesktop.swingx.JXPanel
+  JXPanel
   panel-x-options)
 
 (defn- abstract-panel-x [layout opts]
-  (abstract-panel (construct org.jdesktop.swingx.JXPanel) layout opts))
+  (abstract-panel (construct JXPanel) layout opts))
 
-(defn xyz-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
+(defn xyz-panel-x ^JXPanel [& opts]
   (abstract-panel-x nil opts))
 
-(defn border-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
-  (abstract-panel-x (java.awt.BorderLayout.) opts))
+(defn border-panel-x ^JXPanel [& opts]
+  (abstract-panel-x (BorderLayout.) opts))
 
-(defn flow-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
-  (abstract-panel-x (java.awt.FlowLayout.) opts))
+(defn flow-panel-x ^JXPanel [& opts]
+  (abstract-panel-x (FlowLayout.) opts))
 
-(defn horizontal-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
+(defn horizontal-panel-x ^JXPanel [& opts]
   (abstract-panel-x (box-layout :horizontal) opts))
 
-(defn vertical-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
+(defn vertical-panel-x ^JXPanel [& opts]
   (abstract-panel-x (box-layout :vertical) opts))
 
 (defn grid-panel-x
-  ^org.jdesktop.swingx.JXPanel [& {:keys [rows columns] :as opts}]
+  ^JXPanel [& {:keys [rows columns] :as opts}]
   (abstract-panel-x (grid-layout rows columns) opts))
 
-(defn card-panel-x ^org.jdesktop.swingx.JXPanel [& opts]
-  (abstract-panel-x (java.awt.CardLayout.) opts))
+(defn card-panel-x ^JXPanel [& opts]
+  (abstract-panel-x (CardLayout.) opts))
 

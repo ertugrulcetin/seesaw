@@ -1,5 +1,6 @@
 (ns seesaw.test.examples.example
-  (:require [seesaw.core :refer [config! pack! show! invoke-now]]))
+  (:require [seesaw.core :refer [config! pack! show! invoke-now]])
+  (:import (java.awt Dimension)))
 
 (defmacro defexample
   "Does the boilerplate for an example.
@@ -23,7 +24,7 @@
        (let [~arg-vec args#
              f# (invoke-now ~@body)]
          (config! f# :on-close on-close#)
-         (when (= (java.awt.Dimension.) (.getSize f#))
+         (when (= (Dimension.) (.getSize f#))
            (pack! f#))
          (show! f#)))
 

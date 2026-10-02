@@ -13,7 +13,9 @@
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.util :refer [atom? camelize check-args cond-doto illegal-argument
                         resource-key? to-dimension to-insets
-                        to-mnemonic-keycode to-seq to-uri to-url try-cast]]))
+                        to-mnemonic-keycode to-seq to-uri to-url try-cast]])
+  (:import (java.awt Dimension Insets)
+           (java.net URL URI)))
 
 (defdescribe illegal-argument-test
   (expect-it "throws a formatted illegal argument exception"
@@ -63,15 +65,15 @@
 
 (defdescribe try-cast-test
   (expect-it "returns its input if cast succeeds"
-    (= "TEST" (try-cast java.lang.String "TEST")))
+    (= "TEST" (try-cast String "TEST")))
   (expect-it "returns nil if input is nil"
-    (nil? (try-cast java.lang.String nil)))
+    (nil? (try-cast String nil)))
   (expect-it "returns nil if cast fails"
-    (nil? (try-cast java.lang.String 99))))
+    (nil? (try-cast String 99))))
 
 (defdescribe to-url-test
   (it "returns its input if it is already a URL object"
-    (let [u (java.net.URL. "http://google.com")]
+    (let [u (URL. "http://google.com")]
       (expect (identical? u (to-url u)))))
   (expect-it "returns a URL if (str input) is a valid URL"
     (= "http://darevay.com" (-> (to-url "http://darevay.com") .toExternalForm )))
@@ -80,7 +82,7 @@
 
 (defdescribe to-uri-test
   (it "returns its input if it is already a URI object"
-    (let [u (java.net.URI. "http://google.com")]
+    (let [u (URI. "http://google.com")]
       (expect (identical? u (to-uri u)))))
   (expect-it "returns a URI if (str input) is a valid URI"
     (= "http://darevay.com" (-> (to-uri "http://darevay.com") .toString )))
@@ -93,11 +95,11 @@
       (to-dimension {:a :map}) false
       (catch IllegalArgumentException e true)))
   (it "should return its input if its already a Dimension"
-    (let [d (java.awt.Dimension. 10 20)]
+    (let [d (Dimension. 10 20)]
       (expect (= d (to-dimension d)))))
   (it "should return a new Dimension if input is [width :by height]"
     (let [d (to-dimension [1 :by 2])]
-      (expect (= java.awt.Dimension (class d)))
+      (expect (= Dimension (class d)))
       (expect (= 1 (.width d)))
       (expect (= 2 (.height d))))))
 
@@ -107,14 +109,14 @@
       (to-insets "a random string") false
       (catch IllegalArgumentException e true)))
   (it "should return its input if its already an Insets"
-    (let [i (java.awt.Insets. 1 2 3 4)]
+    (let [i (Insets. 1 2 3 4)]
       (expect (= i (to-insets i)))))
   (expect-it "should return uniform insets from a number"
-    (= (java.awt.Insets. 9 9 9 9) (to-insets 9)))
+    (= (Insets. 9 9 9 9) (to-insets 9)))
   (expect-it "should return insets from a 4-element [top, left, bottom, right] vector"
-    (= (java.awt.Insets. 1 2 3 4) (to-insets [1 2 3 4])))
+    (= (Insets. 1 2 3 4) (to-insets [1 2 3 4])))
   (expect-it "should return insets from a 2-element [top/bottom, left/right] vector"
-    (= (java.awt.Insets. 5 6 5 6) (to-insets [5 6]))))
+    (= (Insets. 5 6 5 6) (to-insets [5 6]))))
 
 (defdescribe atom?-test
   (expect-it "should return true for an atom"

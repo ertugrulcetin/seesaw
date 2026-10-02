@@ -11,14 +11,17 @@
 (ns ^{:doc "Functions for dealing with drag and drop and data transfer."
       :author "Dave Ray"}
   seesaw.dnd
-  (:require clojure.set
-            clojure.string
+  (:require [clojure.set]
+            [clojure.string]
             [seesaw.util :refer [constant-map illegal-argument]])
-  (:import (java.awt.datatransfer DataFlavor
-                                  UnsupportedFlavorException
-                                  Transferable)
-           (javax.swing TransferHandler
-                        TransferHandler$TransferSupport)))
+  (:import (java.awt Point)
+           (java.awt.datatransfer DataFlavor Transferable
+                                  UnsupportedFlavorException)
+           (java.net URI)
+           (javax.swing JComponent JList$DropLocation
+                        JTable$DropLocation JTree$DropLocation TransferHandler
+                        TransferHandler$DropLocation TransferHandler$TransferSupport)
+           (javax.swing.text JTextComponent$DropLocation)))
 
 (defprotocol Flavorful
   "Protocol for abstracting DataFlavor including automatic conversion from
@@ -53,7 +56,7 @@
     ; HTML as a reader
     (make-flavor \"text/html\" java.io.Reader)
   "
-  [mime-type ^java.lang.Class rep-class]
+  [mime-type ^Class rep-class]
   (DataFlavor.
     (format "%s;class=%s"
             mime-type
@@ -74,23 +77,23 @@
     (make-flavor DataFlavor/javaJVMLocalObjectMimeType class-or-value)
     (local-object-flavor (class class-or-value))))
 
-(def ^{:doc "Flavor for a list of java.io.File objects" }
+(def ^{:doc "Flavor for a list of java.io.File objects"}
   file-list-flavor DataFlavor/javaFileListFlavor)
 
 (def ^{:doc "Flavor for a list of java.net.URI objects. Note it's URI, not URL.
-            With just java.net.URL it's not possible to drop non-URL links, e.g. \"about:config\"." }
+            With just java.net.URL it's not possible to drop non-URL links, e.g. \"about:config\"."}
   uri-list-flavor
   (let [flavor (make-flavor "text/uri-list" String)]
     (reify Flavorful
       (to-raw-flavor [this] flavor)
       (to-local [this value]
-        (map #(java.net.URI. %) (clojure.string/split-lines value)))
+        (map #(URI. %) (clojure.string/split-lines value)))
       (to-remote [this value]
         (clojure.string/join "\r\n" value)))))
 
 (def ^{:doc "Flavor for HTML text"} html-flavor (make-flavor "text/html" String))
-(def ^{:doc "Flavor for images as java.awt.Image" } image-flavor DataFlavor/imageFlavor)
-(def ^{:doc "Flavor for raw text" } string-flavor DataFlavor/stringFlavor)
+(def ^{:doc "Flavor for images as java.awt.Image"} image-flavor DataFlavor/imageFlavor)
+(def ^{:doc "Flavor for raw text"} string-flavor DataFlavor/stringFlavor)
 
 (defn ^Transferable default-transferable
   "Constructs a transferable given a vector of alternating flavor/value pairs.
@@ -109,7 +112,7 @@
 
   "
   [pairs]
-  (let [pairs      (map (fn [[f v]] [(to-raw-flavor f) [f v]]) (partition 2 pairs))
+  (let [pairs (map (fn [[f v]] [(to-raw-flavor f) [f v]]) (partition 2 pairs))
         flavor-map (into {} pairs)
         flavor-arr (into-array DataFlavor (map first pairs))]
     (proxy [Transferable] []
@@ -141,31 +144,31 @@
 (def ^{:private true} action-to-keyword
   (clojure.set/map-invert keyword-to-action))
 
-(defn- unpack-drop-location [^javax.swing.TransferHandler$DropLocation dl]
-  (let [^java.awt.Point pt (.getDropPoint dl) ]
+(defn- unpack-drop-location [^TransferHandler$DropLocation dl]
+  (let [^Point pt (.getDropPoint dl)]
     (merge
       (cond
-        (instance? javax.swing.JList$DropLocation dl)
-          (let [^javax.swing.JList$DropLocation dl dl]
-            { :index (.getIndex dl)
-              :insert? (.isInsert dl) })
+        (instance? JList$DropLocation dl)
+        (let [^JList$DropLocation dl dl]
+          {:index (.getIndex dl)
+           :insert? (.isInsert dl)})
 
-        (instance? javax.swing.JTable$DropLocation dl)
-          (let [^javax.swing.JTable$DropLocation dl dl]
-            { :column (.getColumn dl)
-              :row    (.getRow dl)
-              :insert-column? (.isInsertColumn dl)
-              :insert-row?    (.isInsertRow dl) })
+        (instance? JTable$DropLocation dl)
+        (let [^JTable$DropLocation dl dl]
+          {:column (.getColumn dl)
+           :row (.getRow dl)
+           :insert-column? (.isInsertColumn dl)
+           :insert-row? (.isInsertRow dl)})
 
-        (instance? javax.swing.text.JTextComponent$DropLocation dl)
-          (let [^javax.swing.text.JTextComponent$DropLocation dl dl]
-            { :bias (.getBias dl)
-              :index (.getIndex dl) })
+        (instance? JTextComponent$DropLocation dl)
+        (let [^JTextComponent$DropLocation dl dl]
+          {:bias (.getBias dl)
+           :index (.getIndex dl)})
 
-        (instance? javax.swing.JTree$DropLocation dl)
-          (let [^javax.swing.JTree$DropLocation dl dl]
-            { :index (.getChildIndex dl)
-              :path  (.getPath dl) })
+        (instance? JTree$DropLocation dl)
+        (let [^JTree$DropLocation dl dl]
+          {:index (.getChildIndex dl)
+           :path (.getPath dl)})
 
         :else {})
       {:point [(.x pt) (.y pt)]})))
@@ -174,13 +177,13 @@
 (defn validate-import-pairs [import-pairs]
   ;; ensure useful error message for missing :on-drop handler
   ;; otherwise user will see null pointer exception later
-  (when-let [error-import-pairs (seq (filter 
-                                       (fn [[flavor handler]] 
-                                         (when (and (map? handler) 
+  (when-let [error-import-pairs (seq (filter
+                                       (fn [[flavor handler]]
+                                         (when (and (map? handler)
                                                     (not (:on-drop handler)))
-                                           [flavor handler])) 
+                                           [flavor handler]))
                                        import-pairs))]
-    (throw (ex-info 
+    (throw (ex-info
              "no :on-drop key found in handler-map. :import with handler-map must have (:on-drop handler) => (fn [data] ...)"
              {:error-import-pairs error-import-pairs}))))
 
@@ -188,7 +191,7 @@
   (validate-import-pairs import-pairs)
   (map (fn [[flavor handler]]
          (let [handler (if (map? handler) handler {:on-drop handler})]
-           [flavor handler])) 
+           [flavor handler]))
        import-pairs))
 
 (defn default-transfer-handler
@@ -287,19 +290,19 @@
     http://download.oracle.com/javase/6/docs/api/javax/swing/TransferHandler.html
   "
   [& {:keys [import export] :as opts}]
-  (let [import-pairs     (normalise-import-pairs (partition 2 import))
+  (let [import-pairs (normalise-import-pairs (partition 2 import))
         accepted-flavors (map (comp to-raw-flavor first) import-pairs)
-        start            (if-let [start-val (:start export)]
-                           (fn [c] (default-transferable (start-val c))))
-        finish           (:finish export)
-        actions          (if export
-                             (or (:actions export) (constantly :move))
-                             (constantly :none))]
+        start (if-let [start-val (:start export)]
+                (fn [c] (default-transferable (start-val c))))
+        finish (:finish export)
+        actions (if export
+                  (or (:actions export) (constantly :move))
+                  (constantly :none))]
     (proxy [TransferHandler] []
 
       (canImport [^TransferHandler$TransferSupport support]
         (boolean
-          (some 
+          (some
             (fn [flavor]
               (when (.isDataFlavorSupported support flavor)
                 (let [[flavorful handler] (get-import-handler support import-pairs)]
@@ -313,16 +316,16 @@
         (if (.canImport ^TransferHandler this support)
           (try
             (let [[flavorful handler] (get-import-handler support import-pairs)
-                  data                (get-import-data support flavorful)
-                  drop?               (.isDrop support)
-                  on-drop (:on-drop handler) 
+                  data (get-import-data support flavorful)
+                  drop? (.isDrop support)
+                  on-drop (:on-drop handler)
                   ]
-              (boolean 
-                (on-drop {:data          data
-                          :drop?         drop?
+              (boolean
+                (on-drop {:data data
+                          :drop? drop?
                           :drop-location (if drop? (unpack-drop-location (.getDropLocation support)))
-                          :target        (.getComponent support)
-                          :support       support })))
+                          :target (.getComponent support)
+                          :support support})))
             ; When Swing calls importData it seems to catch and suppress all
             ; exceptions, which is maddening to debug. :|
             (catch Exception e
@@ -330,17 +333,17 @@
               (throw e)))
           false))
 
-      (createTransferable [^javax.swing.JComponent c]
+      (createTransferable [^JComponent c]
         (start c))
 
-      (getSourceActions [^javax.swing.JComponent c]
+      (getSourceActions [^JComponent c]
         (keyword-to-action (or (actions c) :none)))
 
-      (exportDone [^javax.swing.JComponent c ^Transferable data action]
+      (exportDone [^JComponent c ^Transferable data action]
         (if finish
-          (finish { :source c
-                    :data   data
-                    :action (action-to-keyword action) }))))))
+          (finish {:source c
+                   :data data
+                   :action (action-to-keyword action)}))))))
 
 (defn ^TransferHandler to-transfer-handler
   [v]
@@ -360,9 +363,9 @@
       (handler support)
       false)
 
-    (createTransferable [^javax.swing.JComponent c] nil)
+    (createTransferable [^JComponent c] nil)
 
-    (getSourceActions [^javax.swing.JComponent c] TransferHandler/NONE)
+    (getSourceActions [^JComponent c] TransferHandler/NONE)
 
-    (exportDone [^javax.swing.JComponent c ^Transferable data action])))
+    (exportDone [^JComponent c ^Transferable data action])))
 

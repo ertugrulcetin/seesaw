@@ -9,45 +9,46 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.dnd-explorer
-  (:require [seesaw.table :as table]
-            [seesaw.core :refer :all]
-            [seesaw.dnd :refer :all]))
+  (:require [seesaw.core :refer :all]
+            [seesaw.dnd :refer :all]
+            [seesaw.table :as table])
+  (:import (javax.swing JTable TransferHandler$TransferSupport)))
 
 (defn drop-handler [t support]
-  (let [flavors (.getDataFlavors ^javax.swing.TransferHandler$TransferSupport support)] 
+  (let [flavors (.getDataFlavors ^TransferHandler$TransferSupport support)]
     (table/clear! t)
-    (apply table/insert-at! t 
-          (mapcat 
-            (fn [f i] [0 (assoc (bean f) :N (format "%04d" i))])
-            flavors
-            (iterate inc 0)))))
+    (apply table/insert-at! t
+           (mapcat
+             (fn [f i] [0 (assoc (bean f) :N (format "%04d" i))])
+             flavors
+             (iterate inc 0)))))
 
 (defn app []
-  (let [t (doto ^javax.swing.JTable (table
-            :show-grid? true
-            :model [:columns [:N
-                              :representationClass
-                              :primaryType
-                              :subType
-                              :humanPresentableName]])
-            (.setAutoCreateRowSorter true))] 
+  (let [t (doto ^JTable (table
+                          :show-grid? true
+                          :model [:columns [:N
+                                            :representationClass
+                                            :primaryType
+                                            :subType
+                                            :humanPresentableName]])
+            (.setAutoCreateRowSorter true))]
     (frame
       :title "Seesaw Drag-n-Drop Explorer"
       :size [640 :by 480]
       :content (border-panel
-                :north (text
-                        :text "Drop stuff here. Flavors shown below."
-                        :background :lightblue
-                        :font "Arial-BOLD-20"
-                        :editable? false
-                        :drop-mode :insert
-                        :transfer-handler (everything-transfer-handler (partial drop-handler t)))
-                :center (scrollable t)))))
+                 :north (text
+                          :text "Drop stuff here. Flavors shown below."
+                          :background :lightblue
+                          :font "Arial-BOLD-20"
+                          :editable? false
+                          :drop-mode :insert
+                          :transfer-handler (everything-transfer-handler (partial drop-handler t)))
+                 :center (scrollable t)))))
 
 (defn -main [& args]
   (invoke-later
     (-> (app)
-      show!)))
+        show!)))
 
 ;(-main)
 

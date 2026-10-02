@@ -13,8 +13,8 @@
    [lazytest.core :refer [defdescribe describe expect it]]
    [seesaw.cursor :refer :all]
    [seesaw.graphics :refer :all])
-  (:import
-   (java.awt Cursor)))
+  (:import (java.awt Cursor)
+           (javax.swing ImageIcon)))
 
 (defmacro test-built-ins []
   `(describe "creating a built-in cursor"
@@ -38,7 +38,7 @@
       ; Can't actually test that the hotspot was set
       (expect (= (Cursor/CUSTOM_CURSOR) (.getType cur)))))
   (it "should create a custom cursor from an icon with an [x y] hotspot"
-    (let [icon (javax.swing.ImageIcon. (buffered-image 16 16))
+    (let [icon (ImageIcon. (buffered-image 16 16))
           cur (cursor icon [5 5])]
       ; Can't actually test that the hotspot was set
       (expect (= (Cursor/CUSTOM_CURSOR) (.getType cur))))))

@@ -14,7 +14,11 @@
       :author "Dave Ray"}
   seesaw.behave
   (:require [seesaw.core :refer :all]
-            [seesaw.util :refer [to-seq]]))
+            [seesaw.util :refer [to-seq]])
+  (:import (java.awt Point)
+           (java.awt.event MouseEvent)
+           (javax.swing JComboBox)
+           (javax.swing.text JTextComponent)))
 
 (defn when-focused-select-all
   "A helper function which adds a \"select all when focus gained\" behavior to one
@@ -34,13 +38,13 @@
   See:
   "
   [w]
-  (let [to-text #(if (instance? javax.swing.JComboBox %)
-                          (.. ^javax.swing.JComboBox % getEditor getEditorComponent) %)
+  (let [to-text #(if (instance? JComboBox %)
+                   (.. ^JComboBox % getEditor getEditorComponent) %)
         targets (map #(-> % to-widget to-text) (to-seq w))]
     (listen targets :focus-gained
-      ; TODO is it safe to assume JTextComponent here? Other option is
-      ; to extend selection stuff to text widgets
-      #(.selectAll ^javax.swing.text.JTextComponent (to-widget %)))))
+            ; TODO is it safe to assume JTextComponent here? Other option is
+            ; to extend selection stuff to text widgets
+            #(.selectAll ^JTextComponent (to-widget %)))))
 
 (defn when-mouse-dragged
   "A helper for handling mouse dragging on a widget. This isn't that complicated,
@@ -61,20 +65,20 @@
   "
   [w & opts]
   (let [{:keys [start drag finish]
-         :or   { start (fn [e]) drag (fn [e [x y]]) finish (fn [e]) }} opts
-        last-point (java.awt.Point.)]
+         :or {start (fn [e]) drag (fn [e [x y]]) finish (fn [e])}} opts
+        last-point (Point.)]
     (listen w
-      :mouse-pressed
-        (fn [^java.awt.event.MouseEvent e]
-          (.setLocation last-point (.getPoint e))
-          (start e))
-      :mouse-dragged
-        (fn [^java.awt.event.MouseEvent e]
-          (let [p (.getPoint e)]
-            ; TODO the delta reported here is incorrect if the widget is
-            ; programmatically moved during the callback. See xyz-panel test.
-            (drag e [(- (.x p) (.x last-point)) (- (.y p) (.y last-point))])
-            (.setLocation last-point (.getPoint e))))
-      :mouse-released
-        finish)))
+            :mouse-pressed
+            (fn [^MouseEvent e]
+              (.setLocation last-point (.getPoint e))
+              (start e))
+            :mouse-dragged
+            (fn [^MouseEvent e]
+              (let [p (.getPoint e)]
+                ; TODO the delta reported here is incorrect if the widget is
+                ; programmatically moved during the callback. See xyz-panel test.
+                (drag e [(- (.x p) (.x last-point)) (- (.y p) (.y last-point))])
+                (.setLocation last-point (.getPoint e))))
+            :mouse-released
+            finish)))
 

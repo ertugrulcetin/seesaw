@@ -291,25 +291,25 @@
   (icon/paint-icon
     16
     (fn [_ g]
-      (let [line   (g/style :foreground :current :stroke 1.6)
-            fill   (g/style :background :current)
-            l      (fn [x1 y1 x2 y2] (g/draw g (g/line x1 y1 x2 y2) line))
-            box    (fn [x y w h r] (g/draw g (g/rounded-rect x y w h r r) line))]
+      (let [line (g/style :foreground :current :stroke 1.6)
+            fill (g/style :background :current)
+            l (fn [x1 y1 x2 y2] (g/draw g (g/line x1 y1 x2 y2) line))
+            box (fn [x y w h r] (g/draw g (g/rounded-rect x y w h r r) line))]
         (case kind
           :dashboard (do (box 2 2 5 5 2) (box 9 2 5 5 2) (box 2 9 5 5 2) (box 9 9 5 5 2))
-          :todos     (do (box 2 2 12 12 3) (l 5 8 7 11) (l 7 11 11 5))
-          :editor    (do (l 3 4 13 4) (l 3 8 13 8) (l 3 12 9 12))
-          :canvas    (do (g/draw g (g/circle 8 8 6) line) (g/draw g (g/circle 8 8 2) fill))
-          :layouts   (do (g/draw g (g/rect 2 2 12 12) line) (l 7 2 7 14) (l 7 8 14 8))
-          :tree      (do (l 4 3 4 13) (l 4 7 10 7) (l 4 12 10 12)
-                         (g/draw g (g/circle 12 7 2) fill) (g/draw g (g/circle 12 12 2) fill))
-          :swingx    (do (l 3 3 13 13) (l 13 3 3 13))
-          :settings  (do (g/draw g (g/circle 8 8 4) line) (l 8 1 8 4) (l 8 12 8 15) (l 1 8 4 8) (l 12 8 15 8))
-          :lab       (do (l 6 2 10 2) (l 7 2 7 7) (l 9 2 9 7) (g/draw g (g/polygon [7 7] [3 14] [13 14] [9 7]) line))
-          :plus      (do (l 8 3 8 13) (l 3 8 13 8))
-          :trash     (do (g/draw g (g/rect 4 5 8 9) line) (l 2 4 14 4) (l 6 2 10 2))
-          :search    (do (g/draw g (g/ellipse 2 2 9 9) line) (l 10 10 14 14))
-          :menu      (do (l 2 4 14 4) (l 2 8 14 8) (l 2 12 14 12))
+          :todos (do (box 2 2 12 12 3) (l 5 8 7 11) (l 7 11 11 5))
+          :editor (do (l 3 4 13 4) (l 3 8 13 8) (l 3 12 9 12))
+          :canvas (do (g/draw g (g/circle 8 8 6) line) (g/draw g (g/circle 8 8 2) fill))
+          :layouts (do (g/draw g (g/rect 2 2 12 12) line) (l 7 2 7 14) (l 7 8 14 8))
+          :tree (do (l 4 3 4 13) (l 4 7 10 7) (l 4 12 10 12)
+                    (g/draw g (g/circle 12 7 2) fill) (g/draw g (g/circle 12 12 2) fill))
+          :swingx (do (l 3 3 13 13) (l 13 3 3 13))
+          :settings (do (g/draw g (g/circle 8 8 4) line) (l 8 1 8 4) (l 8 12 8 15) (l 1 8 4 8) (l 12 8 15 8))
+          :lab (do (l 6 2 10 2) (l 7 2 7 7) (l 9 2 9 7) (g/draw g (g/polygon [7 7] [3 14] [13 14] [9 7]) line))
+          :plus (do (l 8 3 8 13) (l 3 8 13 8))
+          :trash (do (g/draw g (g/rect 4 5 8 9) line) (l 2 4 14 4) (l 6 2 10 2))
+          :search (do (g/draw g (g/ellipse 2 2 9 9) line) (l 10 10 14 14))
+          :menu (do (l 2 4 14 4) (l 2 8 14 8) (l 2 12 14 12))
           (g/draw g (g/rect 4 4 8 8) fill))))))
 
 (defn- card
@@ -945,7 +945,7 @@
              (update-in db [:lab :items]
                         (fn [items]
                           (let [without (vec (remove #{item} items))
-                                index   (min (max 0 index) (count without))]
+                                index (min (max 0 index) (count without))]
                             (vec (concat (subvec without 0 index) [item] (subvec without index))))))))
 
 (reg-event :lab/dropped-files
@@ -980,7 +980,7 @@
 (defn lab []
   (let [; seesaw.bind: slider -> transform -> label, independent of app-db
         bslider (s/slider :min 0 :max 100 :value 30)
-        blabel  (s/label)
+        blabel (s/label)
         ; drag-and-drop reordering of a list stored in app-db
         dnd-list (s/listbox :model (sub [:lab :items])
                             :drag-enabled? true
@@ -991,8 +991,8 @@
         drop-zone (s/label :text "Drop files here" :halign :center
                            :border (border/rounded-border :radius 12 :thickness 2 :padding 24 :color "#9ca3af"))
         ; behave/when-mouse-dragged on an absolutely positioned box
-        box  (s/label :text "drag me" :halign :center :background "#c7d2fe" :foreground "#1e1b4b"
-                      :cursor :move :bounds [40 40 90 40])
+        box (s/label :text "drag me" :halign :center :background "#c7d2fe" :foreground "#1e1b4b"
+                     :cursor :move :bounds [40 40 90 40])
         arena (s/xyz-panel :items [box] :background "#f8fafc" :preferred-size [400 :by 160]
                            :border (border/line-border :color "#e5e7eb"))
         ; dynamic children: add!/remove!/replace!
@@ -1002,8 +1002,8 @@
                               (s/text :id :last)
                               (s/combobox :id :lang :model ["COBOL" "Fortran" "Lisp" "Clojure"])
                               (s/checkbox :id :admin? :text "Admin")]
-               (mig/mig-panel :constraints ["wrap 2" "[right][grow,fill]" ""]
-                              :items [["First"] [first] ["Last"] [last] ["Language"] [lang] [""] [admin?]]))
+                             (mig/mig-panel :constraints ["wrap 2" "[right][grow,fill]" ""]
+                                            :items [["First"] [first] ["Last"] [last] ["Language"] [lang] [""] [admin?]]))
         pw (s/password :placeholder "Type a password" :columns 18)
         html (s/editor-pane :content-type "text/html" :editable? false
                             :text "<html><body style='font-family:sans-serif'><h3>editor-pane</h3><p>HTML with <a href='https://github.com/clj-commons/seesaw'>a link</a>. Click it.</p></body></html>")]
@@ -1015,7 +1015,7 @@
                                               (dispatch! [:lab/move-item data (:index drop-location 0)])
                                               true)]
                  :export {:actions (constantly :move)
-                          :start   (fn [w] [dnd/string-flavor (s/selection w)])}))
+                          :start (fn [w] [dnd/string-flavor (s/selection w)])}))
     (s/config! drop-zone :transfer-handler
                (dnd/default-transfer-handler
                  :import [dnd/file-list-flavor (fn [{:keys [data]}] (dispatch! [:lab/dropped-files data]) true)
@@ -1055,10 +1055,10 @@
                                   :items [(s/flow-panel
                                             :align :left
                                             :items [(s/button :text "add!" :listen [:action (fn [_] (s/add! chips (s/label :text (str "chip " (inc (count (s/children chips))))
-                                                                                                                                  :class :chip :border (border/rounded-border :radius 8 :padding [2 8]))))])
+                                                                                                                           :class :chip :border (border/rounded-border :radius 8 :padding [2 8]))))])
                                                     (s/button :text "remove! last" :listen [:action (fn [_] (when-let [l (last (s/children chips))] (s/remove! chips l)))])
                                                     (s/button :text "replace! first" :listen [:action (fn [_] (when-let [f (first (s/children chips))]
-                                                                                                                 (s/replace! chips f (s/label :text "replaced" :class :chip :foreground "#dc2626"))))])
+                                                                                                                (s/replace! chips f (s/label :text "replaced" :class :chip :foreground "#dc2626"))))])
                                                     (s/button :text "select .chip" :listen [:action (fn [_] (dispatch! [:status (str (count (s/select chips [:.chip])) " widgets with class chip")]))])])
                                           chips]))}
              {:title "value / with-widgets"
@@ -1097,10 +1097,10 @@
                            :center desk))}
              {:title "More widgets"
               :content (let [amount (s/formatted-text :format "#,##0.00" :value 1234.5 :columns 12 :commit-on-valid? true)
-                             pct    (s/formatted-text :format :percent :value 0.25 :columns 8)
-                             date   (s/formatted-text :format :date :value #inst "1815-12-10" :columns 12)
-                             bar    (s/scroll-bar :orientation :horizontal :min 0 :max 110 :visible-amount 10
-                                                  :value (sub [:user :prefs :volume]))
+                             pct (s/formatted-text :format :percent :value 0.25 :columns 8)
+                             date (s/formatted-text :format :date :value #inst "1815-12-10" :columns 12)
+                             bar (s/scroll-bar :orientation :horizontal :min 0 :max 110 :visible-amount 10
+                                               :value (sub [:user :prefs :volume]))
                              chooser (s/color-chooser :color (get-in @app-db [:canvas :color])
                                                       :preview-panel (s/label ""))
                              watermark (s/jlayer (s/label :text "jlayer paints over this label" :border 24 :halign :center)
@@ -1154,28 +1154,28 @@
 ;; A drawer that slides in over the window (layer!), dimming the rest.
 ;; Open/closed lives in app-db at [:ui :drawer?].
 (defn install-drawer! [f]
-  (let [width  260
-        x      (atom (- width))
-        scrim  (s/canvas :opaque? false :visible? false
-                         :paint (fn [c g] (g/draw g (g/rect 0 0 (s/width c) (s/height c))
-                                                  (g/style :background (color/color 0 0 0 60)))))
-        panel  (s/border-panel
-                 :visible? false
-                 :border (border/compound-border (border/empty-border :thickness 16)
-                                                 (border/line-border :right 1 :color "#d1d5db"))
-                 :style {:background "@background"}
-                 :north (s/label :text "Seesaw Studio" :style-class "h2" :border [0 0 12 0])
-                 :center (s/vertical-panel
-                           :items (for [{:keys [id label]} sections]
-                                    (s/button :text label :icon (glyph id) :button-type :toolbar :halign :left
-                                              :listen [:action (fn [_] (dispatch! [:set [:ui :section] id])
-                                                                 (dispatch! [:set [:ui :drawer?] false]))])))
-                 :south (s/label :text "Esc or click outside to close" :foreground :gray))
+  (let [width 260
+        x (atom (- width))
+        scrim (s/canvas :opaque? false :visible? false
+                        :paint (fn [c g] (g/draw g (g/rect 0 0 (s/width c) (s/height c))
+                                                 (g/style :background (color/color 0 0 0 60)))))
+        panel (s/border-panel
+                :visible? false
+                :border (border/compound-border (border/empty-border :thickness 16)
+                                                (border/line-border :right 1 :color "#d1d5db"))
+                :style {:background "@background"}
+                :north (s/label :text "Seesaw Studio" :style-class "h2" :border [0 0 12 0])
+                :center (s/vertical-panel
+                          :items (for [{:keys [id label]} sections]
+                                   (s/button :text label :icon (glyph id) :button-type :toolbar :halign :left
+                                             :listen [:action (fn [_] (dispatch! [:set [:ui :section] id])
+                                                                (dispatch! [:set [:ui :drawer?] false]))])))
+                :south (s/label :text "Esc or click outside to close" :foreground :gray))
         place! (fn [] (s/config! panel :bounds [@x 0 width (s/height scrim)]))
-        slide  (timer/timer (fn [_]
-                              (swap! x #(min 0 (+ % 40)))
-                              (place!))
-                            :delay 12 :start? false)]
+        slide (timer/timer (fn [_]
+                             (swap! x #(min 0 (+ % 40)))
+                             (place!))
+                           :delay 12 :start? false)]
     (s/layer! f scrim :bounds :fill)
     (s/layer! f panel :bounds [(- width) 0 width 400])
     (s/listen scrim :mouse-pressed (fn [_] (dispatch! [:set [:ui :drawer?] false])))

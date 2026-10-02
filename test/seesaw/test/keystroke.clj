@@ -12,15 +12,15 @@
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.keystroke :refer [keystroke label]])
-  (:import
-   (java.awt Toolkit)
-   (javax.swing KeyStroke)))
+  (:import (java.awt Toolkit)
+           (java.awt.event KeyEvent)
+           (javax.swing KeyStroke)))
 
 (defdescribe keystroke-test
   (it "creates a keystroke from a descriptor string"
     (let [ks (keystroke "ctrl S")]
       (expect (= KeyStroke (class ks)))
-      (expect (= java.awt.event.KeyEvent/VK_S (.getKeyCode ks)))))
+      (expect (= KeyEvent/VK_S (.getKeyCode ks)))))
   (expect-it "returns nil for nil input"
     (nil? (keystroke nil)))
   (it "returns input if it's a KeyStroke"
@@ -28,10 +28,10 @@
       (expect (= ks (keystroke ks)))))
   (it "returns a keystroke for a string"
     (let [ks (keystroke "alt X")]
-      (expect (= java.awt.event.KeyEvent/VK_X (.getKeyCode ks)))))
+      (expect (= KeyEvent/VK_X (.getKeyCode ks)))))
   (it "substitute platform-specific menu modifier for \"menu\" modifier"
     (let [ks (keystroke "menu X")]
-      (expect (= java.awt.event.KeyEvent/VK_X (.getKeyCode ks)))
+      (expect (= KeyEvent/VK_X (.getKeyCode ks)))
       (expect (= (.. (Toolkit/getDefaultToolkit) getMenuShortcutKeyMask) (bit-and 7 (.getModifiers ks))))))
   (it "returns a keystroke for a char"
     (let [ks (keystroke \A)]
@@ -43,7 +43,7 @@
     (expect (= (keystroke "menu S") (keystroke "cmd S"))))
   (it "only replaces menu as a whole word"
     (let [ks (keystroke "CONTEXT_MENU")]
-      (expect (= java.awt.event.KeyEvent/VK_CONTEXT_MENU (.getKeyCode ks)))
+      (expect (= KeyEvent/VK_CONTEXT_MENU (.getKeyCode ks)))
       (expect (= 0 (.getModifiers ks))))))
 
 (defdescribe label-test

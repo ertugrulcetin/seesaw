@@ -12,12 +12,15 @@
   (:require
    [lazytest.core :refer [defdescribe expect expect-it given it]]
    [seesaw.core :refer [listen]]
-   [seesaw.tree :refer :all]))
+   [seesaw.tree :refer :all])
+  (:import (java.io File)
+           (javax.swing.event TreeModelListener)
+           (javax.swing.tree TreeModel)))
 
 (defn- tree-listener
   "Dummy TreeModelListener that calls handler with the received event."
   [handler]
-  (reify javax.swing.event.TreeModelListener
+  (reify TreeModelListener
     (treeNodesChanged [this e] (handler e))
     (treeNodesInserted [this e] (handler e))
     (treeNodesRemoved [this e] (handler e))
@@ -28,7 +31,7 @@
         children (fn [node] (when (= node "dir") [1 2 3]))
         m (simple-tree-model branch? children "dir")]
     (expect-it "should create a read-only tree model from branch? and children functions"
-      (instance? javax.swing.tree.TreeModel m))
+      (instance? TreeModel m))
     (expect-it "should return the root"
       (= "dir" (.getRoot m)))
     (it "should return isLeaf"
@@ -59,7 +62,7 @@
         (expect @called-b)))))
 
 (defn- make-test-model []
-  (simple-tree-model #(.isDirectory %) #(.listFiles %) (java.io.File. ".")))
+  (simple-tree-model #(.isDirectory %) #(.listFiles %) (File. ".")))
 
 (defdescribe fire-event-test
   (it "fires nodes-changed events"

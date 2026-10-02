@@ -13,9 +13,14 @@
         [seesaw.util :refer [root-cause]]
             [seesaw.core :as sc]
             [lazytest.core :refer [defdescribe describe expect expect-it it]])
-  (:import (javax.swing JPanel JTextField JButton JRadioButton JToggleButton)
-           (javax.swing.event ChangeListener)
-           (java.awt.event ComponentListener ItemListener MouseListener MouseMotionListener)))
+  (:import (java.awt MenuItem)
+           (java.awt.event ComponentListener ItemListener MouseListener
+                           MouseMotionListener)
+           (javax.swing JPanel JTextField JButton JRadioButton JToggleButton
+                        JFrame JList JTable JTree JComboBox JEditorPane JScrollPane JMenu
+                        JPopupMenu)
+           (javax.swing.event ChangeListener MenuEvent)
+           (javax.swing.tree DefaultMutableTreeNode DefaultTreeModel)))
 
 (defn test-handler [_])
 
@@ -126,7 +131,7 @@
         (instance? IllegalArgumentException (root-cause e)))))
   (expect-it "throws IllegalArgumentException if a handler isn't a function or var"
     (try
-      (listen (javax.swing.JPanel.) :mouse "foo")
+      (listen (JPanel.) :mouse "foo")
       false
       (catch IllegalArgumentException e
         true)
@@ -214,7 +219,7 @@
       (expect (= 2 @called))))
 
   (it "can register for window events on a frame"
-    (let [f (javax.swing.JFrame.)]
+    (let [f (JFrame.)]
       (listen f :window-closed (fn [e] nil))))
 
   (it "registers events on all buttons in a ButtonGroup"
@@ -229,7 +234,7 @@
       (expect (= 1 (count (.getActionListeners c))))))
 
   (it "can register a ListSelectionListener on a JList with :selection key"
-    (let [jlist (javax.swing.JList.)
+    (let [jlist (JList.)
           called (atom false)]
       (do
         (expect (= 0 (count (.getListSelectionListeners jlist))))
@@ -239,7 +244,7 @@
         (expect @called))))
 
   (it "can register a CaretListener on a JTextComponent with :selection key"
-    (let [jtext (javax.swing.JTextField.)
+    (let [jtext (JTextField.)
           called (atom false)]
       (do
         (expect (= 0 (count (.getCaretListeners jtext))))
@@ -249,7 +254,7 @@
         (expect @called))))
 
   (it "can register a ListSelectionListener on a JTable with :selection key"
-      (let [jtable (javax.swing.JTable. 5 1)
+      (let [jtable (JTable. 5 1)
             called (atom false)]
         (do
           ; a mystery listener is added by JTable
@@ -260,7 +265,7 @@
           (expect @called))))
 
   (it "can register a TreeSelectionListener on a JTree with :selection key"
-    (let [tree (javax.swing.JTree.)
+    (let [tree (JTree.)
           called (atom false)]
       (do
         (expect (= 0 (count (.getTreeSelectionListeners tree))))
@@ -269,7 +274,7 @@
         (.. (first (.getTreeSelectionListeners tree)) (valueChanged nil))
         (expect @called))))
   (it "can register an ActionListener on a JComboBox with :selection key"
-    (let [cb (javax.swing.JComboBox.)
+    (let [cb (JComboBox.)
           called (atom false)]
       (do
         (expect (= 0 (count (.getActionListeners cb))))
@@ -287,7 +292,7 @@
       (expect @called)))
 
   (it "can register an ItemListener on an ItemSelectable (like a checkbox) with :selection key"
-    (let [b (javax.swing.JToggleButton.)
+    (let [b (JToggleButton.)
           called (atom false)]
       (do
         (expect (= 0 (count (.getItemListeners b))))
@@ -296,13 +301,13 @@
         (.. (first (.getItemListeners b)) (itemStateChanged nil))
         (expect @called))))
   (it "can register a caret listener on a text component"
-    (let [tc (javax.swing.JTextField. "some text")
+    (let [tc (JTextField. "some text")
           updated (atom nil)]
       (listen tc :caret-update #(reset! updated %))
       (.setCaretPosition tc 5)
       (expect @updated)))
   (it "can register a tree expansion listener"
-    (let [tree (javax.swing.JTree.)
+    (let [tree (JTree.)
           expanded (atom false)
           collapsed (atom false)]
       (listen tree :tree-expanded #(reset! expanded %)
@@ -313,16 +318,16 @@
       (.expandRow tree 0)
       (expect @expanded)))
   (it "can register a tree-will-expand listener"
-    (let [tree (javax.swing.JTree.)
+    (let [tree (JTree.)
           will-expand(atom false)
           will-collapse (atom false)]
       (listen tree :tree-will-expand #(reset! will-expand %)
                    :tree-will-collapse #(reset! will-collapse %))
       (expect (not (or @will-expand @will-collapse)))))
   (it "can register a tree model listener"
-      (let [root (javax.swing.tree.DefaultMutableTreeNode.)
-            child (javax.swing.tree.DefaultMutableTreeNode.)
-            model (javax.swing.tree.DefaultTreeModel. root)
+      (let [root (DefaultMutableTreeNode.)
+            child (DefaultMutableTreeNode.)
+            model (DefaultTreeModel. root)
             nodes-changed (atom nil)
             nodes-inserted (atom nil)
             nodes-removed (atom nil)
@@ -341,7 +346,7 @@
       (.nodeStructureChanged model root)
       (expect @structure-changed)))
   (it "can register a hyperlink listener"
-    (let [editor (javax.swing.JEditorPane.)
+    (let [editor (JEditorPane.)
           called (atom 0)]
       (listen editor :hyperlink-update (fn [_] (swap! called inc)))
       (listen editor :hyperlink (fn [_] (swap! called inc)))
@@ -350,7 +355,7 @@
       (expect (= 2 @called))))
 
   (it "can register an ActionListener on a java.awt.MenuItem with :action key"
-    (let [mi (java.awt.MenuItem.)
+    (let [mi (MenuItem.)
           called (atom false)]
       (do
         (expect (= 0 (count (.getActionListeners mi))))
@@ -361,7 +366,7 @@
 
 (defdescribe listen-to-property-test
   (it "registers a property change listener"
-    (let [b (javax.swing.JButton.)
+    (let [b (JButton.)
           called (atom nil)
           remove-fn (listen-to-property b "text"
                                         (fn [e] (reset! called e)))]
@@ -375,7 +380,7 @@
 (defdescribe new-event-groups-test
   (it "supports :adjustment-value-changed on scroll bars and scroll panes"
     (let [called (atom 0)
-          sp (javax.swing.JScrollPane.)
+          sp (JScrollPane.)
           sb (.getVerticalScrollBar sp)]
       (.setMaximum sb 1000)
       (listen sp :adjustment-value-changed (fn [_] (swap! called inc)))
@@ -383,14 +388,14 @@
       (expect (= 1 @called))))
   (it "supports :menu-selected on menus"
     (let [called (atom nil)
-          m (javax.swing.JMenu. "File")]
+          m (JMenu. "File")]
       (listen m :menu-selected (fn [e] (reset! called e)))
       (.setSelected m true)
-      (expect (instance? javax.swing.event.MenuEvent @called))))
+      (expect (instance? MenuEvent @called))))
   (it "supports :popup-menu-will-become-visible on popups and combo boxes"
     (let [called (atom 0)
-          p (javax.swing.JPopupMenu.)
-          c (javax.swing.JComboBox.)
+          p (JPopupMenu.)
+          c (JComboBox.)
           before (count (.getPopupMenuListeners p))]
       (listen [p c] :popup-menu-will-become-visible (fn [_] (swap! called inc)))
       (expect (= (inc before) (count (.getPopupMenuListeners p))))
@@ -417,6 +422,6 @@
       (.add p b)
       (expect (pos? @h))))
   (it "supports :window-state-changed and :window-gained-focus"
-    (let [f (javax.swing.JFrame.)]
+    (let [f (JFrame.)]
       (expect (fn? (listen f :window-state-changed (fn [_]) :window-gained-focus (fn [_]))))
       (.dispose f))))

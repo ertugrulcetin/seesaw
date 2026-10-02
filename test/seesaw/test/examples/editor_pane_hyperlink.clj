@@ -12,8 +12,7 @@
   (:require
    [seesaw.core :refer [alert editor-pane frame listen select]]
    [seesaw.test.examples.example :refer [defexample]]) 
-  (:import
-   javax.swing.event.HyperlinkEvent$EventType))
+  (:import (javax.swing.event HyperlinkEvent$EventType)))
 
 (defn make-editor-pane
   []

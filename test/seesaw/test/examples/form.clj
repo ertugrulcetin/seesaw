@@ -1,6 +1,7 @@
 (ns seesaw.test.examples.form
   (:require [seesaw.core :refer [frame form-panel label text grid-panel button checkbox]]
-        [seesaw.test.examples.example :refer [defexample]]))
+        [seesaw.test.examples.example :refer [defexample]])
+  (:import (java.awt Insets)))
 
 ;http://www.leepoint.net/notes-java/GUI/layouts/gridbag-example.html 
 
@@ -8,7 +9,7 @@
   (frame :title "Find/Replace" :content 
     (form-panel
       :items [
-        [nil :fill :both :insets (java.awt.Insets. 5 5 5 5) :gridx 0 :gridy 0]
+        [nil :fill :both :insets (Insets. 5 5 5 5) :gridx 0 :gridy 0]
 
         [(label :text "Find What:" :halign :right)]
 

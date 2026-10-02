@@ -15,10 +15,10 @@
   (:require [seesaw.color :refer [to-color]]
             [seesaw.meta :refer [get-meta put-meta!]]
             [seesaw.to-widget :refer [to-widget*]])
-  (:import (javax.swing.text JTextComponent Position$Bias View
-            LayeredHighlighter$LayerPainter)
-           (java.awt Graphics Graphics2D Rectangle RenderingHints Shape)
-           (java.awt.geom RoundRectangle2D$Double)))
+  (:import (java.awt Graphics Graphics2D Point Rectangle RenderingHints Shape)
+           (java.awt.geom Point2D RoundRectangle2D$Double)
+           (javax.swing.text Highlighter$Highlight JTextComponent LayeredHighlighter$LayerPainter
+                             Position$Bias View)))
 
 (defn- ^JTextComponent to-text [target]
   (let [t (to-widget* target)]
@@ -48,8 +48,8 @@
   Use it with (highlight!) or (.addHighlight (.getHighlighter t) ...)."
   [& {:keys [color border arc padding] :or {arc 4 padding [1 0]}}]
   (let [[px py] (if (sequential? padding) padding [padding padding])
-        fill    (some-> color to-color)
-        stroke  (some-> border to-color)]
+        fill (some-> color to-color)
+        stroke (some-> border to-color)]
     (proxy [LayeredHighlighter$LayerPainter] []
       (paint [g p0 p1 bounds c])
       (paintLayer [^Graphics g offs0 offs1 ^Shape bounds ^JTextComponent c ^View view]
@@ -112,7 +112,7 @@
     (put-meta! t (layer-key layer)
                (doall (for [[start end] ranges
                             :let [start (max 0 (min start len))
-                                  end   (max start (min end len))]
+                                  end (max start (min end len))]
                             :when (< start end)]
                         (.addHighlight h start end p))))
     t))
@@ -121,7 +121,7 @@
   "The [start end] ranges currently highlighted in a layer."
   [target layer]
   (let [t (to-text target)]
-    (vec (for [^javax.swing.text.Highlighter$Highlight tag (get-meta t (layer-key layer))]
+    (vec (for [^Highlighter$Highlight tag (get-meta t (layer-key layer))]
            [(.getStartOffset tag) (.getEndOffset tag)]))))
 
 ;*******************************************************************************
@@ -132,9 +132,9 @@
   [x y]), e.g. under the mouse in a :mouse-moved handler."
   [target point]
   (let [t (to-text target)
-        p (if (instance? java.awt.geom.Point2D point)
+        p (if (instance? Point2D point)
             point
-            (let [[x y] point] (java.awt.Point. (int x) (int y))))]
+            (let [[x y] point] (Point. (int x) (int y))))]
     (.viewToModel2D t p)))
 
 (defn rect-at
@@ -189,6 +189,6 @@
     (.replaceSelection t (str s))
     t))
 
-(defn cut!   "Cut the selection to the clipboard."   [target] (doto (to-text target) .cut))
-(defn copy!  "Copy the selection to the clipboard."  [target] (doto (to-text target) .copy))
+(defn cut! "Cut the selection to the clipboard." [target] (doto (to-text target) .cut))
+(defn copy! "Copy the selection to the clipboard." [target] (doto (to-text target) .copy))
 (defn paste! "Paste the clipboard at the selection." [target] (doto (to-text target) .paste))

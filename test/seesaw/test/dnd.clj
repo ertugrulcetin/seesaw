@@ -13,9 +13,12 @@
    [lazytest.core :refer [defdescribe describe expect expect-it it]]
    [seesaw.dnd :refer :all]
    [seesaw.graphics :refer :all])
-  (:import
-   (java.awt.datatransfer DataFlavor StringSelection UnsupportedFlavorException)
-   (javax.swing TransferHandler)))
+  (:import (clojure.lang ExceptionInfo)
+           (java.awt.datatransfer DataFlavor StringSelection
+                                  UnsupportedFlavorException)
+           (java.net URI)
+           (javax.swing TransferHandler TransferHandler$TransferSupport JLabel
+                        JTextField)))
 
 (defdescribe local-object-flavor-test
   (it "creates a JVM local flavor for an arbitrary class"
@@ -29,10 +32,10 @@
   (it "implements to-remote to convert list of URIs to uri-list"
     (= "http://google.com\r\nhttp://github.com" 
                (to-remote uri-list-flavor 
-                          [(java.net.URI. "http://google.com")
-                           (java.net.URI. "http://github.com")])))
+                          [(URI. "http://google.com")
+                           (URI. "http://github.com")])))
   (it "implements to-local to convert uri-list to list of URIs"
-    (= [(java.net.URI. "http://google.com") (java.net.URI. "http://github.com")]
+    (= [(URI. "http://google.com") (URI. "http://github.com")]
                (to-local uri-list-flavor "http://google.com\r\nhttp://github.com" ))))
 
 (defdescribe default-transferable-test
@@ -60,16 +63,16 @@
         (expect (not (.isDataFlavorSupported t (to-raw-flavor string-flavor))))))))
 
 (defn fake-transfer-support [t]
-  (javax.swing.TransferHandler$TransferSupport. (javax.swing.JLabel.) t))
+  (TransferHandler$TransferSupport. (JLabel.) t))
 
 (defdescribe default-transfer-handler-test
   (describe "(default-transfer-handler)" 
     (it "creates a transfer handler"
-      (instance? javax.swing.TransferHandler (default-transfer-handler)))
+      (instance? TransferHandler (default-transfer-handler)))
     (expect-it "throws an ex-info if there is a handler-map without an on-drop key"
       (try 
           (default-transfer-handler :import [string-flavor {}]) false
-          (catch clojure.lang.ExceptionInfo e true))))
+          (catch ExceptionInfo e true))))
 
   (describe "(canImport)"
     (expect-it "returns false if the :import map is missing or empty"
@@ -117,29 +120,29 @@
 
   (describe "(createTransferable)"
     (it "returns a transferable given :import/:start "
-      (let [c (javax.swing.JTextField. "some text")
+      (let [c (JTextField. "some text")
             th (default-transfer-handler :export { :start (fn [c] [string-flavor (.getText c)]) })
             trans (.createTransferable th c)]
         (expect (= "some text" (.getTransferData trans (to-raw-flavor string-flavor)))))))
 
   (describe "(getSourceActions)"
     (it "returns :none if :export is omitted"
-      (let [c (javax.swing.JTextField. "some text")
+      (let [c (JTextField. "some text")
             th (default-transfer-handler)
             actions (.getSourceActions th c)]
         (expect (= TransferHandler/NONE actions))))
     (it "returns :none if the provided function returns nil"
-      (let [c (javax.swing.JTextField. "some text")
+      (let [c (JTextField. "some text")
             th (default-transfer-handler :export { :actions (fn [c] nil) })
             actions (.getSourceActions th c)]
         (expect (= TransferHandler/NONE actions))))
     (it "returns :move by default"
-      (let [c (javax.swing.JTextField. "some text")
+      (let [c (JTextField. "some text")
             th (default-transfer-handler :export {})
             actions (.getSourceActions th c)]
         (expect (= TransferHandler/MOVE actions))))
     (it "returns the result of calling the provided function"
-      (let [c (javax.swing.JTextField. "some text")
+      (let [c (JTextField. "some text")
             th (default-transfer-handler :export { :actions (fn [c] :link) })
             actions (.getSourceActions th c)]
         (expect (= TransferHandler/LINK actions)))))
@@ -151,7 +154,7 @@
       (let [th (default-transfer-handler :export {})]
         (expect (not (.exportDone th nil nil TransferHandler/MOVE)))))
     (it "calls the :export/:finish function with a map"
-      (let [source (javax.swing.JTextField. "some text")
+      (let [source (JTextField. "some text")
             tr (default-transferable [string-flavor "hi" (local-object-flavor Integer) (fn [] 99)])
             called (atom nil)
             th (default-transfer-handler :export { :finish (fn [v] (reset! called v) true) })]

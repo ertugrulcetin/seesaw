@@ -13,7 +13,8 @@
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.core :as core]
    [seesaw.graphics :as g]
-   [seesaw.text :refer :all]))
+   [seesaw.text :refer :all])
+  (:import (java.awt Color Rectangle)))
 
 (defdescribe highlight!-test
   (it "adds highlights in independent layers"
@@ -40,7 +41,7 @@
           _ (highlight! t :x [[0 4]] :color :red :arc 2)
           img (g/snapshot t)
           r (rect-at t 1)
-          red? (fn [x y] (let [c (java.awt.Color. (.getRGB img x y))]
+          red? (fn [x y] (let [c (Color. (.getRGB img x y))]
                            (and (> (.getRed c) 200) (< (.getGreen c) 80))))]
       (expect (some (fn [y] (red? (inc (.x r)) y)) (range (.y r) (+ (.y r) (.height r))))))))
 
@@ -48,7 +49,7 @@
   (it "maps between positions and points"
     (let [t (doto (core/text :text "hello") (.setSize 200 30))
           r (rect-at t 3)]
-      (expect (instance? java.awt.Rectangle r))
+      (expect (instance? Rectangle r))
       (expect (= 3 (position-at t [(inc (.x r)) (+ (.y r) (quot (.height r) 2))])))))
   (it "scrolls to a position without moving the caret"
     (let [t (core/text :multi-line? true :text (apply str (repeat 200 "line\n")))

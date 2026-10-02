@@ -11,7 +11,8 @@
 (ns seesaw.test.examples.custom-border
   (:require [seesaw.core :refer [frame label]]
         [seesaw.border :refer [custom-border]]
-        [seesaw.test.examples.example :refer [defexample]]))
+        [seesaw.test.examples.example :refer [defexample]])
+  (:import (java.awt Color)))
 
 (defexample run []
   (frame 
@@ -20,7 +21,7 @@
                     :border (custom-border :insets 10 
                                            :paint (fn [c g x y w h]
                                                     (doto g
-                                                      (.setColor java.awt.Color/RED)
+                                                      (.setColor Color/RED)
                                                       (.drawRoundRect (+ 5 x) (+ 5 y) (- w 10) (- h 10) 15 15)))))))
 
 ;(run :dispose)

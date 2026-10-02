@@ -12,11 +12,12 @@
   (:require
    [lazytest.core :refer [defdescribe expect-it]]
    [seesaw.core :refer :all]
-   [seesaw.widgets.log-window :refer :all]))
+   [seesaw.widgets.log-window :refer :all])
+  (:import (javax.swing JTextArea)))
 
 (defdescribe log-window-test
   (expect-it "creates a JTextArea"
-    (instance? javax.swing.JTextArea (log-window)))
+    (instance? JTextArea (log-window)))
   (expect-it "has :limit option"
     (= 55 (config (log-window :limit 55) :limit)))
   (expect-it "has :auto-scroll? option"

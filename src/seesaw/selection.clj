@@ -10,7 +10,13 @@
 
 (ns seesaw.selection
   (:require [seesaw.to-widget]
-            [seesaw.util :refer [check-args]]))
+            [seesaw.util :refer [check-args]])
+  (:import (java.awt Color Component)
+           (javax.swing AbstractButton Action ButtonGroup JColorChooser JComboBox
+                        JList JScrollBar JSlider JSpinner JTabbedPane JTable JTree
+                        ListModel)
+           (javax.swing.text JTextComponent)
+           (javax.swing.tree TreePath)))
 
 ;TODO put this somewhere
 ; I think this is generally useful, but the main reason for its existence is
@@ -26,145 +32,145 @@
   (set-selection [target args]))
 
 (extend-protocol Selection
-  javax.swing.Action
-    (get-selection [target]
-      (when-let [s (.getValue target javax.swing.Action/SELECTED_KEY)] [true]))
-    (set-selection [target [v]] (.putValue target javax.swing.Action/SELECTED_KEY (boolean v)))
+  Action
+  (get-selection [target]
+    (when-let [s (.getValue target Action/SELECTED_KEY)] [true]))
+  (set-selection [target [v]] (.putValue target Action/SELECTED_KEY (boolean v)))
 
-  javax.swing.AbstractButton
-    (get-selection [target]      [(.isSelected target)])
-    (set-selection [target [v]]  (doto target (.setSelected (boolean v))))
+  AbstractButton
+  (get-selection [target] [(.isSelected target)])
+  (set-selection [target [v]] (doto target (.setSelected (boolean v))))
 
-  javax.swing.ButtonGroup
-    (get-selection [^javax.swing.ButtonGroup target]
-      (when-let [sel (some #(when (.isSelected ^javax.swing.AbstractButton %) %) (enumeration-seq (.getElements target)))]
-        [sel]))
-    (set-selection [^javax.swing.ButtonGroup target [^javax.swing.AbstractButton v]]
-      (if v
-        (.setSelected target (.getModel v) true)
-        (.clearSelection target))
-      target)
+  ButtonGroup
+  (get-selection [^ButtonGroup target]
+    (when-let [sel (some #(when (.isSelected ^AbstractButton %) %) (enumeration-seq (.getElements target)))]
+      [sel]))
+  (set-selection [^ButtonGroup target [^AbstractButton v]]
+    (if v
+      (.setSelected target (.getModel v) true)
+      (.clearSelection target))
+    target)
 
-  javax.swing.JSlider
-    (get-selection [target]     (vector (.getValue target)))
-    (set-selection [target [v]] (doto target (.setValue v)))
+  JSlider
+  (get-selection [target] (vector (.getValue target)))
+  (set-selection [target [v]] (doto target (.setValue v)))
 
-  javax.swing.JSpinner
-    (get-selection [target]     (vector (.getValue target)))
-    (set-selection [target [v]] (doto target (.setValue v)))
+  JSpinner
+  (get-selection [target] (vector (.getValue target)))
+  (set-selection [target [v]] (doto target (.setValue v)))
 
-  javax.swing.JComboBox
-    (get-selection [target]     (seq (.getSelectedObjects target)))
-    (set-selection [target [v]] (doto target (.setSelectedItem v))))
+  JComboBox
+  (get-selection [target] (seq (.getSelectedObjects target)))
+  (set-selection [target [v]] (doto target (.setSelectedItem v))))
 
 (defn- list-model-to-seq
-  [^javax.swing.ListModel model]
+  [^ListModel model]
   (map #(.getElementAt model %) (range 0 (.getSize model))))
 
 (defn- list-model-indices
   [model values]
-  (let [value-set    (if (set? values) values (apply hash-set values))]
+  (let [value-set (if (set? values) values (apply hash-set values))]
     (->> (list-model-to-seq model)
-      (map-indexed #(vector %1 (value-set %2)))
-      (filter second)
-      (map first))))
+         (map-indexed #(vector %1 (value-set %2)))
+         (filter second)
+         (map first))))
 
 (defn- jlist-set-selection
-  ([^javax.swing.JList target values]
-    (if (seq values)
-      (let [indices (map #(index-to-view target %) (list-model-indices (.getModel target) values))]
-        (.setSelectedIndices target (int-array indices)))
-      (.clearSelection target))
+  ([^JList target values]
+   (if (seq values)
+     (let [indices (map #(index-to-view target %) (list-model-indices (.getModel target) values))]
+       (.setSelectedIndices target (int-array indices)))
+     (.clearSelection target))
    target))
 
 (extend-protocol ViewModelIndexConversion
-  javax.swing.JList
-    (index-to-model [this index] index)
-    (index-to-view [this index] index))
+  JList
+  (index-to-model [this index] index)
+  (index-to-view [this index] index))
 
 (extend-protocol Selection
-  javax.swing.JList
-    ; TODO #165 getSelectedValues() is deprecated in JDK 7 in favor of getSelectedValuesList()
-    ; replace if people ever stop using JDK 6.
-    (get-selection [target]      (seq (.getSelectedValues target)))
-    (set-selection [target args] (jlist-set-selection target args)))
+  JList
+  ; TODO #165 getSelectedValues() is deprecated in JDK 7 in favor of getSelectedValuesList()
+  ; replace if people ever stop using JDK 6.
+  (get-selection [target] (seq (.getSelectedValues target)))
+  (set-selection [target args] (jlist-set-selection target args)))
 
 (extend-protocol Selection
-  javax.swing.JTable
-    (get-selection [target] (seq (map #(.convertRowIndexToModel target %) (.getSelectedRows target))))
-    (set-selection [target args]
-      (if (seq args)
-        (do
-          (.clearSelection target)
-          (doseq [i args] (.addRowSelectionInterval target i i)))
-        (.clearSelection target))))
+  JTable
+  (get-selection [target] (seq (map #(.convertRowIndexToModel target %) (.getSelectedRows target))))
+  (set-selection [target args]
+    (if (seq args)
+      (do
+        (.clearSelection target)
+        (doseq [i args] (.addRowSelectionInterval target i i)))
+      (.clearSelection target))))
 
 (extend-protocol Selection
-  javax.swing.JTree
-    (get-selection [target] (seq (map #(seq (.getPath ^javax.swing.tree.TreePath %)) (.getSelectionPaths target))))
-    (set-selection [target args]
-      (if (seq args)
-        target
-        (.clearSelection target))))
+  JTree
+  (get-selection [target] (seq (map #(seq (.getPath ^TreePath %)) (.getSelectionPaths target))))
+  (set-selection [target args]
+    (if (seq args)
+      target
+      (.clearSelection target))))
 
 (extend-protocol Selection
-  javax.swing.JTabbedPane
-    (get-selection [this]
-      (let [i (.getSelectedIndex this)]
-        (if (neg? i)
-          nil
-          [{:content (.getComponentAt this i)
-           :title    (or (.getTabComponentAt this i) (.getTitleAt this i))
-           :index i}])))
-    (set-selection [this [v]]
-      (cond
-        (nil? v) nil
-        (string? v)
-          (set-selection this [(.indexOfTab this ^String v)])
-        (and (number? v) (>= v 0))
-          (.setSelectedIndex this (int v))
-        (map? v)
-          (set-selection this [(or (:index v) (:title v) (:content v))])
-        (instance? java.awt.Component v)
-          (.setSelectedComponent this ^java.awt.Component v)
-        :else
-          (set-selection this [(seesaw.to-widget/to-widget* v)]))))
+  JTabbedPane
+  (get-selection [this]
+    (let [i (.getSelectedIndex this)]
+      (if (neg? i)
+        nil
+        [{:content (.getComponentAt this i)
+          :title (or (.getTabComponentAt this i) (.getTitleAt this i))
+          :index i}])))
+  (set-selection [this [v]]
+    (cond
+      (nil? v) nil
+      (string? v)
+      (set-selection this [(.indexOfTab this ^String v)])
+      (and (number? v) (>= v 0))
+      (.setSelectedIndex this (int v))
+      (map? v)
+      (set-selection this [(or (:index v) (:title v) (:content v))])
+      (instance? Component v)
+      (.setSelectedComponent this ^Component v)
+      :else
+      (set-selection this [(seesaw.to-widget/to-widget* v)]))))
 
 (extend-protocol Selection
-  javax.swing.text.JTextComponent
+  JTextComponent
   (get-selection [target]
     (let [start (.getSelectionStart target)
-          end   (.getSelectionEnd target)]
+          end (.getSelectionEnd target)]
       (if-not (= start end) [[start end]])))
   (set-selection [target [args]]
     (if (integer? args)
       (.select target args args)
-    (if-let [[start end] args]
-      (.select target start end)
-      (.select target 0 0)))))
+      (if-let [[start end] args]
+        (.select target start end)
+        (.select target 0 0)))))
 
 (defn selection
   ([target] (selection target {}))
   ([target opts]
-    (let [s (get-selection target)]
-      (if (:multi? opts)
-        s
-        (first s)))))
+   (let [s (get-selection target)]
+     (if (:multi? opts)
+       s
+       (first s)))))
 
 (defn selection!
   ([target values] (selection! target {} values))
   ([target opts values]
-    (check-args (not (nil? target)) "target of selection! cannot be nil")
-    (set-selection
-      target
-      (if (or (nil? values) (:multi? opts)) values [values]) )
-    target))
+   (check-args (not (nil? target)) "target of selection! cannot be nil")
+   (set-selection
+     target
+     (if (or (nil? values) (:multi? opts)) values [values]))
+   target))
 
 (extend-protocol Selection
-  javax.swing.JColorChooser
-    (get-selection [target] [(.getColor target)])
-    (set-selection [target [v]] (.setColor target ^java.awt.Color ((requiring-resolve 'seesaw.color/to-color) v)))
+  JColorChooser
+  (get-selection [target] [(.getColor target)])
+  (set-selection [target [v]] (.setColor target ^Color ((requiring-resolve 'seesaw.color/to-color) v)))
 
-  javax.swing.JScrollBar
-    (get-selection [target] [(.getValue target)])
-    (set-selection [target [v]] (.setValue target (int v))))
+  JScrollBar
+  (get-selection [target] [(.getValue target)])
+  (set-selection [target [v]] (.setValue target (int v))))

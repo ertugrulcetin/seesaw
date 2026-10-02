@@ -11,11 +11,12 @@
 (ns seesaw.test.layout
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
-   [seesaw.layout :refer [handle-structure-change realize-grid-bag-constraints]]))
+   [seesaw.layout :refer [handle-structure-change realize-grid-bag-constraints]])
+  (:import (java.awt Component)))
 
 (defdescribe handle-structure-change-test
   (expect-it "should successfully handle all kinds of components"
-    (handle-structure-change (proxy [java.awt.Component] []))))
+    (handle-structure-change (proxy [Component] []))))
 
 (defdescribe realize-grid-bag-constraints-test
   (it "should return a vector of widget/constraint pairs"

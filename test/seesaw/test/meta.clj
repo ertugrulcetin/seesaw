@@ -12,23 +12,24 @@
   (:require
    [lazytest.core :refer [defdescribe describe expect expect-it it]]
    [seesaw.action :refer [action]]
-   [seesaw.meta :refer [get-meta put-meta!]]))
+   [seesaw.meta :refer [get-meta put-meta!]])
+  (:import (javax.swing JLabel JFrame)))
 
 (defdescribe get-meta-test
   (describe "when called on a JComponent"
     (expect-it "returns nil if the key is not found"
-      (nil? (get-meta (javax.swing.JLabel.) :unknown-key))))
+      (nil? (get-meta (JLabel.) :unknown-key))))
   (describe "when called on an Action"
     (expect-it "returns nil if the key is not found"
       (nil? (get-meta (action) :unknown-key))))
   (describe "when called on an arbitrary object"
     (expect-it "returns nil if the key is not found"
-      (nil? (get-meta (javax.swing.JFrame.) :unknown-key)))))
+      (nil? (get-meta (JFrame.) :unknown-key)))))
 
 (defdescribe put-meta!-test
   (describe "when called on a JComponent"
     (it "stores metadata in the component's client properties"
-      (let [c (javax.swing.JLabel.)
+      (let [c (JLabel.)
             result (put-meta! c :some-key 100)]
         (expect (= c result))
         (expect (= 100 (.getClientProperty c :some-key))))))
@@ -40,7 +41,7 @@
         (expect (= 100 (.getValue a (str :some-key)))))))
   (describe "when called on Object"
     (it "stores metadata somewhere, retrievable by get-meta"
-      (let [f (javax.swing.JFrame.)
+      (let [f (JFrame.)
             result (put-meta! f :some-key 10000)]
         (expect (= f result))
         (expect (= 10000 (get-meta f :some-key)))))))

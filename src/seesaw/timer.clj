@@ -10,16 +10,18 @@
 
 (ns seesaw.timer
   (:require [seesaw.action :refer [action]]
-            [seesaw.options :refer [bean-option apply-options option-map
-                                    option-provider]]))
+            [seesaw.options :refer [apply-options bean-option option-map
+                                    option-provider]])
+  (:import (java.awt.event ActionListener)
+           (javax.swing Timer)))
 
 (def ^{:private true} timer-opts
   (option-map
-    (bean-option :initial-delay javax.swing.Timer)
-    (bean-option :delay javax.swing.Timer)
-    (bean-option :repeats? javax.swing.Timer boolean)))
+    (bean-option :initial-delay Timer)
+    (bean-option :delay Timer)
+    (bean-option :repeats? Timer boolean)))
 
-(option-provider javax.swing.Timer timer-opts)
+(option-provider Timer timer-opts)
 
 (defn- timer-handler [f initial-value]
   (let [value (atom initial-value)]
@@ -41,9 +43,9 @@
 
   See http://download.oracle.com/javase/6/docs/api/javax/swing/Timer.html
   "
-  ^javax.swing.Timer [f & {:keys [start? initial-value] :or {start? true} :as opts}]
+  ^Timer [f & {:keys [start? initial-value] :or {start? true} :as opts}]
   (let [a (action :handler (timer-handler f initial-value))
-        t (javax.swing.Timer. 0 a)]
+        t (Timer. 0 a)]
     (.setDelay t 1000)
     (apply-options t (dissoc opts :start? :initial-value))
     (when start? (.start t))
@@ -52,7 +54,7 @@
 
 (defn restart!
   "Restart a timer: cancel any pending call and wait its initial delay again."
-  [^javax.swing.Timer t]
+  [^Timer t]
   (.restart t)
   t)
 
@@ -67,9 +69,9 @@
   Use (cancel! d) to drop a pending call and (flush! d) to run it now."
   [ms f]
   (let [args (atom nil)
-        t    (doto (javax.swing.Timer. (int ms) nil)
-               (.setRepeats false))]
-    (.addActionListener t (reify java.awt.event.ActionListener
+        t (doto (Timer. (int ms) nil)
+            (.setRepeats false))]
+    (.addActionListener t (reify ActionListener
                             (actionPerformed [_ _]
                               (let [[a] (reset-vals! args nil)]
                                 (when a (apply f (second a)))))))
@@ -84,7 +86,7 @@
   "Drop the pending call of a (debounce) function. Returns d."
   [d]
   (let [{t ::timer args ::args} (meta d)]
-    (.stop ^javax.swing.Timer t)
+    (.stop ^Timer t)
     (reset! args nil)
     d))
 
@@ -94,23 +96,23 @@
   [d]
   (let [{t ::timer args ::args f ::f} (meta d)
         [a] (reset-vals! args nil)]
-    (.stop ^javax.swing.Timer t)
+    (.stop ^Timer t)
     (when a (apply f (second a)))
     d))
 
 (defn start!
   "Start a timer. Returns it."
-  [^javax.swing.Timer t]
+  [^Timer t]
   (.start t)
   t)
 
 (defn stop!
   "Stop a timer. Returns it."
-  [^javax.swing.Timer t]
+  [^Timer t]
   (.stop t)
   t)
 
 (defn running?
   "True if the timer is running."
-  [^javax.swing.Timer t]
+  [^Timer t]
   (.isRunning t))

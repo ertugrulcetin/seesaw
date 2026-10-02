@@ -8,26 +8,28 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 
-(ns seesaw.pref)
+(ns seesaw.pref
+  (:import (clojure.lang Namespace)
+           (java.util.prefs Preferences)))
 
-(defn ^java.util.prefs.Preferences 
+(defn ^Preferences
   preferences-node*
   "Return the java.util.prefs.Preferences/userRoot node for the specified
   namespace, or for a node name given as a string, symbol or keyword."
   ([ns]
-     (.node (java.util.prefs.Preferences/userRoot)
-            ^String (cond
-                      (instance? clojure.lang.Namespace ns) (str (ns-name ns))
-                      (keyword? ns) (name ns)
-                      :else (str ns)))))
+   (.node (Preferences/userRoot)
+          ^String (cond
+                    (instance? Namespace ns) (str (ns-name ns))
+                    (keyword? ns) (name ns)
+                    :else (str ns)))))
 
 (defmacro preferences-node
   "Return the java.util.prefs.Preferences/userRoot for the current
   or the specified namespace."
   ([]
-     `(preferences-node* ~*ns*))
+   `(preferences-node* ~*ns*))
   ([ns]
-     `(preferences-node* ~ns)))
+   `(preferences-node* ~ns)))
 
 (defn- serialize-value [v]
   (binding [*print-dup* true] (pr-str v)))
@@ -43,12 +45,12 @@
   [ns key atom]
   (let [key (serialize-value key)
         node (preferences-node ns)
-        v   (read-string (.get node key (serialize-value @atom)))]
+        v (read-string (.get node key (serialize-value @atom)))]
     (doto atom
       (reset! v)
       (add-watch (keyword (gensym "pref-atom-watcher"))
                  (fn [k r o n]
-                   (when (not= o n) 
+                   (when (not= o n)
                      (.put node key (serialize-value n))))))))
 
 (defmacro bind-preference-to-atom
@@ -66,24 +68,24 @@
   "Create and return an atom which has been bound using
   bind-preference-to-atom for the current namespace."
   ([key]
-     `(let [atom# (atom nil)]
-        (bind-preference-to-atom ~key atom#)))
+   `(let [atom# (atom nil)]
+      (bind-preference-to-atom ~key atom#)))
   ([key initial-value]
-     `(let [atom# (atom ~initial-value)]
-        (bind-preference-to-atom ~key atom#))))
+   `(let [atom# (atom ~initial-value)]
+      (bind-preference-to-atom ~key atom#))))
 
 
 (defn get-pref
   "Read a preference stored with (put-pref!) from a preferences node (see
   (preferences-node*)), or default if it isn't set. Values are EDN."
   ([node key] (get-pref node key nil))
-  ([^java.util.prefs.Preferences node key default]
+  ([^Preferences node key default]
    (if-let [v (.get node (serialize-value key) nil)]
      (read-string v)
      default)))
 
 (defn put-pref!
   "Store a preference (any EDN value) in a preferences node."
-  [^java.util.prefs.Preferences node key value]
+  [^Preferences node key value]
   (.put node (serialize-value key) (serialize-value value))
   value)

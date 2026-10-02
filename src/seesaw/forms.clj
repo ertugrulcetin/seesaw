@@ -9,16 +9,17 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.forms
-  (:import
-    javax.swing.JPanel
-    com.jgoodies.forms.builder.DefaultFormBuilder
-    com.jgoodies.forms.factories.Paddings
-    com.jgoodies.forms.layout.FormLayout)
   (:require
-    seesaw.core
-    [seesaw.options :refer [default-option apply-options ignore-options
-                            option-map option-provider]]
-    [seesaw.util :refer [resource]]))
+    [seesaw.core]
+    [seesaw.options :refer [apply-options default-option ignore-options option-map option-provider]]
+    [seesaw.util :refer [resource]])
+  (:import (clojure.lang Keyword)
+           (com.jgoodies.forms.builder DefaultFormBuilder)
+           (com.jgoodies.forms.factories Paddings)
+           (com.jgoodies.forms.layout FormLayout)
+           (java.awt Container)
+           (javax.swing JPanel)
+           (javax.swing.border Border)))
 
 (defprotocol ComponentSpec
   (append [this builder] "Add the given component to the form builder"))
@@ -30,7 +31,7 @@
   String
   (append [this ^DefaultFormBuilder builder]
     (.append builder ^String this))
-  clojure.lang.Keyword
+  Keyword
   (append [this builder]
     (append (resource this) builder)))
 
@@ -93,21 +94,21 @@
 
 (def ^{:private true} layout-options
   (option-map
-    (default-option 
-      :column-groups 
+    (default-option
+      :column-groups
       (fn set-column-groups [c v]
         (cond
           (instance? FormLayout c)
-            (.setColumnGroups ^FormLayout c ^"[[I" (into-array (map int-array v)))
+          (.setColumnGroups ^FormLayout c ^"[[I" (into-array (map int-array v)))
           :else
-            (set-column-groups (.getLayout ^java.awt.Container c) v))))))
+          (set-column-groups (.getLayout ^Container c) v))))))
 
 (def ^{:private true} builder-options
   (option-map
     (default-option :items #(doseq [item %2] (append item %1)))
     ; JGoodies Forms 1.9 replaced the builder's bean setters with fluent methods
     (default-option :default-dialog-border?
-      #(when %2 (.border ^DefaultFormBuilder %1 ^javax.swing.border.Border Paddings/DIALOG)))
+                    #(when %2 (.border ^DefaultFormBuilder %1 ^Border Paddings/DIALOG)))
     (default-option :default-row-spec #(.defaultRowSpec ^DefaultFormBuilder %1 %2))
     (default-option :leading-column-offset #(.leadingColumnOffset ^DefaultFormBuilder %1 (int %2)))
     (default-option :line-gap-size #(.lineGapSize ^DefaultFormBuilder %1 %2))
@@ -147,8 +148,8 @@
   See http://www.jgoodies.com/freeware/forms/index.html"
   {:seesaw {:class `JPanel}}
   [column-spec & opts]
-  (let [layout  (FormLayout. ^String column-spec "")
-        panel   (seesaw.core/construct JPanel)
+  (let [layout (FormLayout. ^String column-spec "")
+        panel (seesaw.core/construct JPanel)
         builder (DefaultFormBuilder. layout panel)]
     (apply-options layout opts)
     (apply-options builder opts)

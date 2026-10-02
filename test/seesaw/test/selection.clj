@@ -13,7 +13,9 @@
    [lazytest.core :refer [defdescribe describe expect expect-it it]]
    [seesaw.core :as sc]
    [seesaw.selection :refer :all]
-   [seesaw.action :refer [action]]))
+   [seesaw.action :refer [action]])
+  (:import (javax.swing JCheckBox JComboBox JTree JList JTextField JTabbedPane
+                        JTable JTextArea)))
 
 (defdescribe selection-test
   (describe "when given an Action"
@@ -25,12 +27,12 @@
         (= true (selection (action :selected? true)))))
   (describe "when given an AbstractButton (e.g. toggle or checkbox)"
     (expect-it "returns false when the button is not selected"
-      (false? (selection (javax.swing.JCheckBox. "something" false))))
+      (false? (selection (JCheckBox. "something" false))))
     (it "returns true if it is selected"
-      (let [b (javax.swing.JCheckBox. "something" true)]
+      (let [b (JCheckBox. "something" true)]
         (expect (true? (selection b)))))
     (it "returns a single-element seq with true if it's selected and multi? is true"
-      (let [b (javax.swing.JCheckBox. "something" true)]
+      (let [b (JCheckBox. "something" true)]
         (expect (= [true] (selection b {:multi? true}))))))
 
   (describe "when given a ButtonGroup"
@@ -42,15 +44,15 @@
 
   (describe "when given a ComboBox"
     (expect-it "returns nil when nothing is selected"
-      (nil? (selection (javax.swing.JComboBox.))))
+      (nil? (selection (JComboBox.))))
     (expect-it "returns a single-element seq with the selected value when multi? is true"
-      (= [1] (selection (javax.swing.JComboBox. (to-array [1 2 3 4])) {:multi? true}))))
+      (= [1] (selection (JComboBox. (to-array [1 2 3 4])) {:multi? true}))))
 
   (describe "when given a JTree"
     (expect-it "returns nil when the selection is empty"
-      (nil? (selection (javax.swing.JTree.))))
+      (nil? (selection (JTree.))))
     (it "returns the selection as a seq of paths when it isn't empty"
-      (let [jtree (javax.swing.JTree. (to-array [1 2 3 4 5]))]
+      (let [jtree (JTree. (to-array [1 2 3 4 5]))]
         (.setSelectionInterval jtree 1 3)
         ; Note. This kind of sucks because the JTree constructor used above
         ; creates a tree of JTree.DynamicUtilTreeNode rather than just ints.
@@ -60,9 +62,9 @@
 
   (describe "when given a JList"
     (expect-it "returns nil when the selection is empty"
-      (nil? (selection (javax.swing.JList.))))
+      (nil? (selection (JList.))))
     (it "returns the selection when it isn't empty"
-      (let [jlist (javax.swing.JList. (to-array [1 2 3 4 5 6 7]))]
+      (let [jlist (JList. (to-array [1 2 3 4 5 6 7]))]
         (.setSelectionInterval jlist 1 3)
         (expect (= 2 (selection jlist)))
         (expect (= [2 3 4] (selection jlist {:multi? true}))))))
@@ -77,15 +79,15 @@
 
   (describe "when given a JTextComponent"
     (expect-it "returns nil when the selection is empty"
-      (nil? (selection (javax.swing.JTextField. "HELLO"))))
+      (nil? (selection (JTextField. "HELLO"))))
     (it "returns a range vector [start end] when the selection is non-empty"
-      (let [t (javax.swing.JTextField. "HELLO")]
+      (let [t (JTextField. "HELLO")]
         (.select t 2 4)
         (expect (= [2 4] (selection t))))))
 
   (describe "when given a JTabbedPane"
     (expect-it "returns nil when there are no tabs"
-      (nil? (selection (javax.swing.JTabbedPane.))))
+      (nil? (selection (JTabbedPane.))))
     (it "returns {:index i :title \"the title\" :content widget} for the selected tab"
       (let [a (sc/label :text "A")
             b (sc/label :text "B")
@@ -103,9 +105,9 @@
 
   (describe "when given a JTable"
     (expect-it "returns nil when no rows are selected"
-      (nil? (selection (javax.swing.JTable.))))
+      (nil? (selection (JTable.))))
     (it "returns a seq of selected model row indices when selection is non-empty"
-      (let [jtable (javax.swing.JTable. 5 3)]
+      (let [jtable (JTable. 5 3)]
         (.setRowSelectionInterval jtable 1 3)
         (expect (= [1 2 3] (selection jtable {:multi? true})))
         (expect (= 1 (selection jtable)))))))
@@ -114,11 +116,11 @@
 (defdescribe selection!-test
   (describe "when given an AbstractButton (e.g. toggle or checkbox) and an argument"
     (it "deselects the button if the argument is nil"
-      (let [cb (javax.swing.JCheckBox. "something" true)]
+      (let [cb (JCheckBox. "something" true)]
         (expect (= cb (selection! cb nil)))
         (expect (false? (selection cb)))))
     (it "selects the button if the argument is truthy"
-      (let [cb (javax.swing.JCheckBox. "something" false)]
+      (let [cb (JCheckBox. "something" false)]
         (expect (= cb (selection! cb "true")))
         (expect (selection cb)))))
 
@@ -136,7 +138,7 @@
 
   (describe "when given a ComboBox and an argument"
     (it "sets the selection to that argument"
-      (let [cb (javax.swing.JComboBox. (to-array [1 2 3 4]))]
+      (let [cb (JComboBox. (to-array [1 2 3 4]))]
         (expect (= cb (selection! cb 3)))
         (expect (= 3 (selection cb))))))
 
@@ -156,31 +158,31 @@
 
   (describe "when given a JTree and an argument"
     (it "Clears the selection when the argument is nil"
-      (let [jtree (javax.swing.JTree. (to-array [1 2 3 4 5]))]
+      (let [jtree (JTree. (to-array [1 2 3 4 5]))]
         (.setSelectionInterval jtree 1 3)
         (expect (= jtree (selection! jtree nil)))
         (expect (nil? (selection jtree))))))
 
   (describe "when given a JList and an argument"
     (it "Clears the selection when the argument is nil"
-      (let [jlist (javax.swing.JList. (to-array [1 2 3 4 5 6 7]))]
+      (let [jlist (JList. (to-array [1 2 3 4 5 6 7]))]
         (.setSelectionInterval jlist 1 3)
         (expect (= jlist (selection! jlist nil)))
         (expect (nil? (selection jlist)))))
     (it "Selects the given *values* when argument is a non-empty seq"
-      (let [jlist (javax.swing.JList. (to-array [1 "test" 3 4 5 6 7]))]
+      (let [jlist (JList. (to-array [1 "test" 3 4 5 6 7]))]
         (expect (= jlist (selection! jlist {:multi? true} ["test" 4 6])))
         (expect (= ["test" 4 6] (selection jlist {:multi? true})))
         (expect (= "test" (selection jlist))))))
 
   (describe "when given a text component"
     (it "Clears the selection when the argument is nil"
-      (let [t (javax.swing.JTextArea. "This is some text with a selection")]
+      (let [t (JTextArea. "This is some text with a selection")]
         (.select t 5 10)
         (selection! t nil)
         (expect (nil? (selection t)))))
     (it "sets the selection given a [start end] range vector"
-      (let [t (javax.swing.JTextArea. "THis is more text with a selection")]
+      (let [t (JTextArea. "THis is more text with a selection")]
         (selection! t [4 9])
         (expect (= [4 9] (selection t))))))
 
@@ -218,12 +220,12 @@
 
   (describe "when given a JTable and an argument"
     (it "Clears the row selection when the argument is nil"
-      (let [jtable (javax.swing.JTable. 5 3)]
+      (let [jtable (JTable. 5 3)]
         (.setRowSelectionInterval jtable 1 3)
         (expect (= jtable (selection! jtable nil)))
         (expect (nil? (selection jtable)))))
     (it "selects the given rows when argument is a non-empty seq of row indices"
-      (let [jtable (javax.swing.JTable. 10 2)]
+      (let [jtable (JTable. 10 2)]
         (expect (= jtable (selection! jtable {:multi? true } [0 2 4 6 8 9])))
         (expect (= [0 2 4 6 8 9] (selection jtable {:multi? true})))
         (expect (= 0 (selection jtable)))))))

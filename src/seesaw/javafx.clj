@@ -13,12 +13,13 @@
   seesaw.javafx
   (:require [seesaw.core :as core]
             [seesaw.options :as options]
-            [seesaw.widget-options :refer [widget-option-provider]]))
+            [seesaw.widget-options :refer [widget-option-provider]])
+  (:import (javafx.embed.swing JFXPanel)))
 
-(widget-option-provider javafx.embed.swing.JFXPanel core/default-options)
+(widget-option-provider JFXPanel core/default-options)
 
 (defn jfxpanel
   "Create a javafx.embed.swing.JFXPanel. Supports the default widget options."
   [& {:keys [] :as opts}]
-  (let [p (core/construct javafx.embed.swing.JFXPanel)]
+  (let [p (core/construct JFXPanel)]
     (options/apply-options p opts)))

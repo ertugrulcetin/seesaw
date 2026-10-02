@@ -11,23 +11,24 @@
 (ns seesaw.test.invoke
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
-   [seesaw.invoke :refer :all]))
+   [seesaw.invoke :refer :all])
+  (:import (javax.swing SwingUtilities)))
 
 (defdescribe invoke-now-test
   (expect-it "should execute code on the swing thread, wait, and return the result"
-    (invoke-now (javax.swing.SwingUtilities/isEventDispatchThread))))
+    (invoke-now (SwingUtilities/isEventDispatchThread))))
 
 (defdescribe invoke-soon-test
   (expect-it "should execute code and return the result immediately if executed on the swing thread"
     (= {:foo :hi :edt? true} 
        (invoke-now 
-        (invoke-soon {:foo :hi :edt? (javax.swing.SwingUtilities/isEventDispatchThread)}))))
+        (invoke-soon {:foo :hi :edt? (SwingUtilities/isEventDispatchThread)}))))
 
   (it "should send code to the swing thread for later execution and return nil immediately
       if not called on the swing thread"
     (let [p (promise)] 
       (expect (nil? (invoke-soon 
-        (deliver p {:edt? (javax.swing.SwingUtilities/isEventDispatchThread)}))))
+        (deliver p {:edt? (SwingUtilities/isEventDispatchThread)}))))
       (expect (= {:edt? true} @p)))))
 
 (defdescribe signaller*-test

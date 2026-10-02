@@ -14,9 +14,9 @@
    [seesaw.core :refer :all]
    [seesaw.test.examples.example :refer [defexample]]
    [seesaw.border :refer [empty-border line-border]])
-  (:import
-   (java.awt Color)
-   (javax.swing JLabel)))
+  (:import (java.awt Color)
+           (javax.swing JLabel)
+           (javax.swing.table DefaultTableModel)))
 
 ; NOTE: This was the first Seesaw example written. It shows fairly randomly
 ; how to do a bunch of stuff, but it's unfocused, messy and generally a
@@ -117,7 +117,7 @@
         :tip   "A tab with a JTable example"
         :content
         (border-panel
-          :center (scrollable (table :id :table :show-grid? true :model (javax.swing.table.DefaultTableModel. 50 50)))
+          :center (scrollable (table :id :table :show-grid? true :model (DefaultTableModel. 50 50)))
           :south (label :id :table-sel :text "Table selection: ")) }
            ])))))
 

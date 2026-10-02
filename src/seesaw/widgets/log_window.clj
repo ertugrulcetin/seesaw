@@ -9,29 +9,32 @@
 ;   You must not remove this notice, or any other, from this software.
 
 (ns seesaw.widgets.log-window
-  (:require [seesaw.core :refer :all]
-            [seesaw.bind :refer [bind]]
-            [seesaw.keymap :refer [map-key]]
+  (:require [seesaw.bind :refer [bind]]
+            [seesaw.core :refer :all]
             [seesaw.invoke :refer [signaller]]
-            [seesaw.options :refer [apply-options option-map default-option]]
-            [seesaw.widget-options :refer [WidgetOptionProvider]]))
+            [seesaw.keymap :refer [map-key]]
+            [seesaw.options :refer [apply-options default-option option-map]]
+            [seesaw.widget-options :refer [WidgetOptionProvider]])
+  (:import (clojure.lang IDeref)
+           (javax.swing JTextArea)
+           (javax.swing.text Document)))
 
 (defn- log-window-proxy [state]
-  (proxy [javax.swing.JTextArea clojure.lang.IDeref] []
+  (proxy [JTextArea IDeref] []
     ; Implement IDeref
-    (deref [] state) 
+    (deref [] state)
 
     ; this is how you disable auto-scrolling :(
     (scrollRectToVisible [rect]
-                         (if @(:auto-scroll? state)
-                           (let [^javax.swing.JTextArea this this]
-                             (proxy-super scrollRectToVisible rect))))))
+      (if @(:auto-scroll? state)
+        (let [^JTextArea this this]
+          (proxy-super scrollRectToVisible rect))))))
 
 (defprotocol LogWindow
-  (log   [this message] "Log a message to the given log-window")
+  (log [this message] "Log a message to the given log-window")
   (clear [this] "Clear the contents of the log-window"))
 
-(defn logf 
+(defn logf
   "Log a formatted message to the given log-window."
   [this fmt & args]
   (log this (apply format fmt args)))
@@ -62,27 +65,27 @@
     (seesaw.core/text)
   "
   [& opts]
-  (let [state {:buffer (StringBuffer.) ; Buffer text from other threads here
-               :limit  (atom nil) 
+  (let [state {:buffer (StringBuffer.)                      ; Buffer text from other threads here
+               :limit (atom nil)
                :auto-scroll? (atom true)
-                ; Efficiently tell the ui thread to grab the buffer
-                ; contents and move it to the text area.
-               :signal (signaller [^javax.swing.JTextArea this]
-                         (let [{:keys [^StringBuffer buffer limit]} @this] 
-                           (locking buffer
-                             (.append this (str buffer))
-                             (.setLength buffer 0))
-                           (if-let [limit @limit]
-                             (let [^javax.swing.text.Document doc (config this :model)
-                                   length (.getLength doc)]
-                               (if (> length limit)
-                                 (.remove doc 0 (- length limit))))))) }
+               ; Efficiently tell the ui thread to grab the buffer
+               ; contents and move it to the text area.
+               :signal (signaller [^JTextArea this]
+                                  (let [{:keys [^StringBuffer buffer limit]} @this]
+                                    (locking buffer
+                                      (.append this (str buffer))
+                                      (.setLength buffer 0))
+                                    (if-let [limit @limit]
+                                      (let [^Document doc (config this :model)
+                                            length (.getLength doc)]
+                                        (if (> length limit)
+                                          (.remove doc 0 (- length limit)))))))}
 
-        this (log-window-proxy state) 
+        this (log-window-proxy state)
 
         scroll-item (checkbox-menu-item :resource ::scroll
                                         :selected? true)
-        
+
         clear-action (action :resource ::clear
                              :handler (fn [_] (clear this)))]
 
@@ -98,33 +101,33 @@
 
     ; Apply default options and whatever options are provided.
     (apply-options
-      this 
+      this
       (concat
         [:editable? false
-         :font      :monospaced
-         :popup     (popup :items [clear-action scroll-item])]
+         :font :monospaced
+         :popup (popup :items [clear-action scroll-item])]
         opts))))
 
 (extend-type (class (log-window-proxy nil))
 
   LogWindow
   (log [this message]
-    (let [{:keys [^StringBuffer buffer signal]} @this]
-      (.append buffer (str message))
-      (signal this)))
-  (clear [this] 
-    (invoke-soon (text! this "")))
+       (let [{:keys [^StringBuffer buffer signal]} @this]
+         (.append buffer (str message))
+         (signal this)))
+  (clear [this]
+         (invoke-soon (text! this "")))
 
-  WidgetOptionProvider 
-  (get-widget-option-map* [this] 
-    [text-area-options
-     (option-map
-       (default-option :limit
-         (fn [this v] (reset! (:limit @this) v))
-         (fn [this] @(:limit @this))
-         ["An integer limit or nil"])
-       (default-option :auto-scroll?
-         (fn [this v] (reset! (:auto-scroll? @this) v))
-         (fn [this]   @(:auto-scroll? @this))))])
+  WidgetOptionProvider
+  (get-widget-option-map* [this]
+                          [text-area-options
+                           (option-map
+                             (default-option :limit
+                                             (fn [this v] (reset! (:limit @this) v))
+                                             (fn [this] @(:limit @this))
+                                             ["An integer limit or nil"])
+                             (default-option :auto-scroll?
+                                             (fn [this v] (reset! (:auto-scroll? @this) v))
+                                             (fn [this] @(:auto-scroll? @this))))])
   (get-layout-option-map* [this] nil))
 

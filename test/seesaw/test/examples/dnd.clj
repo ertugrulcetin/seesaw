@@ -11,7 +11,8 @@
 (ns seesaw.test.examples.dnd
   (:require [seesaw.dnd :as dnd]
             [seesaw.core :refer :all]
-            [seesaw.test.examples.example :refer :all]))
+            [seesaw.test.examples.example :refer :all])
+  (:import (java.net URI)))
 
 ; Set up a few targets for different data flavors.
 
@@ -54,7 +55,7 @@
 ; A list box that imports and exports URIs, like with a browser
 (defn url-target []
   (listbox
-    :model [(java.net.URI. "http://github.com/daveray/seesaw")]
+    :model [(URI. "http://github.com/daveray/seesaw")]
     :drag-enabled? true
     :drop-mode :insert
     :transfer-handler 

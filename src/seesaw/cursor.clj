@@ -12,18 +12,19 @@
       :author "Dave Ray"}
   seesaw.cursor
   (:require [seesaw.util :refer [constant-map illegal-argument]])
-  (:import (java.awt Cursor Toolkit)))
+  (:import (java.awt Cursor Image Point Toolkit)
+           (javax.swing ImageIcon)))
 
 (def ^{:private true} built-in-cursor-map
   (constant-map Cursor {:suffix "_CURSOR"}
-    :crosshair :custom :default :hand :move :text :wait
-    :e-resize :n-resize :ne-resize :nw-resize :s-resize :se-resize :sw-resize :w-resize))
+                :crosshair :custom :default :hand :move :text :wait
+                :e-resize :n-resize :ne-resize :nw-resize :s-resize :se-resize :sw-resize :w-resize))
 
 (defn- custom-cursor
-  [^java.awt.Image image & [point]]
+  [^Image image & [point]]
   (let [[x y] point]
     (.. (Toolkit/getDefaultToolkit) (createCustomCursor image
-                                                        (java.awt.Point. (or x 0) (or y 0))
+                                                        (Point. (or x 0) (or y 0))
                                                         (str (gensym "seesaw-cursor"))))))
 (defn cursor
   "Create a built-in or custom cursor. Take one of two forms:
@@ -72,14 +73,14 @@
     http://download.oracle.com/javase/6/docs/api/java/awt/Cursor.html
     http://download.oracle.com/javase/6/docs/api/java/awt/Toolkit.html#createCustomCursor%28java.awt.Image,%20java.awt.Point,%20java.lang.String%29
   "
-  ^java.awt.Cursor
+  ^Cursor
   [type & args]
   (cond
     ; TODO protocol if this gets any more nasty
     (keyword? type) (Cursor. (built-in-cursor-map type))
     (instance? Cursor type) type
-    (instance? java.awt.Image type) (apply custom-cursor type args)
-    (instance? javax.swing.ImageIcon type) (apply cursor (.getImage ^javax.swing.ImageIcon type) args)
+    (instance? Image type) (apply custom-cursor type args)
+    (instance? ImageIcon type) (apply cursor (.getImage ^ImageIcon type) args)
     :else (illegal-argument "Don't know how to make cursor from %s" type)))
 
 

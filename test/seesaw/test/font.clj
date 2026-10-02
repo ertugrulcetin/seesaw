@@ -13,8 +13,9 @@
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.core :refer :all]
    [seesaw.font :refer [default-font font to-font can-display? first-available line-height]])
-  (:import
-   (java.awt Font)))
+  (:import (java.awt Font)
+           (java.awt.font TextAttribute)
+           (javax.swing UIManager)))
 
 (defdescribe font-test
   (it "can create a font from a font-spec"
@@ -74,7 +75,7 @@
 (defdescribe default-font-test
   (it "retrieves a named from from the UIManager"
     (let [f (default-font "Label.font")
-          expected (.getFont (javax.swing.UIManager/getDefaults) "Label.font")]
+          expected (.getFont (UIManager/getDefaults) "Label.font")]
       (expect (not (nil? f)))
       (expect (= expected f)))))
 
@@ -85,15 +86,15 @@
                   :underline? true :strikethrough? true)
           a (.getAttributes f)]
       (expect (= 14 (.getSize f)))
-      (expect (= java.awt.font.TextAttribute/WEIGHT_SEMIBOLD (get a java.awt.font.TextAttribute/WEIGHT)))
-      (expect (= (float 0.05) (get a java.awt.font.TextAttribute/TRACKING)))
-      (expect (= java.awt.font.TextAttribute/UNDERLINE_ON (get a java.awt.font.TextAttribute/UNDERLINE)))
-      (expect (= true (get a java.awt.font.TextAttribute/STRIKETHROUGH)))))
+      (expect (= TextAttribute/WEIGHT_SEMIBOLD (get a TextAttribute/WEIGHT)))
+      (expect (= (float 0.05) (get a TextAttribute/TRACKING)))
+      (expect (= TextAttribute/UNDERLINE_ON (get a TextAttribute/UNDERLINE)))
+      (expect (= true (get a TextAttribute/STRIKETHROUGH)))))
   (it "derives with attributes from another font"
     (let [f (font :from (font :name :serif :size 10) :size 20 :weight :bold)]
       (expect (= 20 (.getSize f)))
-      (expect (= java.awt.font.TextAttribute/WEIGHT_BOLD
-                 (get (.getAttributes f) java.awt.font.TextAttribute/WEIGHT))))))
+      (expect (= TextAttribute/WEIGHT_BOLD
+                 (get (.getAttributes f) TextAttribute/WEIGHT))))))
 
 (defdescribe font-helpers-test
   (expect-it "can-display? checks glyphs"

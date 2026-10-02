@@ -21,7 +21,11 @@
    [seesaw.swingx :as sx]
    [seesaw.table]
    [seesaw.timer :as timer]
-   [seesaw.tree]))
+   [seesaw.tree])
+  (:import (java.awt Color)
+           (java.awt.event MouseEvent FocusEvent)
+           (java.util EventObject)
+           (javax.swing DefaultListModel JLayeredPane)))
 
 (defdescribe bean-option-fallback-test
   (it "sets and gets any bean property without an explicit option"
@@ -31,8 +35,8 @@
       (expect (true? (config b :rollover-enabled?)))))
   (it "converts values by property type"
     (let [t (text :caret-color :red :disabled-text-color "#00ff00" :selected-text-color :blue)]
-      (expect (= java.awt.Color/RED (config t :caret-color)))
-      (expect (= java.awt.Color/GREEN (config t :disabled-text-color)))))
+      (expect (= Color/RED (config t :caret-color)))
+      (expect (= Color/GREEN (config t :disabled-text-color)))))
   (it "works with config! later and with ratom bindings"
     (let [a (seesaw.ratom/ratom 3)
           b (button :icon-text-gap a)]
@@ -45,7 +49,7 @@
 
 (defdescribe generic-listener-test
   (it "listens to any listener type the target supports"
-    (let [m (javax.swing.DefaultListModel.)
+    (let [m (DefaultListModel.)
           seen (atom [])]
       (listen m :interval-added (fn [e] (swap! seen conj (:index0 (event-info e)))))
       (.addElement m "a")
@@ -58,7 +62,7 @@
       (seesaw.table/insert-at! (config t :model) 0 [2])
       (expect (pos? @seen))))
   (it "returns a function that removes the listener"
-    (let [m (javax.swing.DefaultListModel.)
+    (let [m (DefaultListModel.)
           seen (atom 0)
           remove-fn (listen m :interval-added (fn [_] (swap! seen inc)))]
       (.addElement m "a")
@@ -72,7 +76,7 @@
           overlay (label "overlay")]
       (pack! f)
       (layer! f overlay :bounds :fill)
-      (expect (= javax.swing.JLayeredPane/PALETTE_LAYER
+      (expect (= JLayeredPane/PALETTE_LAYER
                  (.getLayer (.getLayeredPane f) overlay)))
       ; the window may still be resized by the platform (e.g. a minimum width
       ; on macOS); :fill follows it once the resize reaches the UI thread
@@ -88,7 +92,7 @@
   (it "builds a layered pane from [widget layer] pairs"
     (let [a (label "a") b (label "b")
           p (layered-pane :items [[a :default] [b :popup]])]
-      (expect (= javax.swing.JLayeredPane/POPUP_LAYER (.getLayer p b))))))
+      (expect (= JLayeredPane/POPUP_LAYER (.getLayer p b))))))
 
 (defdescribe new-widgets-test
   (it "internal frames in a desktop pane"
@@ -106,16 +110,16 @@
       (expect (= 30 (selection sb)))
       (selection! sb 50)
       (expect (= 50 (config sb :value)))
-      (expect (= java.awt.Color/RED (selection cc)))
+      (expect (= Color/RED (selection cc)))
       (let [seen (atom nil)]
         (listen cc :selection (fn [_] (reset! seen (selection cc))))
         (selection! cc :blue)
-        (expect (= java.awt.Color/BLUE @seen)))))
+        (expect (= Color/BLUE @seen)))))
   (it "jlayer paints over its view"
     (let [l (jlayer (label "x") :paint (fn [c g] (g/draw g (g/rect 0 0 4 4) (g/style :background :red))))]
       (.setSize l 10 10)
       (.doLayout l)
-      (expect (= (.getRGB java.awt.Color/RED) (.getRGB (g/snapshot l) 1 1))))))
+      (expect (= (.getRGB Color/RED) (.getRGB (g/snapshot l) 1 1))))))
 
 (defdescribe helpers-test
   (it "click! fires action listeners"
@@ -136,12 +140,12 @@
       ; JTree remembers the expanded child
       (expect (= 3 (.getRowCount t)))))
   (it "event-info turns an event into data"
-    (let [e (java.awt.event.MouseEvent. (label) java.awt.event.MouseEvent/MOUSE_CLICKED 0 0 3 4 2 false)]
+    (let [e (MouseEvent. (label) MouseEvent/MOUSE_CLICKED 0 0 3 4 2 false)]
       (expect (= {:x 3 :y 4 :click-count 2} (select-keys (event-info e) [:x :y :click-count])))))
   (it "event-kind names AWT events"
-    (expect (= :mouse-clicked (event-kind (java.awt.event.MouseEvent. (label) java.awt.event.MouseEvent/MOUSE_CLICKED 0 0 1 1 1 false))))
-    (expect (= :focus-gained (event-kind (java.awt.event.FocusEvent. (label) java.awt.event.FocusEvent/FOCUS_GAINED))))
-    (expect (nil? (event-kind (java.util.EventObject. "x")))))
+    (expect (= :mouse-clicked (event-kind (MouseEvent. (label) MouseEvent/MOUSE_CLICKED 0 0 1 1 1 false))))
+    (expect (= :focus-gained (event-kind (FocusEvent. (label) FocusEvent/FOCUS_GAINED))))
+    (expect (nil? (event-kind (EventObject. "x")))))
   (it "color helpers"
     (expect (= "#3b82f6" (color/hex "#3b82f6")))
     (expect (< (.getRed (color/darker "#808080")) 128 (.getRed (color/brighter "#808080")))))
@@ -160,9 +164,9 @@
   (it ":current paints with the graphics' color"
     (let [img (g/buffered-image 4 4)
           gr  (.createGraphics img)]
-      (.setColor gr java.awt.Color/BLUE)
+      (.setColor gr Color/BLUE)
       (g/draw gr (g/rect 0 0 4 4) (g/style :background :current))
-      (expect (= (.getRGB java.awt.Color/BLUE) (.getRGB img 1 1)))))
+      (expect (= (.getRGB Color/BLUE) (.getRGB img 1 1)))))
   (expect-it "laf-name"
     (string? (laf/laf-name))))
 

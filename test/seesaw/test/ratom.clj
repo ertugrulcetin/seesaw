@@ -13,7 +13,11 @@
    [lazytest.core :refer [defdescribe describe expect expect-it it]]
    [seesaw.core :as core]
    [seesaw.invoke :refer [invoke-now]]
-   [seesaw.ratom :refer :all]))
+   [seesaw.ratom :refer :all])
+  (:import (clojure.lang IRef)
+           (java.lang.ref WeakReference)
+           (java.util Map)
+           (javax.swing SwingUtilities)))
 
 (defdescribe ratom-test
   (it "behaves like an atom"
@@ -93,11 +97,11 @@
           r (reaction a inc)]
       (add-watch r :w1 (fn [& _]))
       (add-watch r :w2 (fn [& _]))
-      (expect (= 1 (count (.getWatches ^clojure.lang.IRef a))))
+      (expect (= 1 (count (.getWatches ^IRef a))))
       (remove-watch r :w1)
-      (expect (= 1 (count (.getWatches ^clojure.lang.IRef a))))
+      (expect (= 1 (count (.getWatches ^IRef a))))
       (remove-watch r :w2)
-      (expect (empty? (.getWatches ^clojure.lang.IRef a))))))
+      (expect (empty? (.getWatches ^IRef a))))))
 
 (defdescribe subscription-cache-test
   (it "returns the same reaction for the same db and query"
@@ -154,11 +158,11 @@
       (expect (some? l))))
   (it "lets unused subscriptions be garbage collected"
     (let [db (ratom {:a 1})
-          w  (java.lang.ref.WeakReference. (subscribe db [:a]))]
+          w  (WeakReference. (subscribe db [:a]))]
       (gc-until #(nil? (.get w)))
       (expect (nil? (.get w)))
       (subscribe db [:b])
-      (expect (= 1 (.size ^java.util.Map (.-subs ^seesaw.ratom.RAtom db)))))))
+      (expect (= 1 (.size ^Map (.-subs ^seesaw.ratom.RAtom db)))))))
 
 (defdescribe widget-binding-test
   (it "sets the option from a subscription and updates it on change"
@@ -187,23 +191,23 @@
       (reset! b "ignored")
       (invoke-now nil)
       (expect (= "plain" (core/text l)))
-      (expect (empty? (.getWatches ^clojure.lang.IRef a)))
-      (expect (empty? (.getWatches ^clojure.lang.IRef b)))))
+      (expect (empty? (.getWatches ^IRef a)))
+      (expect (empty? (.getWatches ^IRef b)))))
   (it "doesn't keep a discarded widget alive"
     (let [a (ratom "x")
-          w (java.lang.ref.WeakReference. (core/label :text a))]
+          w (WeakReference. (core/label :text a))]
       (loop [i 0]
         (when (and (some? (.get w)) (< i 50)) (System/gc) (Thread/sleep 20) (recur (inc i))))
       (reset! a "y")
       (expect (nil? (.get w)))
-      (expect (empty? (.getWatches ^clojure.lang.IRef a)))))
+      (expect (empty? (.getWatches ^IRef a)))))
   (it "updates widgets on the Swing thread"
     (let [a (ratom "x")
           on-edt (promise)
           l (core/label :text a)]
       (core/listen l :property-change
                    (fn [e] (when (= "text" (.getPropertyName e))
-                             (deliver on-edt (javax.swing.SwingUtilities/isEventDispatchThread)))))
+                             (deliver on-edt (SwingUtilities/isEventDispatchThread)))))
       @(future (reset! a "y"))
       (expect (deref on-edt 2000 false)))))
 

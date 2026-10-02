@@ -10,9 +10,12 @@
 
 (ns seesaw.util
   (:refer-clojure :exclude [boolean?])
-  (:require clojure.string
+  (:require [clojure.string]
             [j18n.core :as j18n])
-  (:import (java.net URL URI MalformedURLException URISyntaxException)))
+  (:import (clojure.lang Atom)
+           (java.awt Container Dimension Insets)
+           (java.net MalformedURLException URI URISyntaxException URL)
+           (javax.swing JMenu JMenuBar)))
 
 (defn illegal-argument
   "Throw an illegal argument exception formatted as with (clojure.core/format)"
@@ -42,21 +45,21 @@
   Here, only (.put \"a\" 1) is executed.
   "
   [x & forms]
-    (let [gx (gensym)]
-      `(let [~gx ~x]
-         ~@(map (fn [[c a]]
-                  (if (seq? a)
-                    `(when ~c (~(first a) ~gx ~@(next a)))
-                    `(when ~c (~a ~gx))))
-                (partition 2 forms))
-         ~gx)))
+  (let [gx (gensym)]
+    `(let [~gx ~x]
+       ~@(map (fn [[c a]]
+                (if (seq? a)
+                  `(when ~c (~(first a) ~gx ~@(next a)))
+                  `(when ~c (~a ~gx))))
+              (partition 2 forms))
+       ~gx)))
 
 (defn to-seq
   "Stupid helper to turn possibly single values into seqs"
   [v]
   (cond
     (nil? v) v
-    (seq? v)  v
+    (seq? v) v
     (coll? v) (seq v)
     (.isArray (class v)) (seq v)
     :else (seq [v])))
@@ -82,8 +85,8 @@
       {}
       (map
         #(vector %1 (.. klass
-                      (getDeclaredField (str (constantize-keyword %1) suffix))
-                      (get nil)))
+                        (getDeclaredField (str (constantize-keyword %1) suffix))
+                        (get nil)))
         fields))))
 
 
@@ -102,7 +105,7 @@
 (defn atom?
   "Return true if a is an atom"
   [a]
-  (isa? (type a) clojure.lang.Atom))
+  (isa? (type a) Atom))
 
 (defn try-cast
   "Just like clojure.core/cast, but returns nil on failure rather than throwing ClassCastException"
@@ -117,9 +120,9 @@
   throw an exception and it uses (str) on the input."
   ^URL [s]
   (if (instance? URL s) s
-  (try
-    (URL. (str s))
-    (catch MalformedURLException e nil))))
+                        (try
+                          (URL. (str s))
+                          (catch MalformedURLException e nil))))
 
 (defn to-uri
   "Try to make a java.net.URI from s"
@@ -132,20 +135,20 @@
             (catch URISyntaxException e nil))))
 
 (defn to-dimension
-  ^java.awt.Dimension [v]
+  ^Dimension [v]
   (cond
-    (instance? java.awt.Dimension v) v
+    (instance? Dimension v) v
     (and (vector? v) (= 3 (count v)) (= :by (second v)))
-      (let [[w by h] v] (java.awt.Dimension. w h))
+    (let [[w by h] v] (Dimension. w h))
     :else (illegal-argument "v must be a Dimension or [w :by h] got " v)))
 
 (defn to-insets
   [v]
   (cond
-    (instance? java.awt.Insets v) v
-    (number? v) (java.awt.Insets. v v v v)
+    (instance? Insets v) v
+    (number? v) (Insets. v v v v)
     (vector? v) (let [[top left bottom right] v]
-                  (java.awt.Insets. top left (or bottom top) (or right left)))
+                  (Insets. top left (or bottom top) (or right left)))
     :else (illegal-argument "Don't know how to create insets from %s" v)))
 
 (defprotocol Children
@@ -156,11 +159,11 @@
 
 (extend-protocol Children
   ; Thankfully container covers JComponent, JFrame, dialogs, etc.
-  java.awt.Container    (children [this] (seq (.getComponents this)))
+  Container (children [this] (seq (.getComponents this)))
   ; Special case for menus. We want the logical menu items, not whatever
   ; junk is used to build them.
-  javax.swing.JMenuBar  (children [this] (seq (.getSubElements this)))
-  javax.swing.JMenu     (children [this] (seq (.getSubElements this))))
+  JMenuBar (children [this] (seq (.getSubElements this)))
+  JMenu (children [this] (seq (.getSubElements this))))
 
 (defn collect
   "Given a root widget or frame, returns a depth-fist seq of all the widgets
@@ -201,7 +204,7 @@
   [v]
   (cond
     (resource-key? v) (to-mnemonic-keycode (resource v))
-    (string? v)       (to-mnemonic-keycode (.charAt ^String v 0))
-    (char? v)         (int (Character/toUpperCase ^Character v))
-    :else             (int v)))
+    (string? v) (to-mnemonic-keycode (.charAt ^String v 0))
+    (char? v) (int (Character/toUpperCase ^Character v))
+    :else (int v)))
 

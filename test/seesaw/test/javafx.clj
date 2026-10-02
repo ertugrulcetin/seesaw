@@ -12,14 +12,16 @@
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.core :as core]
-   [seesaw.javafx :refer :all]))
+   [seesaw.javafx :refer :all])
+  (:import (java.awt Color)
+           (javafx.embed.swing JFXPanel)))
 
 (defdescribe jfxpanel-test
   (expect-it "creates a JFXPanel"
-    (instance? javafx.embed.swing.JFXPanel (jfxpanel)))
+    (instance? JFXPanel (jfxpanel)))
   (it "supports the default widget options"
     (let [p (jfxpanel :id :fx :background :blue)]
       (expect (= :fx (core/id-of p)))
-      (expect (= java.awt.Color/BLUE (.getBackground p)))))
+      (expect (= Color/BLUE (.getBackground p)))))
   (expect-it "is reachable through seesaw.core/jfxpanel"
-    (instance? javafx.embed.swing.JFXPanel (core/jfxpanel :id :fx))))
+    (instance? JFXPanel (core/jfxpanel :id :fx))))

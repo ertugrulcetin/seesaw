@@ -14,8 +14,8 @@
                         listbox listen scrollable select selection tree]]
    [seesaw.test.examples.example :refer [defexample]]
    [seesaw.tree :refer [simple-tree-model]])
-  (:import
-   (java.io File)))
+  (:import (java.io File)
+           (javax.swing JFileChooser)))
 
 ; Make a model for the directory tree
 (def tree-model
@@ -24,7 +24,7 @@
     (fn [f] (filter #(.isDirectory %) (.listFiles f)))
     (File. ".")))
 
-(def chooser (javax.swing.JFileChooser.)) ; FileChooser hack to get system icons
+(def chooser (JFileChooser.)) ; FileChooser hack to get system icons
 
 ; Render thing with right names and system icons
 (defn render-file-item

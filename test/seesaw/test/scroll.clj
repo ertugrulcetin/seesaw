@@ -12,7 +12,8 @@
   (:require
    [lazytest.core :refer [defdescribe describe expect it]]
    [seesaw.core :refer :all]
-   [seesaw.scroll :refer :all]))
+   [seesaw.scroll :refer :all])
+  (:import (java.awt Point Rectangle)))
 
 (defn make-test-table []
   (table :model [:columns [:a :b] :rows [[0 1] [2 3] [3 4] [4 5]]]))
@@ -31,11 +32,11 @@
     (it "can scroll to a java.awt.Point"
       (let [p (canvas)
             s (scrollable p)]
-        (scroll!* p :to (java.awt.Point. 20 20))))
+        (scroll!* p :to (Point. 20 20))))
     (it "can scroll to a java.awt.Rectangle"
       (let [p (canvas)
             s (scrollable p)]
-        (scroll!* p :to (java.awt.Rectangle. 20 20 10 10))))
+        (scroll!* p :to (Rectangle. 20 20 10 10))))
     (it "can scroll to [:point x y]"
       (let [p (canvas)
             s (scrollable p)]

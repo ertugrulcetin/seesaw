@@ -17,20 +17,22 @@
   (:require [seesaw.color :as color]
             [seesaw.invoke :refer [invoke-now*]]
             [seesaw.util :refer [illegal-argument]])
-  (:import (javax.swing LookAndFeel SwingUtilities UIManager)
-           (java.beans PropertyChangeListener)))
+  (:import (clojure.lang Reflector)
+           (java.awt Color Window)
+           (java.beans PropertyChangeListener)
+           (javax.swing LookAndFeel SwingUtilities UIManager)))
 
 (def ^{:private true} laf-classes
-  {:system         (UIManager/getSystemLookAndFeelClassName)
+  {:system (UIManager/getSystemLookAndFeelClassName)
    :cross-platform (UIManager/getCrossPlatformLookAndFeelClassName)
-   :metal          "javax.swing.plaf.metal.MetalLookAndFeel"
-   :nimbus         "javax.swing.plaf.nimbus.NimbusLookAndFeel"
-   :flat-light     "com.formdev.flatlaf.FlatLightLaf"
-   :flat-dark      "com.formdev.flatlaf.FlatDarkLaf"
-   :flat-intellij  "com.formdev.flatlaf.FlatIntelliJLaf"
-   :flat-darcula   "com.formdev.flatlaf.FlatDarculaLaf"
+   :metal "javax.swing.plaf.metal.MetalLookAndFeel"
+   :nimbus "javax.swing.plaf.nimbus.NimbusLookAndFeel"
+   :flat-light "com.formdev.flatlaf.FlatLightLaf"
+   :flat-dark "com.formdev.flatlaf.FlatDarkLaf"
+   :flat-intellij "com.formdev.flatlaf.FlatIntelliJLaf"
+   :flat-darcula "com.formdev.flatlaf.FlatDarculaLaf"
    :flat-mac-light "com.formdev.flatlaf.themes.FlatMacLightLaf"
-   :flat-mac-dark  "com.formdev.flatlaf.themes.FlatMacDarkLaf"})
+   :flat-mac-dark "com.formdev.flatlaf.themes.FlatMacDarkLaf"})
 
 (defn- flatlaf-class []
   (try (Class/forName "com.formdev.flatlaf.FlatLaf") (catch ClassNotFoundException _ nil)))
@@ -41,14 +43,14 @@
 (defn- to-laf ^LookAndFeel [v]
   (cond
     (instance? LookAndFeel v) v
-    (class? v)   (.newInstance (.getConstructor ^Class v (make-array Class 0)) (object-array 0))
+    (class? v) (.newInstance (.getConstructor ^Class v (make-array Class 0)) (object-array 0))
     (keyword? v) (if-let [c (laf-classes v)]
                    (try
                      (to-laf (Class/forName c))
                      (catch ClassNotFoundException _
                        (illegal-argument "Look and feel %s needs %s on the classpath" v c)))
                    (illegal-argument "Unknown look and feel %s. Must be one of %s" v (keys laf-classes)))
-    (string? v)  (to-laf (Class/forName v))
+    (string? v) (to-laf (Class/forName v))
     :else (illegal-argument "Don't know how to make a look and feel from %s" v)))
 
 (defn laf
@@ -80,8 +82,8 @@
   (invoke-now*
     (fn []
       (if (flatlaf? (laf))
-        (clojure.lang.Reflector/invokeStaticMethod ^Class (flatlaf-class) "updateUI" (object-array 0))
-        (doseq [w (java.awt.Window/getWindows)]
+        (Reflector/invokeStaticMethod ^Class (flatlaf-class) "updateUI" (object-array 0))
+        (doseq [w (Window/getWindows)]
           (SwingUtilities/updateComponentTreeUI w))))))
 
 (defn set-laf!
@@ -118,8 +120,8 @@
   []
   (let [l (laf)]
     (if (flatlaf? l)
-      (boolean (clojure.lang.Reflector/invokeStaticMethod ^Class (flatlaf-class) "isLafDark" (object-array 0)))
-      (if-let [^java.awt.Color c (UIManager/getColor "Panel.background")]
+      (boolean (Reflector/invokeStaticMethod ^Class (flatlaf-class) "isLafDark" (object-array 0)))
+      (if-let [^Color c (UIManager/getColor "Panel.background")]
         (< (+ (* 0.299 (.getRed c)) (* 0.587 (.getGreen c)) (* 0.114 (.getBlue c))) 128)
         false))))
 

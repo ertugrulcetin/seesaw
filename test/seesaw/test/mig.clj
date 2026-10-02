@@ -12,11 +12,12 @@
   (:require
    [lazytest.core :refer [defdescribe describe expect expect-it it]]
    [seesaw.core :refer :all]
-   [seesaw.mig :refer [mig-panel]]))
+   [seesaw.mig :refer [mig-panel]])
+  (:import (net.miginfocom.swing MigLayout)))
 
 (defdescribe mig-panel-test
   (expect-it "should create a panel with a MigLayout"
-    (= net.miginfocom.swing.MigLayout (class (.getLayout (mig-panel)))))
+    (= MigLayout (class (.getLayout (mig-panel)))))
   (it "should set MigLayout layout constraints"
     (let [p (mig-panel :constraints ["wrap 4", "[fill]", "[nogrid]"])
           l (.getLayout p)]

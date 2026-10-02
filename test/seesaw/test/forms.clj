@@ -12,7 +12,9 @@
   (:require
    [lazytest.core :refer [defdescribe expect it]]
    [seesaw.core :refer [action button text]]
-   [seesaw.forms :refer [forms-panel next-column next-line separator span title]]))
+   [seesaw.forms :refer [forms-panel next-column next-line separator span title]])
+  (:import (com.jgoodies.forms.layout Sizes)
+           (javax.swing JPanel)))
 
 (defdescribe forms-panel-test
   (it "Creates a JPanel using a JGoodies form builder"
@@ -20,7 +22,7 @@
               "pref,4dlu,80dlu,8dlu,pref,4dlu,80dlu"
               :column-groups [[1 5]]
               :leading-column-offset 0
-              :line-gap-size (com.jgoodies.forms.layout.Sizes/pixel 5)
+              :line-gap-size (Sizes/pixel 5)
               :items [(title "JGoodies forms test")
                       (separator "General")
                       "Company" (span (text) 5)
@@ -32,7 +34,7 @@
                       "R/mm"    (text :columns 10) "D/mm"     (text :columns 10)
                       (separator)]
               :default-dialog-border? true)]
-      (expect (instance? javax.swing.JPanel p)))))
+      (expect (instance? JPanel p)))))
 
 (defdescribe next-column-test
   (it "moves to a later column on the same line"

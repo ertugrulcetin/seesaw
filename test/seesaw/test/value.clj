@@ -12,7 +12,8 @@
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
    [seesaw.core :refer :all]
-   [seesaw.value :refer :all]))
+   [seesaw.value :refer :all])
+  (:import (javax.swing JLabel JTextArea JTextField)))
 
 (defdescribe value*-test
   (it "returns a map keyed by id for containers"
@@ -55,7 +56,7 @@
       (expect (= b (value* g)))))
 
   (expect-it "returns the text of a label"
-    (= "bye" (value* (javax.swing.JLabel. "bye"))))
+    (= "bye" (value* (JLabel. "bye"))))
 
   (expect-it "returns the text of an editor pane"
     (= "bye" (value* (editor-pane :text "bye"))))
@@ -64,10 +65,10 @@
     (= "bye" (value* (styled-text :text "bye"))))
 
   (expect-it "returns the text of a text area"
-    (= "bye" (value* (javax.swing.JTextArea. "bye"))))
+    (= "bye" (value* (JTextArea. "bye"))))
 
   (expect-it "returns the text of a text field"
-    (= "hi" (value* (javax.swing.JTextField. "hi")))))
+    (= "hi" (value* (JTextField. "hi")))))
 
 (defdescribe value!*-test
   (it "sets the values of widgets with a map keyed by id for containers"

@@ -11,20 +11,21 @@
 (ns seesaw.test.options
   (:require
    [lazytest.core :refer [defdescribe expect expect-it it]]
-   [seesaw.options :refer :all]))
+   [seesaw.options :refer :all])
+  (:import (javax.swing JPanel)))
 
 (defdescribe apply-options-test
   (expect-it "throws IllegalArgumentException if properties aren't even"
     (try
-      (apply-options (javax.swing.JPanel.) [1 2 3]) false
+      (apply-options (JPanel.) [1 2 3]) false
       (catch IllegalArgumentException e true)))
   (expect-it "throws IllegalArgumentException for an unknown property"
     (try
-      (apply-options (javax.swing.JPanel.) [:unknown "unknown"]) false
+      (apply-options (JPanel.) [:unknown "unknown"]) false
       (catch IllegalArgumentException e true)))
   (expect-it "throws IllegalArgumentException for a property with no setter"
     (try
-      (apply-options (javax.swing.JPanel.) 
+      (apply-options (JPanel.) 
                      [:no-setter "no-setter"])
       false
       (catch IllegalArgumentException e true))))
@@ -32,15 +33,15 @@
 (defdescribe get-option-value-test
   (expect-it "throws IllegalArgumentException if target has no handler map"
     (try
-      (get-option-value (javax.swing.JPanel.) :text) false
+      (get-option-value (JPanel.) :text) false
       (catch IllegalArgumentException e true)))
   (expect-it "throws IllegalArgumentException if option doesn't support getter"
     (try
-      (get-option-value (javax.swing.JPanel.) :text [{:text (default-option :text nil nil)}]) false
+      (get-option-value (JPanel.) :text [{:text (default-option :text nil nil)}]) false
       (catch IllegalArgumentException e true)))
   (expect-it "uses the getter of an option to retrieve a value"
     (= "hi" (get-option-value 
-              (javax.swing.JPanel.) 
+              (JPanel.) 
               :text 
               [{:text (default-option :text nil (constantly "hi"))}]))))
 

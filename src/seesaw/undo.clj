@@ -16,9 +16,9 @@
   seesaw.undo
   (:require [seesaw.keymap :refer [map-key]]
             [seesaw.meta :refer [get-meta put-meta!]])
-  (:import (javax.swing.undo UndoManager CompoundEdit)
-           (javax.swing.event UndoableEditListener)
-           (javax.swing.text Document JTextComponent)))
+  (:import (javax.swing.event UndoableEditListener)
+           (javax.swing.text Document JTextComponent)
+           (javax.swing.undo CompoundEdit UndoManager)))
 
 (defn- to-document ^Document [target]
   (if (instance? Document target)
@@ -37,14 +37,14 @@
   replaced, call this again for the new one."
   [target & {:keys [limit keys?] :or {limit 100 keys? true}}]
   (let [doc (to-document target)
-        um  (doto (UndoManager.) (.setLimit limit))
-        l   (reify UndoableEditListener
-              (undoableEditHappened [_ e]
-                (let [edit (.getEdit e)]
-                  (if-let [^CompoundEdit group (get-meta um ::group)]
-                    (.addEdit group edit)
-                    (when-not (get-meta um ::paused?)
-                      (.addEdit um edit))))))]
+        um (doto (UndoManager.) (.setLimit limit))
+        l (reify UndoableEditListener
+            (undoableEditHappened [_ e]
+              (let [edit (.getEdit e)]
+                (if-let [^CompoundEdit group (get-meta um ::group)]
+                  (.addEdit group edit)
+                  (when-not (get-meta um ::paused?)
+                    (.addEdit um edit))))))]
     (.addUndoableEditListener doc l)
     (put-meta! um ::stop #(.removeUndoableEditListener doc l))
     (when (and keys? (instance? JTextComponent target))

@@ -8,7 +8,9 @@
    [seesaw.dev :refer [debug!]]
    [seesaw.dnd :as dnd]
    [seesaw.graphics :refer [draw rect style]]
-   [seesaw.test.examples.example :refer [defexample]]))
+   [seesaw.test.examples.example :refer [defexample]])
+  (:import (java.awt Desktop)
+           (java.net URI)))
 
 (debug!)
 ; Adapted from http://tech.puredanger.com/2011/11/17/clojure-and-processing/
@@ -150,7 +152,7 @@
     ; Make a fake link
     (listen (select root [:#link])
       :mouse-clicked (fn [_] 
-                       (.. (java.awt.Desktop/getDesktop) (browse (java.net.URI. "http://www.bitstorm.org/gameoflife/lexicon/cells/")))))
+                       (.. (Desktop/getDesktop) (browse (URI. "http://www.bitstorm.org/gameoflife/lexicon/cells/")))))
 
     ; When the period changes, adjust the timer
     (listen (select root [:#period]) :selection 

@@ -12,7 +12,8 @@
   (:require
    [lazytest.core :refer [defdescribe expect it]]
    [seesaw.behave :refer [when-focused-select-all]]
-   [seesaw.core :refer [text]]))
+   [seesaw.core :refer [text]])
+  (:import (java.awt.event FocusEvent)))
 
 (defdescribe when-focused-select-all-test
   (it "causes all text in a text field to be selected when it gains focus"
@@ -20,6 +21,6 @@
           remove-fn (when-focused-select-all t)]
       ; Simulate focus gained :(
       (doseq [l (.getFocusListeners t)]
-        (.focusGained l (java.awt.event.FocusEvent. t java.awt.event.FocusEvent/FOCUS_GAINED)))
+        (.focusGained l (FocusEvent. t FocusEvent/FOCUS_GAINED)))
       (expect (= "Hi there" (.getSelectedText t))))))
 
