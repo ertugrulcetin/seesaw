@@ -176,3 +176,10 @@
           f (internal-frame :title "x")]
       (add! d f)
       (expect (= [f] (children d))))))
+
+(defdescribe select-heavyweight-test
+  (it "select walks trees that contain plain AWT components"
+    (let [c (java.awt.Canvas.)
+          p (vertical-panel :items [(label :id :x) c])]
+      (expect (= 3 (count (select p [:*]))))
+      (expect (some? (select p [:#x]))))))

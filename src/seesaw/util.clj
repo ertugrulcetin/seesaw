@@ -13,7 +13,7 @@
   (:require [clojure.string]
             [j18n.core :as j18n])
   (:import (clojure.lang Atom)
-           (java.awt Container Dimension Insets)
+           (java.awt Component Container Dimension Insets)
            (java.net MalformedURLException URI URISyntaxException URL)
            (javax.swing JMenu JMenuBar)))
 
@@ -158,6 +158,8 @@
   (children [c] "Returns a seq of the children of the given widget"))
 
 (extend-protocol Children
+  ; Leaf AWT components (e.g. a java.awt.Canvas such as an OpenGL canvas)
+  Component (children [this] nil)
   ; Thankfully container covers JComponent, JFrame, dialogs, etc.
   Container (children [this] (seq (.getComponents this)))
   ; Special case for menus. We want the logical menu items, not whatever
