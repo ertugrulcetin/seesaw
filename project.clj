@@ -33,5 +33,9 @@
             :name       "Seesaw",
             :page-title "Seesaw API Documentation"
             :copyright  "Copyright 2012, Dave Ray"}
-  :java-source-paths ["jvm"])
+  :java-source-paths ["jvm"]
+  :deploy-repositories [["releases" {:url           "https://repo.clojars.org"
+                                     :username      :env/clojars_username
+                                     :password      :env/clojars_password
+                                     :sign-releases true}]])
 
